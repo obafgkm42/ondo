@@ -1,22 +1,445 @@
-YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éíç­ùN‹Z–‹­¦ëeŠw¬ÔŒ5…É­•Ð=¹‘¼ƒ
-Üƒ².s²z”ƒ²b£®>()l…m%t¡¡ÑÑÁÌè¼½¥Ñ¡Õˆ¹½´½½‰…™­´ÐÈ½½¹‘¼½…Ñ¥½¹Ì½Ý½É­™±½ÝÌ½¤¹åµ°½‰…‘”¹ÍÙœ¥t¡¡ÑÑÁÌè¼½¥Ñ¡Õˆ¹½´½½‰…™­´ÐÈ½½¹‘¼½…Ñ¥½¹Ì½Ý½É­™±½ÝÌ½¤¹åµ°¤()±¥¡ÑÝ•¥¡Ðµ…É­•Ðƒ²b£®>€¡}½¹‘½|°ƒŠqÑ•µÁ•É…ÑÕÉ—Št¤µ½¹¥Ñ½ÈÑÉ…­¥¹œ…Ñ¥Ù¥Ñä°)™É…¥±¥Ñä±ÕÍÑ•ÉÌ°É•Í¥±¥•¹”°…¹É•Ù•ÉÍ…°Í¥¹…±Ì¸()5…É­•Ð=¹‘¼¥Ì„Á•ÉÍ½¹…°°É•…µ½¹±ä±½Õ‘™±…É”]½É­•È™½ÈÑ¡”!åÁ•É±¥ÅÕ¥)áåèéM@ÔÀÁ€Á•ÉÁ•ÑÕ…°µ…É­•Ð¸%ÑÌµ…¥¸©½ˆ¥ÌÑ¼…¹ÍÝ•ÈÑ¡É•”ÁÉ…Ñ¥…°)ÅÕ•ÍÑ¥½¹Ìè((Ä¸€¨©%ÌÑ½‘…ä…Ñ¥Ù”•¹½Õ Ñ¼ÑÉ…‘”ü¨¨ƒŠPÍ…µ”µÑ¥µ”IY=0…¹É••¹ÐÙ½±Õµ”(€€‰ÕÉÍÑÌ¸(È¸€¨©%Ìµ…É­•Ð‘…µ…”±ÕÍÑ•É¥¹œ½ÈÉ•Á…¥É¥¹œü¨¨ƒŠPÑÉ…¹ÍÁ…É•¹Ð(€€IM%1%9P€¼I%1€¼	I-%9€¼A9%€±…ÍÍ¥™¥…Ñ¥½¹Ì…¹Ñ¡•¥ÈÍÑÉ•ÍÍ•(€€µ•¡…¹¥ÍµÌ¸(Ì¸€¨©%ÌÉ•½Ù•ÉäÅÕ…±¥Ñä™…‘¥¹œü¨¨ƒŠP‰½Õ¹‘•°ÁÉ½ÍÁ•Ñ¥Ù”É•Í¥±¥•¹”Ñ•±•µ•ÑÉä¸()Q¡”½É¥¥¹…°½¹Ù•á¥ÑäµÉ•Ù•ÉÍ…°Í…¹¹•ÈÉ•µ…¥¹Ì…Ù…¥±…‰±”…Ì„Í•½¹‘…Éä°)™É½é•¸É•Í•…É ™•…ÑÕÉ”¸Q¡”]½É­•È¹•Ù•ÈÁ±…•Ì°µ½‘¥™¥•Ì°½È…¹•±Ì½É‘•ÉÌ¸((øl…]I9%9t(ø€¨©9ƒŠP9½Ð¥¹…¹¥…°‘Ù¥”¸¨¨Q¡¥Ì¥Ìµ½¹¥Ñ½É¥¹œ…¹É•Í•…É Í½™ÑÝ…É”°¹½Ð(ø¥¹Ù•ÍÑµ•¹Ð½È½µµ½‘¥ÑäµÑÉ…‘¥¹œ…‘Ù¥”¸	I-%9€°A9%€°„‰Õ±±¥Í (øÉ•©•Ñ¥½¸…¹‘±”°½È…¹ä½Ñ¡•È±…‰•°¥Ì¹½Ð…¸¥¹ÍÑÉÕÑ¥½¸Ñ¼Í¡½ÉÐ°‰ÕäÑ¡”(ø‘¥À°½È…±°„‰½ÑÑ½´¸	…­Ñ•ÍÑÌ…É”¡åÁ½Ñ¡•Ñ¥…°…¹‘¼¹½Ð•ÍÑ…‰±¥Í „(øÁÉ½™¥Ñ…‰±”ÍÑÉ…Ñ•ä¸I•…m%M1%5H¹µ‘t¡%M1%5H¹µ¤¸()Q¡”ÁÉ½©•Ð¥Ì¹½Ð…™™¥±¥…Ñ•Ý¥Ñ !åÁ•É±¥ÅÕ¥°¥Í½É°±½Õ‘™±…É”°…¹ä¥¹‘•à)ÁÉ½Ù¥‘•È°Ñ¡”9°Q°½ÈM¸((ŒŒ]¡…Ð5…É­•Ð=¹‘¼Í¡½ÝÌ()ðEÕ•ÍÑ¥½¸ð¥…¹½ÍÑ¥Œð=ÕÑÁÕÐð…¸¡…¹”ÑÉ…‘”…±•ÉÑÌüð)ð€´´´ð€´´´ð€´´´ð€´´´ð)ð%ÌÑ¡”Í•ÍÍ¥½¸…Ñ¥Ù”üðM…µ”µÑ¥µ”ÕµÕ±…Ñ¥Ù”…¹±…Ñ•ÍÐµÍ±½ÐIY=0ð]QI€°EU%Q€°9=I51€°Q%Y€°MUI€ð9¼ð)ð%Ì‘…µ…”ÍÁÉ•…‘¥¹œüðM¥àÉ•Á…¥Èµ•¡…¹¥ÍµÌðIM%1%9Q€°I%1€°	I-%9€°A9%€°U9-9=]9€ð=¹±äÑ¡”™É½é•¸¡¥ µÍÑÉ•ÍÌµ•¹Ñ¥½¸Á½±¥äð)ð%ÌÉ•½Ù•ÉäÝ•…­•¹¥¹œüð!…±˜µ¡½ÕÈ±¥Ù”É•Í¥±¥•¹”Á±ÕÌ™¥Ù”µµ¥¹ÕÑ”Í¡…‘½ÜÁ…Ñ ð%9MU%%9Q}Q€°IM%1%9Q€°%9€°I%1€ð9¼ð)ð¥ÁÉ¥”É•©•Ð…¸•áÑÉ•µ”üðÉ½é•¸É•Ù•ÉÍ…°ÉÕ±•Ìð]Q!€½È1IQ€ðQ¡¥Ì¥ÌÑ¡”É•Ñ…¥¹•…±•ÉÐ™•…ÑÕÉ”ð)ð…¸Ñ¡”¥¹ÁÕÑÌ‰”ÑÉÕÍÑ•üðÉ•Í¡¹•ÍÌ°½¹Ñ¥¹Õ¥Ñä°…¹UL…Í µÍ•ÍÍ¥½¸…±•¹‘…Èð¡•…±Ñ¡å€°‘•É…‘•‘€°ÍÑ…±•€°Õ¹…Ù…¥±…‰±•€ðe•ÌƒŠPÕ¹¡•…±Ñ¡ä‘…Ñ„Ý¥Ñ¡¡½±‘Ì‘•¥Í¥½¹Ìð()Q¡•Í”‘¥…¹½ÍÑ¥Ì‘•ÍÉ¥‰”‘¥™™•É•¹Ð…ÍÁ•ÑÌ½˜Ñ¡”Í…µ”Í•ÍÍ¥½¸¸Q¡•ä…É”¹½Ð)½µ‰¥¹•¥¹Ñ¼…¸½Á…ÅÕ”ÁÉ½‰…‰¥±¥Ñä½È…ÕÑ½µ…Ñ¥ŒÑÉ…‘”É•½µµ•¹‘…Ñ¥½¸¸((ŒŒ…Ñ„™±½Ü()µ•Éµ…¥)™±½Ý¡…ÉÐQ(€€€É½¹l‰±½Õ‘™±…É”É½¸‰t€´´ø]½É­•Él‰5…É­•Ð=¹‘¼]½É­•È‰t(€€€½µµ…¹‘l‰¥Í½É€½Í…¹¹•ÈÍÑ…ÑÕÌ‰t€´´ø]½É­•È(€€€]½É­•È€´´ø…Ñ…l‰!åÁ•É±¥ÅÕ¥ÁÕ‰±¥Œµ…É­•Ð‘…Ñ„‰t(€€€…Ñ„€´´ø¥…¹½ÍÑ¥Íl‰IY=0ƒ
-Ü™É…¥±¥Ñäƒ
-ÜÉ•Í¥±¥•¹”ƒ
-ÜÉ•Ù•ÉÍ…°‰t(€€€¥…¹½ÍÑ¥Ì€´´ø¥Í½É‘l‰AÉ¥Ù…Ñ”ÍÑ…ÑÕÌƒ
-ÜÍ¡•‘Õ±•‰É¥•™Ìƒ
-Ü…±•ÉÑÌ‰t(€€€¥…¹½ÍÑ¥Ì€ð´´ø-Yl‰	½Õ¹‘•±½Õ‘™±…É”-XÍÑ…Ñ”‰t)€()Q¡”±¥Ù”]½É­•È¥ÌQåÁ•MÉ¥ÁÐÕ¹‘•ÈÍÉŒ½€¸I•ÁÉ½‘Õ¥‰±”±½…°•Ù•¹ÐÍÑÕ‘¥•Ì)…¹‰…­Ñ•ÍÑÌ…É”AåÑ¡½¸Õ¹‘•ÈÁåÑ¡½¸½É•Ù•ÉÍ…±}Í…¹¹•É}‰…­Ñ•ÍÐ½€¸AåÑ¡½¸)‘•Á•¹‘•¹¥•Ì…¹•¹•É…Ñ•É•Á½ÉÑÌ…É”¹½ÐÁ…ÉÐ½˜Ñ¡”]½É­•ÈÉÕ¹Ñ¥µ”¸((ŒŒ€Ä¸5…É­•Ð…Ñ¥Ù¥Ñä…¹IY=0()5…É­•Ð…Ñ¥Ù¥Ñä½µÁ…É•ÌÕµÕ±…Ñ¥Ù”IQ Ù½±Õµ”Ý¥Ñ Ñ¡”Í…µ”½µÁ±•Ñ•(ÄÔµµ¥¹ÕÑ”Í±½Ð¥¸ÁÉ¥½ÈÙ…±¥Í•ÍÍ¥½¹Ìè()ðMÑ…Ñ”ðÕµÕ±…Ñ¥Ù”Í…µ”µÑ¥µ”IY=0ð)ð€´´´ð€´´´èð)ð]QI€ð€ð€À¸ØÕ€ð)ðEU%Q€ð€À¸ØÕ€Ñ¼€ð€À¸àÕ€ð)ð9=I51€ð€À¸àÕ€Ñ¼€ð€Ä¸ÈÁ€ð)ðQ%Y€ð€Ä¸ÈÁ€Ñ¼€ð€Ä¸ØÁ€ð)ðMUI€ð€øô€Ä¸ØÁ€ð()Q¡”±…Ñ•ÍÐ€ÄÔµµ¥¹ÕÑ”Í±½Ð…±Í¼É•Á½ÉÑÌ…¸¥¹‘•Á•¹‘•¹Ð‰ÕÉÍÐÉ•…‘¥¹œ¸‰ÕÉÍÐ)‘½•Ì¹½Ð½Ù•ÉÉ¥‘”Ñ¡”ÕµÕ±…Ñ¥Ù”Í•ÍÍ¥½¸ÍÑ…Ñ”¸A•É•¹Ñ¥±•Ì‰•¥¸…™Ñ•È•¹½Õ )Í…µ”µÍ±½Ð¡¥ÍÑ½Éä•á¥ÍÑÌìµ¥ÍÍ¥¹œ…¹‘±•Ì¹•Ù•È‰•½µ”™…­”±½ÜÙ½±Õµ”¸()=¹±ä½µÁ±•Ñ”ÍÑ…¹‘…ÉUL•ÅÕ¥ÑäÍ•ÍÍ¥½¹Ì•¹Ñ•ÈÑ¡”‘ÕÉ…‰±”‰…Í•±¥¹”¸9eM)¡½±¥‘…åÌ…¹É•ÕÉÉ¥¹œ•…É±ä±½Í•Ì…É”•á±Õ‘••Ù•¸¥˜Ñ¡”€ÈÐ¼ÜÁ•ÉÁ•ÑÕ…°)½¹Ñ¥¹Õ•ÌÑÉ…‘¥¹œ¸M•”)m5…É­•Ð…Ñ¥Ù¥Ñä…¹IY=0µ…ÐµÑ¥µ•t¡‘½Ì½µ…É­•Ðµ…Ñ¥Ù¥Ñäµµ•Ñ¡½‘½±½ä¹µ¤¸((ŒŒ€È¸É…¥±¥Ñä…¹É•Á…¥Èµ•¡…¹¥ÍµÌ()… ‘Õ”‰É¥•˜•Ù…±Õ…Ñ•ÌÍ¥à•áÁ±¥¥Ðµ•¡…¹¥ÍµÌè((Ä¸ÕÉÉ•¹ÐµÍ•ÍÍ¥½¸±½ÍÌì(È¸Á•ÉÍ¥ÍÑ•¹Ð‘¥ÍÁ±…•µ•¹Ð‰•±½ÜY]@ì(Ì¸Á½½È±…Ñ•ÍÐµ±½Í”±½…Ñ¥½¸¥¹Í¥‘”Ñ¡”½‰Í•ÉÙ•É…¹”ì(Ð¸„Ù½±…Ñ¥±¥Ñäµ…‘©ÕÍÑ•±ÕÍÑ•È½˜±…É”™¥Ù”µµ¥¹ÕÑ”±½ÍÍ•Ìì(Ô¸µ•„µ…ÀÍÑ½¬µÁ•ÉÁ•ÑÕ…°‰É•…‘Ñ ì…¹(Ø¸Í¥µÕ±Ñ…¹•½ÕÌÝ•…­¹•ÍÌ¥¸áåèéM@ÔÀÁ€…¹áåèéaehÄÀÁ€¸()Q¡”™É½é•¸±…ÍÍ¥™¥…Ñ¥½¸¥Ì½Õ¹Ðµ‰…Í•è()ð1•Ù•°ðMÑÉ•ÍÍ•µ•¡…¹¥ÍµÌð)ð€´´´ð€´´´èð)ðIM%1%9Q€ð€ÃŠLÄð)ðI%1€ð€Èð)ð	I-%9€ð€Ìð)ðA9%€ð€Ð½Èµ½É”ð)ðU9-9=]9€ð™•Ý•ÈÑ¡…¸™½ÕÈµ•¡…¹¥ÍµÌ…Ù…¥±…‰±”ð()Q¡”€ÃŠLÄÀÁ€ÍÑÉ•ÍÌÍ½É”¥Ì„É•…‘…‰±”™…¥±ÕÉ”µ½Õ¹ÐÍ…±”°¹½ÐÉ…Í )ÁÉ½‰…‰¥±¥Ñä¸áÁ…¹‘•áåé€ÍÑ½¬‰É•…‘Ñ ¥Ì½¹Ñ•áÐ½¹±ä…¹…¹¹½Ð‰•½µ”„)Í•Ù•¹Ñ µ•¡…¹¥Í´¸%˜É½ÍÌµµ…É­•Ðµ•Ñ…‘…Ñ„™…¥±Ì°Ñ¡”ÁÉ¥”µ½¹±ä‰É¥•˜É•µ…¥¹Ì)…Ù…¥±…‰±”…¹¥Ì±…‰•±±•Á…ÉÑ¥…°¸()M¡•‘Õ±•	I-%9€…¹A9%€‰É¥•™Ìµ•¹Ñ¥½¸•Ù•Éå½¹•€½¹±äÝ¡•¸Ñ¡”‘…Ñ„)¥Ì¡•…±Ñ¡ä…¹‰•±½¹ÌÑ¼„ÍÑ…¹‘…ÉIQ Í•ÍÍ¥½¸¸M¡…‘½ÜÁ•ÉÍ¥ÍÑ•¹”É•½É‘Ì)Ý¡•Ñ¡•È‘…µ…”¥Ì¹•Ü°•Í…±…Ñ¥¹œ°Á•ÉÍ¥ÍÑ•¹Ð°É½Ñ…Ñ¥¹œ°¥µÁÉ½Ù¥¹œ°É•½Ù•É•°)½ÈÉ•±…ÁÍ¥¹œ¸%Ð¹•Ù•ÈÉ•Á±…•ÌÑ¡”™É½é•¸±…ÍÍ¥™¥•È¸()Q¡”É•©•Ñ•ÁÉ½‰…‰¥±¥ÑäµØÈµ½‘•°¥Ì‘•±¥‰•É…Ñ•±ä…‰Í•¹Ð™É½´Ñ¡”]½É­•Èè¥ÑÌ)½ÕÐµ½˜µÍ…µÁ±”	É¥•ÈM­¥±°M½É”Ý…Ì¹•…Ñ¥Ù”¸M•”)mÉ…¥±¥ÑäØÈµ•Ñ¡½‘½±½åt¡‘½Ì½™É…¥±¥ÑäµØÈµµ•Ñ¡½‘½±½ä¹µ¤…¹Ñ¡”)m•Ù…±Õ…Ñ¥½¸É•Á½ÉÑt¡‘½Ì½™É…¥±¥ÑäµØÈµ•Ù…±Õ…Ñ¥½¸µÉ•Á½ÉÐ¹µ¤¸((ŒŒ€Ì¸I•Í¥±¥•¹”()I•Í¥±¥•¹”ÑÉ…­ÌÉ•½Ù•Éä…™Ñ•È½µÁ…É…‰±”‘É…Ý‘½Ý¸Í¡½­Ì¸Q¡”±¥Ù”Á…Ñ ÕÍ•Ì)„™¥á•¡…±˜µ¡½ÕÈÉ¥¸Í•Á…É…Ñ”™¥Ù”µµ¥¹ÕÑ”Í¡…‘½ÜÁ…Ñ ½±±•ÑÌÁÉ½ÍÁ•Ñ¥Ù”)½‰Í•ÉÙ…Ñ¥½¹ÌÕ¹‘•È¥ÑÌ½Ý¸-X­•ä…¹É•©•ÑÌÍ¡½¬ÍÑ…ÉÑÌÑ½¼±…Ñ”Ñ¼É•… Ñ¡”)ÑÝ¼µ¡½ÕÈ¡•­Á½¥¹Ð‰•™½É”Ñ¡”…Í ±½Í”¸()Q¡”Í¡…‘½ÜÁ…Ñ è((´É•ÕÍ•Ì…¹‘±•Ì…±É•…‘ä™•Ñ¡•™½ÈÑ¡”Í¡•‘Õ±•Í…¸ì(´…‘‘Ì¹¼!åÁ•É±¥ÅÕ¥É•ÅÕ•ÍÐì(´É•Ñ…¥¹Ì…Ðµ½ÍÐ€ÜàÕÉÉ•¹ÐµÍ•ÍÍ¥½¸Í¹…ÁÍ¡½ÑÌ…¹€ÄÈ½µÁ±•Ñ•Í¡½­Ìì(´™…¥±Ì½Á•¸¥˜-X¥ÌÕ¹…Ù…¥±…‰±”½Èµ…±™½Éµ•ì…¹(´…¹¹½Ð¡…¹”µ•ÍÍ…•Ì°µ•¹Ñ¥½¹Ì°™É…¥±¥Ñä°É•Ù•ÉÍ…°ÉÕ±•Ì°½ÈÑ¡É•Í¡½±‘Ì¸()!¥ÍÑ½É¥…°•Ù…±Õ…Ñ¥½¸™½Õ¹Ñ¡”ÕÉÉ•¹Ð%9€½¡½ÉÐÑ½¼ÍÁ…ÉÍ”™½È„)É•±¥…‰±”ÍÑÉ…Ñ•ä±…¥´°Í¼É•Í¥±¥•¹”É•µ…¥¹ÌÁÉ•Í•¹Ñ…Ñ¥½¸…¹É•Í•…É )Ñ•±•µ•ÑÉä¸M•”)mI•Í¥±¥•¹”‘•…äµ•Ñ¡½‘½±½åt¡‘½Ì½É•Í¥±¥•¹”µ‘•…äµµ•Ñ¡½‘½±½ä¹µ¤¸((ŒŒ€Ð¸I•Ñ…¥¹•É•Ù•ÉÍ…°Í…¹¹•È()Q¡”½É¥¥¹…°Í…¹¹•È‘•Ñ•ÑÌ™É•Í Í•ÍÍ¥½¸•áÑÉ•µ•Ì™½±±½Ý•‰ä„É•©•Ñ¥½¸)…¹‘±”°‰½Õ¹‘•¥¹Ù…±¥‘…Ñ¥½¸°ÍÕ™™¥¥•¹ÐÕ¹‘•É±å¥¹œµÁÉ¥”É•Ý…É°…¹™É½é•¸)ÁÉ¥”µH…¹¡•ÕÉ¥ÍÑ¥ŒµÍ½É”Ñ¡É•Í¡½±‘Ì¸]Q!€¥ÌÑ¡”•…É±¥•ÈÍÑ…Ñ”ì1IQ€)­••ÁÌÑ¡”ÍÑÉ¥Ñ•È™¥±Ñ•È¸((…mMå¹Ñ¡•Ñ¥Œ•á…µÁ±•Ì½˜ÅÕ…±¥™å¥¹œ…¹¹½¸µÅÕ…±¥™å¥¹œÉ•©•Ñ¥½¸…¹‘±•Ít¡‘½Ì½É•Ù•ÉÍ…°µÍ¥¹…°µ…¹‘±”µ•á…µÁ±•Ì¹ÍÙœ¤()Q¡¥ÌÉ•µ…¥¹Ì…¸•áÁ•É¥µ•¹Ñ…°™•…ÑÕÉ”É…Ñ¡•ÈÑ¡…¸Ñ¡”ÁÉ½‘ÕÓŠeÌµ…¥¸ÁÕÉÁ½Í”¸)Q¡”ÕÉÉ•¹Ð‘•±¥Ù•Éäµ…Ý…É”€ÈÀÀãŠLÈÀÈØÍÑÕ‘äÉ•Á½ÉÑÌ„™Õ±°µÍ…µÁ±”ÁÉ½™¥Ð™…Ñ½È)½˜€À¸àÍ€°É½±±¥¹œÁÉ½™¥Ð™…Ñ½È½˜€À¸àÙ€°…¹Í¥¹±”µÁ½Í¥Ñ¥½¸ÁÉ½™¥Ð™…Ñ½È½˜)€À¸àÑ€Õ¹‘•ÈÑ¡”™É½é•¸ÍÑ½ÀÁ½±¥ä¸Q¡½Í”É•ÍÕ±ÑÌ‘¼¹½ÐÙ…±¥‘…Ñ”„ÑÉ…‘…‰±”)•‘”¸%¸Á…ÉÑ¥Õ±…È°„½¹Ù•àµ±½½­¥¹œÉ•©•Ñ¥½¸‘ÕÉ¥¹œ„™É•”µ™…±°Í•ÍÍ¥½¸¥Ì)¹½Ð•Ù¥‘•¹”Ñ¡…Ð‰½ÑÑ½´µ™¥Í¡¥¹œ¥ÌÍ…™”¸()M•”mÕÉÉ•¹Ð•Ù¥‘•¹•t¡‘½Ì½ÕÉÉ•¹Ðµ•Ù¥‘•¹”¹µ¤…¹)m	…­Ñ•ÍÐ•Ù…±Õ…Ñ¥½¸Á±…¹t¡‘½Ì½‰…­Ñ•ÍÐµ•Ù…±Õ…Ñ¥½¸µÁ±…¸¹µ¤¸((ŒŒ…Ñ„µ¡•…±Ñ …Ñ”()Ù•ÉäÍ…¸¡•­ÌÑ¡”…±É•…‘äµ™•Ñ¡•…¹‘±•Ì™½È™É•Í¡¹•ÍÌ°™¥Ù”µµ¥¹ÕÑ”)½¹Ñ¥¹Õ¥Ñä°Í•ÍÍ¥½¸Í½Á”°…¹Ñ¡”ÍÕÁÁ½ÉÑ•UL•ÅÕ¥Ñä…±•¹‘…È¸Q¡¥Ì…‘‘Ì¹¼)ÁÉ½Ù¥‘•ÈÉ•ÅÕ•ÍÐ¸()MÑ…±”°…ÁÁ•°¡½±¥‘…ä°•…É±äµ±½Í”°½È½Ù•É¹¥¡Ð‘…Ñ„µ…äÉ•µ…¥¸Ù¥Í¥‰±”…Ì)•áÁ±¥¥Ñ±ä¥¹•±¥¥‰±”½¹Ñ•áÐ°‰ÕÐ¥Ð…¹¹½Ðè((´…‘™É…¥±¥Ñä½ÈÉ•Í¥±¥•¹”Á•ÉÍ¥ÍÑ•¹”ì(´ÁÉ•Í•¹ÐIY=0…Ì„±§­ù¶‰žËkºwµçHÝ\ÝÛHÛXZ[‹‚˜Ü˜[™Û\‹Û[^XÚ]H\ØX›\ÈHÛÈ]™[ÜY[Ý\™˜XÙ\ÈÛÈHÚ]X˜\ÙYœ™Y\ÞHÙ\È›Ý™[Ü[ˆ[N‚‚˜Û[ÛÜšÙ\œ×Ù]ˆH˜[ÙBœ™]šY]×Ý\›ÈH˜[ÙB˜‚•HÝ\ÝÛHÜÝ˜[YH\È[[[Û˜[H›ÝÛÛ[Z]Yˆ]™[XZ[œÈ]XÚY[™\‚ŠŠ•ÛÜšÙ\ˆ8¡¤ˆÙ][™ÜÈ8¡¤ˆÛXZ[œÈ	ˆ›Ý]\ÊŠ‹Ú[HH\ØÛÜ™[™Ú[\Ù\È]šÜÝ˜[YKˆH\ÝÜšXØ[˜[YX[ˆÜ˜[™Û\‹Û[\ÈH^\Ý[™ÈÛÝY›\™BœÙ\šXÙHY[YšY\ŽÈ™[˜[Z[™ÈHÚ]Xˆ™\ÜÚ]ÜžHÙ\È›Ý™\]Z\™HÚ[™Ú[™Âš]‚‚”X›XÈ[[YHY˜][È]™H[ˆÜ˜[™Û\‹Û[ˆÙXÜ™]ÈÝ^H[ˆÛÝY›\™N‚‚˜˜\Ú›œÜ˜[™Û\ˆÙXÜ™]]TÐÓÔ‘ÕÑP’ÓÒ×ÕT“›œÜ˜[™Û\ˆÙXÜ™]]TÐÓÔ‘ÐTPÐUSÓ—ÔP“P×ÒÑVB›œÜ˜[™Û\ˆÙXÜ™]]TÐÓÔ‘ÑÕRSÒQ˜‚˜PS•PSÔÐÐS—ÕÒÑS˜\ÈÜ[Û˜[ˆÚ]Ý]]H]][XØ]YÜØØ[˜[™Ú[œ™]\›œÈÈ\ØÛÜ™ÜØØ[›™\ˆÝ]\Ø™[XZ[œÈH›Ü›X[Û‹Y[X[™[\™˜XÙK‚•ÈÙY\H[Y\™Ù[˜ÞKÛX[X[[™Ú[Ù]]Ù\\˜][N‚‚˜˜\Ú›œÜ˜[™Û\ˆÙXÜ™]]PS•PSÔÐÐS—ÕÒÑS‚˜‚[ˆQYœ™YHÐÐS“‘T—ÔÕUXÕˆš[™[™È\ÈXÛ\™Y[ˆÜ˜[™Û\‹Û[ˆ]ÝÜ™\Â˜›Ý[™Y•“Ó\ÝÜžK˜Z[Y\ØØ[ˆ™XÛÝ™\žKÚYÛ˜[Y\XØ][Û‹XYÛ›ÜÝXÂœÚYÝÈÝ]K˜]K[[Z][˜ÚY[Ý]K[™™\œÚ[Ûˆ›ÝXÙ\ËˆÈ›ÝÛÛ[Z][‚˜XØÛÝ[\ÜXÚYšXÈ˜[Y\ÜXÙHQYˆÜ˜[™Û\ˆÜš]\ÈÛ™H[ÈHØØ[š[K‚‚Y\ˆ\È™\ÜÚ]ÜžH\È[šÙYÈH^\Ý[™ÈÛÝY›\™HÛÜšÙ\‹ÛÝY›\™B˜Z[È\ÞHH]\ÝXZ[ˆœ˜[˜Ú]]ÛX]XØ[KˆHX[X[\Þ[Y[™[XZ[œÂ˜]˜Z[X›N‚‚˜˜\Ú›œH[ˆ\ÞB˜‚ˆÈÈØÚY[H[™œ™YK]Y\ˆ\ØÚ\[™B‚ÛÝY›\™H[›ÚÙ\ÈHÛÜšÙ\ˆ]™\žHš]™HZ[]\Ë[ˆHÛÜšÙ\ˆ\Y\È]Â›ÝÛˆØ]N‚‚‹H›Ü›X[ØØ[œÈ]™\žHMHZ[]\ÎÂ‹HØØ[œÈ]™\žHš]™HZ[]\Èœ›ÛHMNŒ8 $ÌMŽŒ™]È[ÜšÈ[YNÂ‹HÝ[™\™\Ù\ÜÚ[ÛˆœšYYœÈ]™\žHÌZ[]\ÎÈ[™‹H›Û‹\Ý[™\™\Ù\ÜÚ[ÛˆœšYYœÈ›È[Ü™Hœ™\]Y[H[ˆÝ\›K‚‚‘XXÚØÚY[YØØ[ˆ\Ù\ÈÛ™H\\›\]ZYØ[™H™\]Y\Ý[™]˜[X]\È]™\žH™]Â™š]™K[Z[]HØ[™HÚ[˜ÙHH™]š[Ý\È[ÝÙYØØ[‹ˆHYHœšYYˆYÈÛ™B˜\œØ]YÛÜšY\Ø[™Û™HY]P[™\ÜÙ]ÝØ™\]Y\Ý›Üˆœ˜YÚ[]HÛÛ^ˆBš\ÝÜžKYYšXÚY[•“Ó[œÝ[][ÛˆX^HXZÙHÛ™H›Ý[™YMK[Z[]H›ÛÝÝ˜\œ™\]Y\ÝY\ˆH\Þ[Y[Üˆ\š[™È]ÈÜÝXÛÜÙH™]žHÚ[™ÝË‚‚•H›ÜÜXÝ]™HXYÛ›ÜÝXÜÈ™]\ÙHÜÙH™\ÜÛœÙ\Î‚‚‹Hœ˜YÚ[]HÚYÝÎˆ][ÜÝX›Ý]LÈÕˆ™XYÈ[™Üš]\È\ˆ[•^NÂ‹Hš]™K[Z[]H™\Ú[Y[˜ÙHÚYÝÎˆX›Ý]ÍHÕˆ™XYÈ[™Üš]\È[™\ˆHZ^Yˆ›ÙXÝ[ÛˆØY[˜ÙKÚ]HÛÛœÙ\˜]]™HÎ[Ü\˜][ÛˆÙZ[[™ÎÈ[™‹H›È^˜H\\›\]ZY™\]Y\Ý›ÜˆZ]\ˆÚYÝÈÛÛXÝÜ‹‚‚[\˜X›HÛÛXÝ[ÛœÈ\™H›Ý[™Yˆ›ÝšY\‹Y]Y]KÜˆÕˆ˜Z[\™\È˜Z[›Ü[ˆ[™X]™HHÛÜ™H™XY[Û›H[Ûš]Üˆ]˜Z[X›KˆÝ\œ™[][ÝH™Y™\™[˜Ù\Â˜[™H[™\ÛÝ\˜ÙHÛÛ˜XÝ]™H[ˆH[šÙYY]ÙÛÙÞHØÝ[Y[È˜]\‚[ˆ™Z[™È\XØ]Y\È\ÜÝ[\[ÛœÈ\™K‚‚ˆÈÈÛÛ™šYÝ\˜][Ûˆ[Ù\Â‚•H™\ÜÚ]ÜžH\Þ[Y[Ý\œ™[H\Ù\Î‚‚˜Û[–Ý˜\œ×B“S‘ÕPQÑHHžš‚“PT’ÑUÐPÕU’UWÓSÑHH™\Ü^H‚‘”QÒSUWÔT”ÒTÕSÑWÓSÑHHœÚYÝÈ‚”‘TÒSQSÑWÑPÐVWÔÒQÕ×ÓSÑHHœÚYÝÈ‚˜‚‹HPT’ÑUÐPÕU’UWÓSÑXˆÙ™˜ÚYÝØÜˆ\Ü^XÂ‹H”QÒSUWÔT”ÒTÕSÑWÓSÑXˆÙ™˜ÚYÝØÜˆ\Ü^XÂ‹H‘TÒSQSÑWÑPÐVWÔÒQÕ×ÓSÑXˆÙ™˜ÜˆÚYÝØ‚‚”\œÙ\ˆY˜][È™[XZ[ˆÛÛœÙ\˜]]™H]™[ˆÚ\™H\È™\ÜÚ]ÜžH^XÚ]HÜÂš[È›Ý[™YÛÛXÝ[ÛˆÜˆ\Ü^KˆÛÛ™›XÝ[™ÈYØXÞB˜”QÒSUWÕŒ—ÓSÑXØ”QÒSUWÔT”ÒTÕSÑWÓSÑX˜[Y\È˜Z[ÛÛ™šYÝ\˜][Û‚›ØY[™Ë‚‚ˆÈÈØØ[]™[ÜY[‚”™\]Z\™[Y[Î‚‚‹H›ÙKšœÈŒˆÜˆ™]Ù\ŽÂ‹H]ÛˆËŒLŽÈ[™‹H]˜›Üˆ™\ÙX\˜ÚÛÛ[™Ë‚‚˜˜\Ú›œHÚB›œH\Ý›œH[ˆ\XÚXÚÂ]ˆÞ[˜ÈKY]‚]ˆ[ˆ]\Ý˜‚”[ˆHÛÜšÙ\ˆØØ[N‚‚˜˜\Ú›œH[ˆ]‚˜‚•šYÙÙ\ˆHØØ[ØÚY[Y[™\Ž‚‚˜^š‹ËÛØØ[ÜÝŽÎËØÙ‹XÙÚKÚ[™\‹ÜØÚY[Y˜‚ÛÜH™[‹™^[\XÈ™]‹˜\œØ›ÜˆØØ[š[™[™ÜËˆ™]™\ˆÛÛ[Z]™X[ÙXšÛÚÈT“ËXØÛÝ[QË›ÝÚÙ[œËÜˆX[X[\ØØ[ˆÚÙ[œË‚‚ˆÈÈÙ™›[™H™\ÙX\˜ÚÛÛ[X[™Â‚•H™\ÜÚ]ÜžHÛÛZ[œÈÛ›HÞ[]XÈš^\™\Ëˆœš[™È]Ù[HØZ[™Y]B˜[™™]šY]È]ÈXÙ[˜ÙH™Y›Ü™H\ÙK‚‚ˆÈÈÈ™]™\œØ[]™[ÝYB‚˜˜\Ú]ˆ[ˆ™]™\œØ[\ØØ[›™\‹X˜XÚÝ\ÝˆKZ[œ]\ÝËÙš^\™\ËÜÞ[]XËXØ[™\ËšœÛÛˆˆK[Ý]]˜XÚÝ\ÝÜÛ[ÚÙKÜ™]™\œØ[Ø˜XÚÝ\ÝšœÛÛˆˆK[Ý]]Y\ˆ˜XÚÝ\ÝÜÛ[ÚÙHˆK\™\^K[[ÙH]™\žKX˜\ˆˆK\ÛÝ\˜ÙK][Y^›Û™HUÈˆK\XÙX›Ë\[œÈˆKX›ÛÝÝ˜\\[œÈ˜‚ˆÈÈÈœ˜YÚ[]H]™[ÝYH[™™Z™XÝYŒˆØ[™Y]B‚˜˜\Ú]ˆ[ˆœ˜YÚ[]KX˜XÚÝ\ÝˆKZ[œ]]ÝËÔÔÙ[Í[Z[—ÐÕšœÛÛˆˆK[Ý]]Y\ˆ˜XÚÝ\ÝÙœ˜YÚ[]K\šXÙK[Û›K]ŒHˆK\ÛÝ\˜ÙK][Y^›Û™H[Y\šXØKÐÚXØYÛÈˆK\ÛÝ\˜ÙK][Y\Ý[\[[ÙH˜Z]™K[ØØ[‚]ˆ[ˆœ˜YÚ[]K]Œ‹Y]˜[X]HˆKZ[œ][ØœÙ\˜][ÛœÈ˜XÚÝ\ÝÙœ˜YÚ[]K\šXÙK[Û›K]ŒKÙ]™[ËÙœ˜YÚ[]WÛØœÙ\˜][ÛœË˜ÜÝˆˆK[Ý]]Y\ˆ˜XÚÝ\ÝÙœ˜YÚ[]K]Œ‹\ÚYÝÈˆKX›ÛÝÝ˜\\[œÈL˜‚ˆÈÈÈ›ÜÜXÝ]™Hœ˜YÚ[]HÛ˜\ÚÝ‚“Û™HX[X[Õˆ^ÜØ[ˆ™H[˜[\ÙYÛÛ\][HÙ™›[™N‚‚˜˜\Ú›ZÙ\ˆ\™\ÜËÙÙ[™\˜]Y›œÜ˜[™Û\ˆÝˆÙ^HÙ]ˆ›X\šÙ]Yœ˜YÚ[]K]Œ‹\ÚYÝÎž^Ž”ÔLˆˆKXš[™[™ÈÐÐS“‘T—ÔÕUHˆK\™[[ÝHˆK]^ˆ™\ÜËÙÙ[™\˜]YÙœ˜YÚ[]K\ÚYÝË\Ý]KšœÛÛ‚‚]ˆ[ˆœ˜YÚ[]K\ÚYÝË\™\ÜˆKZ[œ]\Ý]H™\ÜËÙÙ[™\˜]YÙœ˜YÚ[]K\ÚYÝË\Ý]KšœÛÛ‚˜‚•HYÛ›Ü™Y™\ÜÙ\\˜]\È™\X]YœšYYˆÛÝ[Èœ›ÛH[š\]YK\Ù\ÜÚ[Û‚œ™]˜[[˜ÙKˆ]\È\ØÜš\]™H[[Y]žHÛ›KˆÙYB–Ñœ˜YÚ[]HÚYÝÈÛ˜\ÚÝ™\ÜJØÜËÙœ˜YÚ[]K\ÚYÝË\™\Ü›Y
-K‚‚ˆÈÈÈ™\Ú[Y[˜ÙH]™[ÝYB‚˜˜\Ú]ˆ[ˆ™\Ú[Y[˜ÙKYXØ^KX˜XÚÝ\ÝˆKZ[œ]]ÝËÔÔÙ[Í[Z[—ÐÕšœÛÛˆˆK[Ý]]Y\ˆ˜XÚÝ\ÝÜ™\Ú[Y[˜ÙKYXØ^K]ŒHˆK\ÛÝ\˜ÙK][Y^›Û™H[Y\šXØKÐÚXØYÛÈˆK\ÛÝ\˜ÙK][Y\Ý[\[[ÙH˜Z]™K[ØØ[ˆK\Ù\ÜÚ[Û‹][Y^›Û™H[Y\šXØKÓ™]×Ö[ÜšÂ˜‚‘Ù[™\˜]Y˜XÚÝ\ÝØ[™™\ÜËÙÙ[™\˜]YØÝ]]È\™HYÛ›Ü™YžHÚ]ˆB•\TØÜš\]™H][œÈHÚ\™YX\šÙ]Y]K\\[[™X™]š\Ú[Ûˆ[‚˜XÚØYÙKšœÛÛ˜ÈØ[›ÛšXØ[[œ]ÛÛ˜XÝÈ\™HØÝ[Y[Y[‚–ÓX\šÙ]Y]HÛÝ\˜Ù\×JØÜËÛX\šÙ]Y]K\ÛÝ\˜Ù\Ë›Y
-K‚‚ˆÈÈ™\ÙX\˜Ú[™ØY™]HÛÛ˜XÝ‚‹H]™HX™[È\™H˜[œÜ\™[XYÛ›ÜÝXÜË›ÝØ[Xœ˜]Y›Ø˜Xš[]Y\Ë‚‹HH™Z™XÝY›Ø˜Xš[]HØ[™Y]H\È›Ý[™Y[È›ÙXÝ[Û‹‚‹HÚYÝÈ[[Y]žHØ[››ÝÚ[[H›Û[ÝH]Ù[ˆ[È[\ÈÜˆ™\ÚÛË‚‹H™]™\œØ[™\ÙX\˜Ú[Ù[È[]™\žH][˜ÞK^\™Y[šY\ËÝÜËÛ\YÙKˆÛÜÝË[™Ù\ÜÚ[Û‹XÛ\Ý\ˆ[˜Ù\Z[K‚‹H\˜[Y]\ˆ˜\šX[È\™H™\ÜY›Üˆ˜[ÚYšXØ][Û‹›Ý]]ÛX]XØ[HÙ[XÝYˆœ›ÛHH[œÜXÝY\ÝÜšXØ[Ø[\K‚‹HX›XËZY\œÛÛ˜[^™YÜˆXØÛÝ[[[šÙY\ÝšX][ÛˆØ[ˆÜ™X]HYØ[ˆ[™]›Ü›HØ›YØ][ÛœÈ™^[Û™\Èš]˜]H™\ÙX\˜Ú\Þ[Y[‚‚ˆÈÈØÝ[Y[][Û‚‚‹HÐÝ\œ™[]šY[˜ÙWJØÜËØÝ\œ™[Y]šY[˜ÙK›Y
-B‹HÓX\šÙ]XÝ]š]HY]ÙÛÙÞWJØÜËÛX\šÙ]XXÝ]š]K[Y]ÙÛÙÞK›Y
-B‹HÑœ˜YÚ[]H˜XÚÝ\ÝY]ÙÛÙÞWJØÜËÙœ˜YÚ[]KX˜XÚÝ\Ý[Y]ÙÛÙÞK›Y
-B‹HÑœ˜YÚ[]HŒˆY]ÙÛÙÞWJØÜËÙœ˜YÚ[]K]Œ‹[Y]ÙÛÙÞK›Y
-B‹HÑœ˜YÚ[]HŒˆ]˜[X][Û—JØÜËÙœ˜YÚ[]K]Œ‹Y]˜[X][Û‹\™\Ü›Y
-B‹HÑœ˜YÚ[]HÚYÝÈÛ˜\ÚÝ™\ÜJØÜËÙœ˜YÚ[]K\ÚYÝË\™\Ü›Y
-B‹HÔ™\Ú[Y[˜ÙHXØ^HY]ÙÛÙÞWJØÜËÜ™\Ú[Y[˜ÙKYXØ^K[Y]ÙÛÙÞK›Y
-B‹HÐ˜XÚÝ\Ý]˜[X][Ûˆ[—JØÜËØ˜XÚÝ\ÝY]˜[X][Û‹\[‹›Y
-B‹HÑ\ØÛZ[Y\—JTÐÓRSQT‹›Y
-B‹HÐÛÛ\X[˜ÙH›Ý\×JÓÓTPSÑK›Y
-B‹HÔÙXÝ\š]HÛXÞWJÑPÕT’UK›Y
-B‹HÕ\™\\H›ÝXÙ\×JT‘ÔT•WÓ“ÕPÑTË›Y
-B‹HÐÛÛšX][™×JÓÓ•’P•US‘Ë›Y
-B‹HÓRUXÙ[œÙWJPÑS”ÑJB‚•HRUXÙ[œÙHÛÝ™\œÈ\È™\ÜÚ]Üžx &\ÈÜšYÚ[˜[ÛÙH[™ØÝ[Y[][Û‹ˆ]™Ù\È›ÝÜ˜[šYÚÈÈ\™\\HX\šÙ]]KÙ\šXÙHX\šÜËT\ËÜ‚™]\Ù]Ë‚
+# Market Ondo Â· ì‹œìž¥ ì˜¨ë„
+
+[![CI](https://github.com/obafgkm42/ondo/actions/workflows/ci.yml/badge.svg)](https://github.com/obafgkm42/ondo/actions/workflows/ci.yml)
+
+A lightweight market ì˜¨ë„ (_ondo_, â€œtemperatureâ€) monitor tracking activity,
+fragility clusters, resilience, and reversal signals.
+
+Market Ondo is a personal, read-only Cloudflare Worker for the Hyperliquid
+`xyz:SP500` perpetual market. Its main job is to answer three practical
+questions:
+
+1. **Is today active enough to trade?** â€” same-time RVOL and recent volume
+   bursts.
+2. **Is market damage clustering or repairing?** â€” transparent
+   `RESILIENT / FRAGILE / BREAKING / PANIC` classifications and their stressed
+   mechanisms.
+3. **Is recovery quality fading?** â€” bounded, prospective resilience telemetry.
+
+The original convexity-reversal scanner remains available as a secondary,
+frozen research feature. The Worker never places, modifies, or cancels orders.
+
+> [!WARNING]
+> **NFA â€” Not Financial Advice.** This is monitoring and research software, not
+> investment or commodity-trading advice. `BREAKING`, `PANIC`, a bullish
+> rejection candle, or any other label is not an instruction to short, buy the
+> dip, or call a bottom. Backtests are hypothetical and do not establish a
+> profitable strategy. Read [DISCLAIMER.md](DISCLAIMER.md).
+
+The project is not affiliated with Hyperliquid, Discord, Cloudflare, any index
+provider, the NFA, CFTC, or SEC.
+
+## What Market Ondo shows
+
+| Question | Diagnostic | Output | Can change trade alerts? |
+| --- | --- | --- | --- |
+| Is the session active? | Same-time cumulative and latest-slot RVOL | `DEADWATER`, `QUIET`, `NORMAL`, `ACTIVE`, `SURGE` | No |
+| Is damage spreading? | Six repair mechanisms | `RESILIENT`, `FRAGILE`, `BREAKING`, `PANIC`, `UNKNOWN` | Only the frozen high-stress mention policy |
+| Is recovery weakening? | Half-hour live resilience plus five-minute shadow path | `INSUFFICIENT_DATA`, `RESILIENT`, `FADING`, `FRAGILE` | No |
+| Did price reject an extreme? | Frozen reversal rules | `WATCH` or `ALERT` | This is the retained alert feature |
+| Can the inputs be trusted? | Freshness, continuity, and US cash-session calendar | `healthy`, `degraded`, `stale`, `unavailable` | Yes â€” unhealthy data withholds decisions |
+
+These diagnostics describe different aspects of the same session. They are not
+combined into an opaque probability or automatic trade recommendation.
+
+## Data flow
+
+```mermaid
+flowchart TD
+    Cron["Cloudflare Cron"] --> Worker["Market Ondo Worker"]
+    Command["Discord /scanner status"] --> Worker
+    Worker --> Data["Hyperliquid public market data"]
+    Data --> Diagnostics["RVOL Â· fragility Â· resilience Â· reversal"]
+    Diagnostics --> Discord["Private status Â· scheduled briefs Â· alerts"]
+    Diagnostics <--> KV["Bounded Cloudflare KV state"]
+```
+
+The live Worker is TypeScript under `src/`. Reproducible local event studies
+and backtests are Python under `python/reversal_scanner_backtest/`. Python
+dependencies and generated reports are not part of the Worker runtime.
+
+## 1. Market activity and RVOL
+
+Market activity compares cumulative RTH volume with the same completed
+15-minute slot in prior valid sessions:
+
+| State | Cumulative same-time RVOL |
+| --- | ---: |
+| `DEADWATER` | `< 0.65` |
+| `QUIET` | `0.65` to `< 0.85` |
+| `NORMAL` | `0.85` to `< 1.20` |
+| `ACTIVE` | `1.20` to `< 1.60` |
+| `SURGE` | `>= 1.60` |
+
+The latest 15-minute slot also reports an independent burst reading. A burst
+does not override the cumulative session state. Percentiles begin after enough
+same-slot history exists; missing candles never become fake low volume.
+
+Only complete standard US equity sessions enter the durable baseline. NYSE
+holidays and recurring early closes are excluded even if the 24/7 perpetual
+continues trading. See
+[Market activity and RVOL-at-time](docs/market-activity-methodology.md).
+
+## 2. Fragility and repair mechanisms
+
+Each due brief evaluates six explicit mechanisms:
+
+1. current-session loss;
+2. persistent displacement below VWAP;
+3. poor latest-close location inside the observed range;
+4. a volatility-adjusted cluster of large five-minute losses;
+5. mega-cap stock-perpetual breadth; and
+6. simultaneous weakness in `xyz:SP500` and `xyz:XYZ100`.
+
+The frozen classification is count-based:
+
+| Level | Stressed mechanisms |
+| --- | ---: |
+| `RESILIENT` | 0â€“1 |
+| `FRAGILE` | 2 |
+| `BREAKING` | 3 |
+| `PANIC` | 4 or more |
+| `UNKNOWN` | fewer than four mechanisms available |
+
+The `0â€“100` stress score is a readable failure-count scale, not crash
+probability. Expanded `xyz` stock breadth is context only and cannot become a
+seventh mechanism. If cross-market metadata fails, the price-only brief remains
+available and is labelled partial.
+
+Scheduled `BREAKING` and `PANIC` briefs mention `@everyone` only when the data
+is healthy and belongs to a standard RTH session. Shadow persistence records
+whether damage is new, escalating, persistent, rotating, improving, recovered,
+or relapsing. It never replaces the frozen classifier.
+
+The rejected probability-v2 model is deliberately absent from the Worker: its
+out-of-sample Brier Skill Score was negative. See
+[Fragility v2 methodology](docs/fragility-v2-methodology.md) and the
+[evaluation report](docs/fragility-v2-evaluation-report.md).
+
+## 3. Resilience
+
+Resilience tracks recovery after comparable drawdown shocks. The live path uses
+a fixed half-hour grid. A separate five-minute shadow path collects prospective
+observations under its own KV key and rejects shock starts too late to reach the
+two-hour checkpoint before the cash close.
+
+The shadow path:
+
+- reuses candles already fetched for the scheduled scan;
+- adds no Hyperliquid request;
+- retains at most 78 current-session snapshots and 12 completed shocks;
+- fails open if KV is unavailable or malformed; and
+- cannot change messages, mentions, fragility, reversal rules, or thresholds.
+
+Historical evaluation found the current `FADING` cohort too sparse for a
+reliable strategy claim, so resilience remains presentation and research
+telemetry. See
+[Resilience decay methodology](docs/resilience-decay-methodology.md).
+
+## 4. Retained reversal scanner
+
+The original scanner detects fresh session extremes followed by a rejection
+candle, bounded invalidation, sufficient underlying-price reward, and frozen
+price-R and heuristic-score thresholds. `WATCH` is the earlier state; `ALERT`
+keeps the stricter filter.
+
+![Synthetic examples of qualifying and non-qualifying rejection candles](docs/reversal-signal-candle-examples.svg)
+
+This remains an experimental feature rather than the productâ€™s main purpose.
+The current delivery-aware 2008â€“2026 study reports a full-sample profit factor
+of `0.83`, rolling profit factor of `0.86`, and single-position profit factor of
+`0.84` under the frozen stop policy. Those results do not validate a tradable
+edge. In particular, a convex-looking rejection during a free-fall session is
+not evidence that bottom-fishing is safe.
+
+See [Current evidence](docs/current-evidence.md) and
+[Backtest evaluation plan](docs/backtest-evaluation-plan.md).
+
+## Data-health gate
+
+Every scan checks the already-fetched candles for freshness, five-minute
+continuity, session scope, and the supported US equity calendar. This adds no
+provider request.
+
+Stale, gapped, holiday, early-close, or overnight data may remain visible as
+explicitly ineligible context, but it cannot:
+
+- add fragility or resilience persistence;
+- present RVOL as a live RTH input;
+- route a reversal opportunity; or
+- trigger `@everyone`.
+
+Hyperliquid `xyz:SP500` is a venue-specific perpetual market, not official cash
+SPX. Basis, funding, oracle, liquidity, and volume differences are possible.
+
+## Primary interface: Discord
+
+Market Ondo uses Discord HTTP Interactions. It does not maintain a Gateway
+connection, read ordinary messages, request privileged intents, or place
+orders. Responses to slash commands are ephemeral.
+
+- `/scanner status` performs one live, read-only query and privately returns
+  price, RVOL, fragility mechanisms, resilience, data coverage, and any retained
+  reversal state.
+- `/scanner repair` explains the six mechanisms and frozen level thresholds
+  without requesting market data.
+- `/scanner help` shows the private command guide.
+
+Every interaction must have a valid Discord Ed25519 signature and match the
+configured `DISCORD_GUILD_ID`.
+
+### Discord setup
+
+1. Create a Discord application and copy its Application ID and Public Key.
+2. Store `DISCORD_APPLICATION_PUBLIC_KEY` and `DISCORD_GUILD_ID` as Cloudflare
+   secrets.
+3. Set the Developer Portal **Interactions Endpoint URL** to:
+
+   ```text
+   https://<your-custom-domain>/discord/interactions
+   ```
+
+4. Install the application with only the `applications.commands` scope.
+5. Temporarily provide the Application ID, Guild ID, and Bot Token locally,
+   then register the guild command:
+
+   ```bash
+   DISCORD_APPLICATION_ID=... \
+   DISCORD_GUILD_ID=... \
+   DISCORD_BOT_TOKEN=... \
+   npm run discord:register
+   ```
+
+6. Unset the bot token. Use **Server Settings â†’ Integrations** to grant the
+   desired role or channel access; commands default to administrators.
+
+Guild commands normally update immediately. Broad multi-server distribution is
+out of scope for this personal deployment.
+
+## Cloudflare deployment
+
+The production interface uses a dashboard-managed Cloudflare Custom Domain.
+`wrangler.toml` explicitly disables the two development surfaces so a Git-based
+redeploy does not reopen them:
+
+```toml
+workers_dev = false
+preview_urls = false
+```
+
+The custom hostname is intentionally not committed. It remains attached under
+**Worker â†’ Settings â†’ Domains & Routes**, while the Discord endpoint uses that
+hostname. The historical `name` in `wrangler.toml` is the existing Cloudflare
+service identifier; renaming the GitHub repository does not require changing
+it.
+
+Public runtime defaults live in `wrangler.toml`. Secrets stay in Cloudflare:
+
+```bash
+npx wrangler secret put DISCORD_WEBHOOK_URL
+npx wrangler secret put DISCORD_APPLICATION_PUBLIC_KEY
+npx wrangler secret put DISCORD_GUILD_ID
+```
+
+`MANUAL_SCAN_TOKEN` is optional. Without it, the authenticated `/scan` endpoint
+returns `404`; Discord `/scanner status` remains the normal on-demand interface.
+To keep the emergency/manual endpoint, set it separately:
+
+```bash
+npx wrangler secret put MANUAL_SCAN_TOKEN
+```
+
+An ID-free `SCANNER_STATE` KV binding is declared in `wrangler.toml`. It stores
+bounded RVOL history, failed-scan recovery, signal deduplication, diagnostic
+shadow state, rate-limit incident state, and version notices. Do not commit an
+account-specific namespace ID if Wrangler writes one into a local file.
+
+After this repository is linked to the existing Cloudflare Worker, Cloudflare
+builds deploy the latest main branch automatically. A manual deployment remains
+available:
+
+```bash
+npm run deploy
+```
+
+## Schedule and free-tier discipline
+
+Cloudflare invokes the Worker every five minutes, then the Worker applies its
+own gate:
+
+- normal scans every 15 minutes;
+- scans every five minutes from 15:00â€“16:00 New York time;
+- standard-session briefs every 30 minutes; and
+- non-standard-session briefs no more frequently than hourly.
+
+Each scheduled scan uses one Hyperliquid candle request and evaluates every new
+five-minute candle since the previous allowed scan. A due brief adds one
+`perpCategories` and one `metaAndAssetCtxs` request for fragility context. A
+history-deficient RVOL installation may make one bounded 15-minute bootstrap
+request after a deployment or during its post-close retry window.
+
+The prospective diagnostics reuse those responses:
+
+- fragility shadow: at most about 13 KV reads and writes per full RTH day;
+- five-minute resilience shadow: about 35 KV reads and writes under the mixed
+  production cadence, with a conservative 78-operation ceiling; and
+- no extra Hyperliquid request for either shadow collector.
+
+All durable collections are bounded. Provider, metadata, or KV failures fail
+open and leave the core read-only monitor available. Current quota references
+and the full resource contract live in the linked methodology documents rather
+than being duplicated as assumptions here.
+
+## Configuration modes
+
+The repository deployment currently uses:
+
+```toml
+[vars]
+LANGUAGE = "zh"
+MARKET_ACTIVITY_MODE = "display"
+FRAGILITY_PERSISTENCE_MODE = "shadow"
+RESILIENCE_DECAY_SHADOW_MODE = "shadow"
+```
+
+- `MARKET_ACTIVITY_MODE`: `off`, `shadow`, or `display`;
+- `FRAGILITY_PERSISTENCE_MODE`: `off`, `shadow`, or `display`;
+- `RESILIENCE_DECAY_SHADOW_MODE`: `off` or `shadow`.
+
+Parser defaults remain conservative even where this repository explicitly opts
+into bounded collection or display. Conflicting legacy
+`FRAGILITY_V2_MODE`/`FRAGILITY_PERSISTENCE_MODE` values fail configuration
+loading.
+
+## Local development
+
+Requirements:
+
+- Node.js 22 or newer;
+- Python 3.12; and
+- `uv` for research tooling.
+
+```bash
+npm ci
+npm test
+npm run typecheck
+uv sync --dev
+uv run pytest
+```
+
+Run the Worker locally:
+
+```bash
+npm run dev
+```
+
+Trigger the local scheduled handler:
+
+```text
+http://localhost:8787/cdn-cgi/handler/scheduled
+```
+
+Copy `.env.example` to `.dev.vars` for local bindings. Never commit real
+webhook URLs, account IDs, bot tokens, or manual-scan tokens.
+
+## Offline research commands
+
+The repository contains only synthetic fixtures. Bring lawfully obtained data
+and review its licence before use.
+
+### Reversal event study
+
+```bash
+uv run reversal-scanner-backtest \
+  --input tests/fixtures/synthetic-candles.json \
+  --output backtest/smoke/reversal_backtest.json \
+  --output-dir backtest/smoke \
+  --replay-mode every-bar \
+  --source-timezone UTC \
+  --placebo-runs 0 \
+  --bootstrap-runs 0
+```
+
+### Fragility event study and rejected v2 candidate
+
+```bash
+uv run fragility-backtest \
+  --input path/to/SPX_full_5min_CT.json \
+  --output-dir backtest/fragility-price-only-v1 \
+  --source-timezone America/Chicago \
+  --source-timestamp-mode naive-local
+
+uv run fragility-v2-evaluate \
+  --input-observations backtest/fragility-price-only-v1/events/fragility_observations.csv \
+  --output-dir backtest/fragility-v2-shadow \
+  --bootstrap-runs 1000
+```
+
+### Prospective fragility snapshot
+
+One manual KV export can be analysed completely offline:
+
+```bash
+mkdir -p reports/generated
+npx wrangler kv key get \
+  "market-fragility-v2-shadow:xyz:SP500" \
+  --binding SCANNER_STATE \
+  --remote \
+  --text > reports/generated/fragility-shadow-state.json
+
+uv run fragility-shadow-report \
+  --input-state reports/generated/fragility-shadow-state.json
+```
+
+The ignored report separates repeated brief counts from unique-session
+prevalence. It is descriptive telemetry only. See
+[Fragility shadow snapshot report](docs/fragility-shadow-report.md).
+
+### Resilience event study
+
+```bash
+uv run resilience-decay-backtest \
+  --input path/to/SPX_full_5min_CT.json \
+  --output-dir backtest/resilience-decay-v1 \
+  --source-timezone America/Chicago \
+  --source-timestamp-mode naive-local \
+  --session-timezone America/New_York
+```
+
+Generated `backtest/` and `reports/generated/` outputs are ignored by Git. The
+TypeScript live path pins the shared `market-data-pipeline` revision in
+`package.json`; canonical input contracts are documented in
+[Market-data sources](docs/market-data-sources.md).
+
+## Research and safety contract
+
+- Live labels are transparent diagnostics, not calibrated probabilities.
+- The rejected probability candidate is not bundled into production.
+- Shadow telemetry cannot silently promote itself into alerts or thresholds.
+- Reversal research models delivery latency, expired entries, stops, slippage,
+  costs, and session-cluster uncertainty.
+- Parameter variants are reported for falsification, not automatically selected
+  from the inspected historical sample.
+- Public, paid, personalized, or account-linked distribution can create legal
+  and platform obligations beyond this private research deployment.
+
+## Documentation
+
+- [Current evidence](docs/current-evidence.md)
+- [Market activity methodology](docs/market-activity-methodology.md)
+- [Fragility backtest methodology](docs/fragility-backtest-methodology.md)
+- [Fragility v2 methodology](docs/fragility-v2-methodology.md)
+- [Fragility v2 evaluation](docs/fragility-v2-evaluation-report.md)
+- [Fragility shadow snapshot report](docs/fragility-shadow-report.md)
+- [Resilience decay methodology](docs/resilience-decay-methodology.md)
+- [Backtest evaluation plan](docs/backtest-evaluation-plan.md)
+- [Disclaimer](DISCLAIMER.md)
+- [Compliance notes](COMPLIANCE.md)
+- [Security policy](SECURITY.md)
+- [Third-party notices](THIRD_PARTY_NOTICES.md)
+- [Contributing](CONTRIBUTING.md)
+- [MIT License](LICENSE)
+
+The MIT License covers this repositoryâ€™s original code and documentation. It
+does not grant rights to third-party market data, service marks, APIs, or
+datasets.
