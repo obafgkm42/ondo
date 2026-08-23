@@ -1,0 +1,90 @@
+version: signal_frozen_v1
+frozen_at: "2026-07-03"
+source_code:
+  signal_engine: src/signal-engine.ts
+  runtime_config: src/config.ts
+  backtest_signal_port: python/reversal_scanner_backtest/signal_engine.py
+  backtest_runner: python/reversal_scanner_backtest/cli.py
+
+signal_inputs:
+  market: "xyz:SP500"
+  candle_interval: "5m"
+  data_source_live: "Hyperliquid public info candleSnapshot"
+  data_source_backtest_proxy: "Yahoo intraday chart API, usually ^GSPC or SPY"
+  required_completed_candles: 6
+  session_baseline: "candles available in the current analysis window only"
+  timestamp_field: "latest completed candle endTime"
+  derived_fields:
+    - session high and low from available candles
+    - prior high and low excluding the latest completed candle
+    - VWAP from typical price and volume, falling back to average close when volume is zero
+    - ATR over the latest 12 true ranges when available
+
+trigger_conditions:
+  candidate:
+    - latest completed candle must make a fresh prior lookback low for bullish or high for bearish
+    - latest completed candle must be a rejection candle in the signal direction
+    - close must remain in the outer 20 percent of the observed range
+    - target must be a reachable mean-reversion level above bullish price or below bearish price
+  rejection_candle:
+    minimum_body_ratio: 0.45
+    minimum_wick_ratio: 0.35
+    minimum_close_rejection: 0.65
+    bullish_color: "close > open"
+    bearish_color: "close < open"
+  scoring:
+    base_confidence_score: 52
+    wick_score: 8
+    volume_spike_score: 8
+    extension_score: 6
+    price_r_score: "min(16, round(priceRiskReward * 2))"
+    expanded_range_score: 5
+    maximum_confidence_score: 100
+
+thresholds:
+  watch:
+    minimum_price_r: 2
+    minimum_confidence_score: 64
+  alert:
+    minimum_price_r: 3.5
+    minimum_confidence_score: 72
+
+entry_timing:
+  entry_price: "latest completed candle close"
+  signal_time: "latest completed candle endTime"
+  no_lookahead_rule: "only candles ending at or before signal_time may be passed to analyzeSession"
+  live_scan_cadence:
+    regular_minutes: 15
+    final_hour_minutes: 5
+  backtest_default_cadence: "mirror live 15/5-minute cadence; every-bar replay is an explicit sensitivity mode"
+
+backtest_schema_v2:
+  signal_event_reference: "latest completed candle close"
+  execution_entry_default: "next completed candle open"
+  replay_mode_default: "live"
+  regular_scan_minutes: 15
+  final_hour_scan_minutes: 5
+  request_lookback_hours: 18
+  gap_stop_rule: "fill at the worse opening price when price gaps through the frozen stop"
+  costs: "explicit CLI slippage per fill plus round-trip point cost"
+  placebo_matching:
+    - "weekday and exact five-minute clock slot"
+    - "trailing ATR within 25 percent when at least 20 candidates exist"
+    - "observed session range within 0.75 ATR"
+    - "exclude the real event date"
+  uncertainty: "resample whole session dates for cluster-bootstrap 95 percent intervals"
+
+instrument_assumptions:
+  signal_underlying: "Hyperliquid xyz:SP500 perpetual market"
+  historical_underlying_proxy: "^GSPC preferred for index behavior; SPY allowed for longer/cleaner intraday availability"
+  option_instrument: "not modeled in signal_frozen_v1"
+  option_pnl_status: "deferred until underlying forward distribution has been evaluated"
+
+risk_and_exit_assumptions:
+  invalidation: "latest low/high plus max(0.5, ATR * 0.15) stop buffer"
+  target: "nearest eligible mean-reversion level from VWAP, session midpoint, opening low/high"
+  max_holding_period: "3 trading days for later trade simulation comparisons"
+  stop_rule: "underlying touches frozen invalidation level"
+  take_profit_rule: "underlying touches frozen target level; R-based exits are evaluated separately"
+  no_trade_filters:
+    - "none beyond the trigger conditions and alert thresholds"

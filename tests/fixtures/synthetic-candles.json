@@ -1,0 +1,14 @@
+[
+  {"startTime": 1736173800000, "endTime": 1736174099999, "open": 100.0, "high": 100.8, "low": 99.7, "close": 100.4, "volume": 1000, "tradeCount": 100},
+  {"startTime": 1736174100000, "endTime": 1736174399999, "open": 100.4, "high": 101.1, "low": 100.1, "close": 100.8, "volume": 1020, "tradeCount": 102},
+  {"startTime": 1736174400000, "endTime": 1736174699999, "open": 100.8, "high": 101.3, "low": 100.5, "close": 100.9, "volume": 980, "tradeCount": 98},
+  {"startTime": 1736174700000, "endTime": 1736174999999, "open": 100.9, "high": 101.0, "low": 100.0, "close": 100.3, "volume": 1100, "tradeCount": 110},
+  {"startTime": 1736175000000, "endTime": 1736175299999, "open": 100.3, "high": 100.5, "low": 99.5, "close": 99.9, "volume": 1080, "tradeCount": 108},
+  {"startTime": 1736175300000, "endTime": 1736175599999, "open": 99.9, "high": 100.2, "low": 99.2, "close": 99.5, "volume": 1050, "tradeCount": 105},
+  {"startTime": 1736175600000, "endTime": 1736175899999, "open": 99.5, "high": 100.0, "low": 99.0, "close": 99.7, "volume": 1120, "tradeCount": 112},
+  {"startTime": 1736175900000, "endTime": 1736176199999, "open": 99.7, "high": 100.4, "low": 99.4, "close": 100.1, "volume": 1160, "tradeCount": 116},
+  {"startTime": 1736176200000, "endTime": 1736176499999, "open": 100.1, "high": 100.7, "low": 99.9, "close": 100.5, "volume": 1090, "tradeCount": 109},
+  {"startTime": 1736176500000, "endTime": 1736176799999, "open": 100.5, "high": 101.0, "low": 100.2, "close": 100.8, "volume": 1030, "tradeCount": 103},
+  {"startTime": 1736176800000, "endTime": 1736177099999, "open": 100.8, "high": 101.2, "low": 100.4, "close": 100.6, "volume": 1010, "tradeCount": 101},
+  {"startTime": 1736177100000, "endTime": 1736177399999, "open": 100.6, "high": 100.9, "low": 100.0, "close": 100.2, "volume": 990, "tradeCount": 99}
+]

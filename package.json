@@ -1,0 +1,24 @@
+{
+  "name": "hyperliquid-sp500-reversal-scanner",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev --test-scheduled",
+    "discord:register": "node scripts/register-discord-command.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "market-data-pipeline": "github:obafgkm42/market-data-pipeline#20ec85c313d1a412d1d3512228f82996f2f0e64c"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260620.0",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.4",
+    "wrangler": "^4.20.5"
+  }
+}

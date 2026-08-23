@@ -1,0 +1,43 @@
+name = "hyperliquid-sp500-reversal-scanner"
+main = "src/index.ts"
+compatibility_date = "2026-06-23"
+workers_dev = false
+preview_urls = false
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+LANGUAGE = "zh"
+HYPERLIQUID_COIN = "xyz:SP500"
+REGULAR_SCAN_MINUTES = "15"
+FINAL_HOUR_SCAN_MINUTES = "5"
+BRIEF_INTERVAL_MINUTES = "30"
+MARKET_ACTIVITY_MODE = "display"
+FRAGILITY_PERSISTENCE_MODE = "shadow"
+RESILIENCE_DECAY_SHADOW_MODE = "shadow"
+MINIMUM_WATCH_PRICE_R = "2"
+MINIMUM_WATCH_CONFIDENCE_SCORE = "64"
+MINIMUM_PRICE_R = "3.5"
+MINIMUM_CONFIDENCE_SCORE = "72"
+
+[version_metadata]
+binding = "CF_VERSION_METADATA"
+
+[[kv_namespaces]]
+binding = "SCANNER_STATE"
+
+[observability]
+enabled = false
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = false
+persist = true
+head_sampling_rate = 1

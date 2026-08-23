@@ -1,0 +1,34 @@
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+.venv
+node_modules
+.wrangler/
+coverage/
+dist/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+logs/
+run/
+state/
+.DS_Store
+
+# Local market data cache
+data/
+cache/
+.parquet/
+*.parquet
+*.feather
+*.h5
+
+# Backtest outputs
+/backtest/
+outputs/
+results/
+reports/generated/
+
+# Local notebooks
+.ipynb_checkpoints/
