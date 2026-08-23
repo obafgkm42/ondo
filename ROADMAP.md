@@ -4,9 +4,7 @@ Last reviewed: 2026-08-23
 
 Market Ondo is an evidence-first, read-only market monitor. Its production
 surface is a private operator Discord deployment; its source repository is
-public. This roadmap is for Market Ondo only. Option-chain analytics, GEX, OI,
-IV, and option-strategy construction belong in `option-exposure-engine`, not
-this repository.
+public. This roadmap covers Market Ondo only.
 
 ## Product principles
 
@@ -262,4 +260,3 @@ Start here, one reviewable change at a time:
 - Shadow data cannot change production behavior without an explicit versioned
   code/config change.
 - No private deployment detail or generated research dataset is committed.
-
