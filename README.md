@@ -424,6 +424,7 @@ TypeScript live path pins the shared `market-data-pipeline` revision in
 
 ## Documentation
 
+- [Roadmap](ROADMAP.md)
 - [Current evidence](docs/current-evidence.md)
 - [Market activity methodology](docs/market-activity-methodology.md)
 - [Fragility backtest methodology](docs/fragility-backtest-methodology.md)
