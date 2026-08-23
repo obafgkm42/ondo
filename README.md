@@ -229,9 +229,8 @@ preview_urls = false
 
 The custom hostname is intentionally not committed. It remains attached under
 **Worker → Settings → Domains & Routes**, while the Discord endpoint uses that
-hostname. The historical `name` in `wrangler.toml` is the existing Cloudflare
-service identifier; renaming the GitHub repository does not require changing
-it.
+hostname. The `name = "ondo"` entry in `wrangler.toml` matches the existing
+Cloudflare Worker service identifier.
 
 Public runtime defaults live in `wrangler.toml`. Secrets stay in Cloudflare:
 
