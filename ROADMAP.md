@@ -2,9 +2,7 @@
 
 Last reviewed: 2026-08-23
 
-Market Ondo is an evidence-first, read-only market monitor. Its production
-surface is a private operator Discord deployment; its source repository is
-public. This roadmap covers Market Ondo only.
+Market Ondo is an evidence-first, read-only market monitor.
 
 ## Product principles
 
@@ -14,9 +12,7 @@ public. This roadmap covers Market Ondo only.
    gate. Shadow telemetry never promotes itself automatically.
 4. Fail closed for eligibility and mentions when data health is uncertain, but
    fail open for the read-only monitor itself.
-5. Keep production identifiers, domains, account IDs, tokens, webhook URLs,
-   private datasets, and generated reports out of the public repository.
-6. Stay inside the documented Cloudflare and Hyperliquid resource budget.
+5. Stay inside the documented Cloudflare and Hyperliquid resource budget.
 
 ## Current baseline
 
@@ -31,8 +27,6 @@ The following work is already present and is not an open TODO:
 - [x] Half-hour resilience diagnostic plus a five-minute prospective shadow.
 - [x] Frozen reversal scanner and delivery-aware Python replay.
 - [x] TypeScript/Python contract-parity tests and CI.
-- [x] `workers_dev = false`, `preview_urls = false`, an uncommitted custom
-  hostname, and Cloudflare-managed secrets.
 - [x] Rejected probability-v2 kept out of production after negative Brier Skill
   Score.
 
@@ -52,40 +46,7 @@ Work should proceed in this order. Later milestones depend on the evidence and
 artifacts produced by earlier ones; dates are deliberately not used as a
 substitute for promotion gates.
 
-### M0 — Release hygiene and deployment convergence
-
-Goal: make the renamed repository reproducible, privacy-safe, and connected to
-exactly one intended production Worker.
-
-- [ ] Confirm in Cloudflare that only `ondo@main` deploys the production
-  `ondo` service; disconnect the legacy repository/build integration after the
-  new path is verified.
-- [ ] Run one post-link deployment check: custom domain attached, cron active,
-  `/scanner status` healthy, Discord signature validation active,
-  `workers.dev` absent, and preview URLs absent. Record only pass/fail and the
-  commit SHA—never the hostname.
-- [ ] Add a repository privacy check that rejects likely credentials,
-  production Discord webhook URLs, Cloudflare account/namespace IDs, private
-  hostnames, email markers, and generated live reports. Allow documented
-  placeholders and public documentation links.
-- [ ] Add CI assertions for `name = "ondo"`, `workers_dev = false`,
-  `preview_urls = false`, and an ID-free `SCANNER_STATE` binding.
-- [ ] Add a Wrangler dry-run build to CI so a passing unit suite cannot hide a
-  broken Worker bundle.
-- [ ] Rename public package metadata in `package.json` and `pyproject.toml` to
-  Market Ondo. Keep frozen signal IDs and existing Python import paths stable
-  until a separately tested compatibility migration is useful.
-- [ ] Add a short operator runbook for deploy, rollback, secret rotation,
-  Discord command registration, and validation after a Git-triggered build.
-
-Exit gate:
-
-- one main-branch commit produces one intended Worker deployment;
-- all CI, build, privacy, and smoke checks pass; and
-- no production URL, personal identifier, account-specific ID, secret, or live
-  report appears in tracked files or newly generated GitHub surfaces.
-
-### M1 — Prospective evidence capture
+### M0 — Prospective evidence capture
 
 Goal: preserve enough versioned, health-aware live evidence to evaluate the
 diagnostics without turning rolling KV into an accidental research database.
@@ -116,7 +77,7 @@ Exit gate:
 - an evaluator can distinguish unavailable, excluded, and genuinely negative
   observations without consulting private URLs or logs manually.
 
-### M2 — Validate market activity on real venue sessions
+### M1 — Validate market activity on real venue sessions
 
 Goal: decide whether the current RVOL bands describe Hyperliquid activity
 reliably before they are used for anything beyond display.
@@ -139,7 +100,7 @@ Exit gate: publish an RVOL calibration report that either freezes the current
 bands, replaces them through a versioned candidate, or recommends returning to
 shadow-only display.
 
-### M3 — Resolve the fragility evidence gap
+### M2 — Resolve the fragility evidence gap
 
 Goal: determine whether the transparent high-stress states remain useful with
 real-volume and prospective evidence, without reviving the rejected v2 model.
@@ -168,7 +129,7 @@ predeclared candidate after all gates pass, or simplify the feature. A negative
 or inconclusive result is a completed decision, not a reason to retune the same
 holdout.
 
-### M4 — Decide the future of resilience decay
+### M3 — Decide the future of resilience decay
 
 Goal: use the five-minute prospective shadow to decide whether resilience adds
 information or should remain presentation-only.
@@ -191,7 +152,7 @@ information or should remain presentation-only.
 Exit gate: a versioned evaluation report supports one explicit product
 decision; sample scarcity cannot be described as model success.
 
-### M5 — Decide the future of the reversal scanner
+### M4 — Decide the future of the reversal scanner
 
 Goal: stop treating a convex-looking rejection as an edge until delivery-aware
 prospective evidence says otherwise.
@@ -216,7 +177,7 @@ Exit gate: promote, retain as experimental context, or retire the scanner based
 on a written evidence decision. Option premium, Greeks, spreads, and strategy
 P&L remain outside this repository.
 
-### M6 — Controlled expansion
+### M5 — Controlled expansion
 
 Goal: expand only after the single-market monitor and evidence pipeline are
 stable.
@@ -239,24 +200,18 @@ silent self-tuning are not roadmap items.
 
 Start here, one reviewable change at a time:
 
-1. [ ] Write the Cloudflare deployment-convergence and rollback runbook.
-2. [ ] Add privacy/deployment invariant checks and run them in CI.
-3. [ ] Add a Wrangler dry-run build to CI.
-4. [ ] Rename npm/Python public metadata while preserving compatibility paths.
-5. [ ] Freeze the `prospective-observation-v1` schema and methodology note.
-6. [ ] Add the local bounded-state export command and ignored output layout.
-7. [ ] Build the health-aware prospective coverage report.
-8. [ ] Build the 30/60-session RVOL calibration report.
-9. [ ] Extend the fragility shadow report with predeclared outcome joins.
-10. [ ] Add the prospective reversal delivery/fill-eligibility audit.
+1. [ ] Freeze the `prospective-observation-v1` schema and methodology note.
+2. [ ] Add the local bounded-state export command and ignored output layout.
+3. [ ] Build the health-aware prospective coverage report.
+4. [ ] Build the 30/60-session RVOL calibration report.
+5. [ ] Extend the fragility shadow report with predeclared outcome joins.
+6. [ ] Add the prospective reversal delivery/fill-eligibility audit.
 
 ## Definition of done for every milestone
 
 - Runtime behavior, TypeScript/Python parity, and stored schema are tested.
-- `npm test`, `npm run typecheck`, `uv run pytest`, the Worker dry-run build,
-  and privacy checks pass.
+- Relevant TypeScript, Python, and Worker build checks pass.
 - Methodology, assumptions, data rights, resource use, and negative results are
   documented next to the feature.
 - Shadow data cannot change production behavior without an explicit versioned
   code/config change.
-- No private deployment detail or generated research dataset is committed.
