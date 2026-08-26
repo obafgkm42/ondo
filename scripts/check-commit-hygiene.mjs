@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Pre-commit hygiene scan: refuse to commit secrets, account-specific
-// identifiers, third-party market data, or local filesystem paths.
+// Pre-commit hygiene scan: refuse to commit anything that would publish the
+// local environment — secrets, LLM API keys, account-specific identifiers,
+// machine names, or local filesystem paths.
 //
 //   node scripts/check-commit-hygiene.mjs           scan staged changes
 //   node scripts/check-commit-hygiene.mjs --all     scan the whole tree
@@ -82,6 +83,48 @@ const RULES = [
     id: "local-path",
     pattern: /\/(?:Users|home)\/(?!user\b|runner\b)[A-Za-z0-9_.-]{2,}\//g,
     message: "local filesystem path containing a username",
+  },
+  {
+    id: "windows-user-path",
+    pattern: /[A-Za-z]:\\+Users\\+[^\\/\s"'`,;)\]]{2,}/g,
+    message: "Windows path containing a username",
+  },
+  {
+    id: "wsl-user-path",
+    pattern: /\/mnt\/[a-z]\/Users\/[^/\s"'`,;)\]]{2,}/gi,
+    message: "WSL path containing a username",
+  },
+  {
+    id: "macos-volume-path",
+    pattern: /\/Volumes\/[^/\s"'`,;)\]]{2,}/g,
+    message: "macOS volume path (names a disk or machine)",
+  },
+  {
+    id: "file-url",
+    pattern:
+      /file:\/\/\/(?:Users|home)\/(?!user\b|runner\b)[A-Za-z0-9_.-]{2,}/g,
+    message: "file:// URL pointing into a home directory",
+  },
+  {
+    id: "local-hostname",
+    // macOS mDNS name, e.g. "Someones-MacBook-Pro.local". Requires a hyphen,
+    // and the lookahead rejects filenames such as settings.local.json.
+    pattern: /\b[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+\.local\b(?!\.[A-Za-z])/g,
+    message: "local machine hostname",
+  },
+  {
+    id: "llm-api-key",
+    // Provider key prefixes — the keys most likely to reach this repo by way
+    // of a local coding agent or a research script.
+    pattern:
+      /\b(?:sk-ant-[\w-]{20,}|sk-proj-[\w-]{20,}|sk-svcacct-[\w-]{20,}|sk-[A-Za-z0-9]{32,}|AIza[\w-]{35}|gsk_[A-Za-z0-9]{40,}|hf_[A-Za-z0-9]{30,}|r8_[A-Za-z0-9]{30,}|xai-[A-Za-z0-9]{40,})\b/g,
+    message: "LLM provider API key",
+  },
+  {
+    id: "llm-key-assignment",
+    pattern:
+      /\b(?:ANTHROPIC_API_KEY|OPENAI_API_KEY|GOOGLE_API_KEY|GEMINI_API_KEY|GROQ_API_KEY|HF_TOKEN|HUGGINGFACE_TOKEN|REPLICATE_API_TOKEN|XAI_API_KEY)\s*[=:]\s*["'`]([^"'`\n]{12,})["'`]/g,
+    message: "assigned value for an LLM API key",
   },
   {
     id: "workers-dev-hostname",

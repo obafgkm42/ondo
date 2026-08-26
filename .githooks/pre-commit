@@ -1,0 +1,11 @@
+#!/bin/sh
+# Blocks a commit that would publish a secret, an LLM API key, an
+# account-specific identifier, or a local filesystem path.
+#
+# Installed automatically by the package.json "prepare" script, which npm runs
+# after `npm ci` / `npm install` and points core.hooksPath at this directory.
+#
+# See AGENTS.md "Pre-commit hygiene". Do not weaken this hook to get a commit
+# through; fix the finding instead.
+
+exec node scripts/check-commit-hygiene.mjs

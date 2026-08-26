@@ -133,20 +133,44 @@ document in `docs/` in the same change.
 
 ## Pre-commit hygiene
 
-**Run the sanitization check before every commit, and never commit while it
-reports a finding:**
+This repository is **public**. Its purpose here is to stop a contributor's or
+an agent's local environment from being published: filesystem paths, machine
+and account names, LLM provider API keys, and service credentials.
+
+A `pre-commit` hook enforces this. It is installed automatically — the
+`prepare` script in `package.json` points `core.hooksPath` at `.githooks/`, and
+npm runs `prepare` after `npm ci`. Since every contributor and agent runs
+`npm ci` first, the hook is present without a separate setup step. A commit
+carrying a finding is **rejected**.
+
+Run it directly at any time:
 
 ```bash
 npm run check:hygiene          # scans staged changes
 npm run check:hygiene -- --all # scans the whole tree
 ```
 
-It scans for secrets, account-specific identifiers, third-party market data,
-and local filesystem paths, and exits non-zero on any finding. Findings are
-printed redacted so a CI log never republishes the value.
+It scans for local filesystem paths (POSIX, Windows, WSL, `/Volumes`,
+`file://`), local machine hostnames, LLM provider API keys, Discord and
+Cloudflare credentials, account-specific identifiers, and third-party market
+data. Findings print **redacted**, so a terminal or CI log never republishes
+the value.
 
-This is a required step, not an optional one. An agent staging a commit runs it
-between `git add` and `git commit`, alongside the CI commands above.
+Three layers cover this, and they fail differently:
+
+| Layer | Stops | Weakness |
+| --- | --- | --- |
+| `pre-commit` hook | The commit being created | `--no-verify` skips it |
+| GitHub Push Protection | The push being accepted | Partner patterns only |
+| CI `hygiene` job | The merge, via a red check | Runs after the push |
+
+The hook is the control that matters — it acts before the object exists. CI is
+not a second chance at catching secrets; it catches the case where **the hook
+did not run**. Push Protection is enabled on this repository but only
+recognizes known vendor token formats, so it does not cover project-specific
+values or local paths.
+
+Never pass `--no-verify` to get a commit through.
 
 When it reports a finding:
 
