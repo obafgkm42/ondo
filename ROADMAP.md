@@ -200,14 +200,24 @@ silent self-tuning are not roadmap items.
 
 Start here, one reviewable change at a time:
 
-1. [ ] Freeze the `prospective-observation-v1` schema and methodology note.
+1. [ ] Freeze the `prospective-observation-v1` schema and methodology note —
+  [`docs/work/0001-prospective-observation-v1/`](docs/work/0001-prospective-observation-v1/intent.md)
 2. [ ] Add the local bounded-state export command and ignored output layout.
 3. [ ] Build the health-aware prospective coverage report.
 4. [ ] Build the 30/60-session RVOL calibration report.
 5. [ ] Extend the fragility shadow report with predeclared outcome joins.
 6. [ ] Add the prospective reversal delivery/fill-eligibility audit.
 
+Each item becomes one `docs/work/NNNN-<slug>/` directory when work starts on
+it, beginning with an `intent.md`. The milestones above are long-lived intents
+and own the exit gates; the queue is the backlog that turns into artifacts. See
+[Development lifecycle](docs/sdlc.md).
+
 ## Definition of done for every milestone
+
+These criteria are the review gate applied at the Deploy stage of the
+[development lifecycle](docs/sdlc.md), alongside each milestone's own exit gate
+above.
 
 - Runtime behavior, TypeScript/Python parity, and stored schema are tested.
 - Relevant TypeScript, Python, and Worker build checks pass.
