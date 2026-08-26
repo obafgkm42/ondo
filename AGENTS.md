@@ -156,13 +156,19 @@ Cloudflare credentials, account-specific identifiers, and third-party market
 data. Findings print **redacted**, so a terminal or CI log never republishes
 the value.
 
-Three layers cover this, and they fail differently:
+Four layers cover this, and they fail differently:
 
 | Layer | Stops | Weakness |
 | --- | --- | --- |
 | `pre-commit` hook | The commit being created | `--no-verify` skips it |
 | GitHub Push Protection | The push being accepted | Partner patterns only |
-| CI `hygiene` job | The merge, via a red check | Runs after the push |
+| CI `hygiene` job | Reports on the pushed commit | Runs after the push |
+| Ruleset on `main` | The merge, and any direct push | Only guards `main` |
+
+`main` is protected by a repository ruleset: `hygiene`, `typescript`, and
+`python` must pass before a merge, and a direct `git push` to `main` is
+rejected outright. Every change reaches `main` through a pull request — there
+is no fast path, for a human or an agent.
 
 The hook is the control that matters — it acts before the object exists. CI is
 not a second chance at catching secrets; it catches the case where **the hook
