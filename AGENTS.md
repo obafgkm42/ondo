@@ -131,6 +131,46 @@ Keep public APIs and signal thresholds from changing silently. If a change
 affects research validity, say so in the commit body and update the relevant
 document in `docs/` in the same change.
 
+## Pre-commit hygiene
+
+**Run the sanitization check before every commit, and never commit while it
+reports a finding:**
+
+```bash
+npm run check:hygiene          # scans staged changes
+npm run check:hygiene -- --all # scans the whole tree
+```
+
+It scans for secrets, account-specific identifiers, third-party market data,
+and local filesystem paths, and exits non-zero on any finding. Findings are
+printed redacted so a CI log never republishes the value.
+
+This is a required step, not an optional one. An agent staging a commit runs it
+between `git add` and `git commit`, alongside the CI commands above.
+
+When it reports a finding:
+
+1. **Remove the value from the working tree.** Do not just unstage it.
+2. **Rotate the credential** if it ever reached a real service — Discord bot
+   token, webhook URL, `MANUAL_SCAN_TOKEN`, Cloudflare API token. Assume any
+   value that was written to disk in a shared or synced directory is
+   compromised.
+3. **If it already reached a commit**, say so explicitly and stop. Rotation
+   comes first; history rewriting is a human decision, and a pushed secret is
+   not fixed by a follow-up commit that deletes it.
+4. **Only if it is genuinely a false positive**, narrow the pattern in
+   `scripts/check-commit-hygiene.mjs` and say why in the commit body. Never
+   delete a rule, add a blanket ignore, or pass a bypass flag to silence it.
+
+Synthetic values used in tests and `.env.example` are expected to pass. If you
+need a new fixture value, make it obviously fake — the checker recognizes
+`example`, `replace-with`, `placeholder`, `dummy`, `sample`, and `fake`.
+
+The check is a backstop for judgment, not a replacement for it. It matches
+known shapes; it cannot recognize a secret it has no pattern for. Before
+staging any file that touches configuration, deployment, or an exported
+snapshot, read the diff yourself.
+
 ## Never commit
 
 - Credentials of any kind: bot tokens, webhook URLs, `MANUAL_SCAN_TOKEN`,

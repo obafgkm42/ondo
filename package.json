@@ -5,6 +5,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
+    "check:hygiene": "node scripts/check-commit-hygiene.mjs",
     "deploy": "wrangler deploy",
     "dev": "wrangler dev --test-scheduled",
     "discord:register": "node scripts/register-discord-command.mjs",
