@@ -172,151 +172,11 @@ explicitly ineligible context, but it cannot:
 Hyperliquid `xyz:SP500` is a venue-specific perpetual market, not official cash
 SPX. Basis, funding, oracle, liquidity, and volume differences are possible.
 
-## Primary interface: Discord
+## Running and deploying
 
-Market Ondo uses Discord HTTP Interactions. It does not maintain a Gateway
-connection, read ordinary messages, request privileged intents, or place
-orders. Responses to slash commands are ephemeral.
-
-- `/scanner status` performs one live, read-only query and privately returns
-  price, RVOL, fragility mechanisms, resilience, data coverage, and any retained
-  reversal state.
-- `/scanner repair` explains the six mechanisms and frozen level thresholds
-  without requesting market data.
-- `/scanner help` shows the private command guide.
-
-Every interaction must have a valid Discord Ed25519 signature and match the
-configured `DISCORD_GUILD_ID`.
-
-### Discord setup
-
-1. Create a Discord application and copy its Application ID and Public Key.
-2. Store `DISCORD_APPLICATION_PUBLIC_KEY` and `DISCORD_GUILD_ID` as Cloudflare
-   secrets.
-3. Set the Developer Portal **Interactions Endpoint URL** to:
-
-   ```text
-   https://<your-custom-domain>/discord/interactions
-   ```
-
-4. Install the application with only the `applications.commands` scope.
-5. Temporarily provide the Application ID, Guild ID, and Bot Token locally,
-   then register the guild command:
-
-   ```bash
-   DISCORD_APPLICATION_ID=... \
-   DISCORD_GUILD_ID=... \
-   DISCORD_BOT_TOKEN=... \
-   npm run discord:register
-   ```
-
-6. Unset the bot token. Use **Server Settings → Integrations** to grant the
-   desired role or channel access; commands default to administrators.
-
-Guild commands normally update immediately. Broad multi-server distribution is
-out of scope for this personal deployment.
-
-## Cloudflare deployment
-
-The production interface uses a dashboard-managed Cloudflare Custom Domain.
-`wrangler.toml` explicitly disables the two development surfaces so a Git-based
-redeploy does not reopen them:
-
-```toml
-workers_dev = false
-preview_urls = false
-```
-
-The custom hostname is intentionally not committed. It remains attached under
-**Worker → Settings → Domains & Routes**, while the Discord endpoint uses that
-hostname. The `name = "ondo"` entry in `wrangler.toml` matches the existing
-Cloudflare Worker service identifier.
-
-Public runtime defaults live in `wrangler.toml`. Secrets stay in Cloudflare:
-
-```bash
-npx wrangler secret put DISCORD_WEBHOOK_URL
-npx wrangler secret put DISCORD_APPLICATION_PUBLIC_KEY
-npx wrangler secret put DISCORD_GUILD_ID
-```
-
-`MANUAL_SCAN_TOKEN` is optional. Without it, the authenticated `/scan` endpoint
-returns `404`; Discord `/scanner status` remains the normal on-demand interface.
-To keep the emergency/manual endpoint, set it separately:
-
-```bash
-npx wrangler secret put MANUAL_SCAN_TOKEN
-```
-
-An ID-free `SCANNER_STATE` KV binding is declared in `wrangler.toml`. It stores
-bounded RVOL history, failed-scan recovery, signal deduplication, diagnostic
-shadow state, rate-limit incident state, and version notices. Do not commit an
-account-specific namespace ID if Wrangler writes one into a local file.
-
-After this repository is linked to the existing Cloudflare Worker, Cloudflare
-builds deploy the latest main branch automatically. A manual deployment remains
-available:
-
-```bash
-npm run deploy
-```
-
-## Schedule and free-tier discipline
-
-Cloudflare invokes the Worker every five minutes, then the Worker applies its
-own gate:
-
-- normal scans every 15 minutes;
-- scans every five minutes from 15:00–16:00 New York time;
-- standard-session briefs every 30 minutes; and
-- non-standard-session briefs no more frequently than hourly.
-
-Each scheduled scan uses one Hyperliquid candle request and evaluates every new
-five-minute candle since the previous allowed scan. A due brief adds one
-`perpCategories` and one `metaAndAssetCtxs` request for fragility context. A
-history-deficient RVOL installation may make one bounded 15-minute bootstrap
-request after a deployment or during its post-close retry window.
-
-The prospective diagnostics reuse those responses:
-
-- fragility shadow: at most about 13 KV reads and writes per full RTH day;
-- five-minute resilience shadow: about 35 KV reads and writes under the mixed
-  production cadence, with a conservative 78-operation ceiling; and
-- no extra Hyperliquid request for either shadow collector.
-
-All durable collections are bounded. Provider, metadata, or KV failures fail
-open and leave the core read-only monitor available. Current quota references
-and the full resource contract live in the linked methodology documents rather
-than being duplicated as assumptions here.
-
-## Configuration modes
-
-The repository deployment currently uses:
-
-```toml
-[vars]
-LANGUAGE = "zh"
-MARKET_ACTIVITY_MODE = "display"
-FRAGILITY_PERSISTENCE_MODE = "shadow"
-RESILIENCE_DECAY_SHADOW_MODE = "shadow"
-```
-
-- `MARKET_ACTIVITY_MODE`: `off`, `shadow`, or `display`;
-- `FRAGILITY_PERSISTENCE_MODE`: `off`, `shadow`, or `display`;
-- `RESILIENCE_DECAY_SHADOW_MODE`: `off` or `shadow`.
-
-Parser defaults remain conservative even where this repository explicitly opts
-into bounded collection or display. Conflicting legacy
-`FRAGILITY_V2_MODE`/`FRAGILITY_PERSISTENCE_MODE` values fail configuration
-loading.
-
-## Local development
-
-Requirements:
-
-- Node.js 22 or newer;
-- Python 3.12; and
-- `uv` for research tooling.
+Market Ondo runs as a single Cloudflare Worker driven by cron, with Discord
+HTTP Interactions as its only interactive surface. Requirements are Node.js 22
+or newer, Python 3.12, and `uv` for the research tooling.
 
 ```bash
 npm ci
@@ -326,89 +186,16 @@ uv sync --dev
 uv run pytest
 ```
 
-Run the Worker locally:
+Discord application setup, Cloudflare secrets and custom-domain configuration,
+the scan/brief schedule and free-tier budget, the `off`/`shadow`/`display`
+configuration modes, and local development are documented in
+[Operating Market Ondo](docs/operations.md).
 
-```bash
-npm run dev
-```
-
-Trigger the local scheduled handler:
-
-```text
-http://localhost:8787/cdn-cgi/handler/scheduled
-```
-
-Copy `.env.example` to `.dev.vars` for local bindings. Never commit real
-webhook URLs, account IDs, bot tokens, or manual-scan tokens.
-
-## Offline research commands
-
-The repository contains only synthetic fixtures. Bring lawfully obtained data
-and review its licence before use.
-
-### Reversal event study
-
-```bash
-uv run reversal-scanner-backtest \
-  --input tests/fixtures/synthetic-candles.json \
-  --output backtest/smoke/reversal_backtest.json \
-  --output-dir backtest/smoke \
-  --replay-mode every-bar \
-  --source-timezone UTC \
-  --placebo-runs 0 \
-  --bootstrap-runs 0
-```
-
-### Fragility event study and rejected v2 candidate
-
-```bash
-uv run fragility-backtest \
-  --input path/to/SPX_full_5min_CT.json \
-  --output-dir backtest/fragility-price-only-v1 \
-  --source-timezone America/Chicago \
-  --source-timestamp-mode naive-local
-
-uv run fragility-v2-evaluate \
-  --input-observations backtest/fragility-price-only-v1/events/fragility_observations.csv \
-  --output-dir backtest/fragility-v2-shadow \
-  --bootstrap-runs 1000
-```
-
-### Prospective fragility snapshot
-
-One manual KV export can be analysed completely offline:
-
-```bash
-mkdir -p reports/generated
-npx wrangler kv key get \
-  "market-fragility-v2-shadow:xyz:SP500" \
-  --binding SCANNER_STATE \
-  --remote \
-  --text > reports/generated/fragility-shadow-state.json
-
-uv run fragility-shadow-report \
-  --input-state reports/generated/fragility-shadow-state.json
-```
-
-The ignored report separates repeated brief counts from unique-session
-prevalence. It is descriptive telemetry only. See
-[Fragility shadow snapshot report](docs/fragility-shadow-report.md).
-
-### Resilience event study
-
-```bash
-uv run resilience-decay-backtest \
-  --input path/to/SPX_full_5min_CT.json \
-  --output-dir backtest/resilience-decay-v1 \
-  --source-timezone America/Chicago \
-  --source-timestamp-mode naive-local \
-  --session-timezone America/New_York
-```
-
-Generated `backtest/` and `reports/generated/` outputs are ignored by Git. The
-TypeScript live path pins the shared `market-data-pipeline` revision in
-`package.json`; canonical input contracts are documented in
-[Market-data sources](docs/market-data-sources.md).
+The offline event studies — reversal, fragility, the rejected v2 candidate,
+the prospective KV snapshot report, and resilience decay — are documented in
+[Offline research commands](docs/research-commands.md). The repository ships
+only synthetic fixtures; bring lawfully obtained data and review its licence
+before use.
 
 ## Research and safety contract
 
@@ -426,6 +213,8 @@ TypeScript live path pins the shared `market-data-pipeline` revision in
 
 - [Roadmap](ROADMAP.md)
 - [Current evidence](docs/current-evidence.md)
+- [Operating Market Ondo](docs/operations.md)
+- [Offline research commands](docs/research-commands.md)
 - [Market activity methodology](docs/market-activity-methodology.md)
 - [Fragility backtest methodology](docs/fragility-backtest-methodology.md)
 - [Fragility v2 methodology](docs/fragility-v2-methodology.md)
