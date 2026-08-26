@@ -24,17 +24,21 @@ New business logic should include regression tests. Public APIs and signal
 thresholds must not change silently; document the reason and the research
 impact in the same change.
 
-Then run the sanitization check on your staged changes, and do not commit while
-it reports a finding:
+The repository is public, and a `pre-commit` hook blocks any commit that would
+publish your local environment — filesystem paths, machine name, LLM API keys,
+or service credentials. It installs itself: `npm ci` runs the `prepare` script,
+which points `core.hooksPath` at `.githooks/`.
+
+To run it by hand:
 
 ```bash
 npm run check:hygiene
 ```
 
-It looks for secrets, account-specific identifiers, market data, and local
-paths. If it finds something that already reached a commit, rotate the
-credential first and say so — deleting it in a later commit does not remove it
-from history. See [Pre-commit hygiene](AGENTS.md#pre-commit-hygiene).
+If it reports something that already reached a commit, rotate the credential
+first and say so — deleting it in a later commit does not remove it from
+history. Never use `--no-verify` to get around it. See
+[Pre-commit hygiene](AGENTS.md#pre-commit-hygiene).
 
 CI runs the same check over the whole tree, so a finding will fail the build.
 Treat that as a backstop: a secret CI catches has already been pushed.
