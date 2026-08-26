@@ -131,6 +131,70 @@ Keep public APIs and signal thresholds from changing silently. If a change
 affects research validity, say so in the commit body and update the relevant
 document in `docs/` in the same change.
 
+## Pre-commit hygiene
+
+This repository is **public**. Its purpose here is to stop a contributor's or
+an agent's local environment from being published: filesystem paths, machine
+and account names, LLM provider API keys, and service credentials.
+
+A `pre-commit` hook enforces this. It is installed automatically — the
+`prepare` script in `package.json` points `core.hooksPath` at `.githooks/`, and
+npm runs `prepare` after `npm ci`. Since every contributor and agent runs
+`npm ci` first, the hook is present without a separate setup step. A commit
+carrying a finding is **rejected**.
+
+Run it directly at any time:
+
+```bash
+npm run check:hygiene          # scans staged changes
+npm run check:hygiene -- --all # scans the whole tree
+```
+
+It scans for local filesystem paths (POSIX, Windows, WSL, `/Volumes`,
+`file://`), local machine hostnames, LLM provider API keys, Discord and
+Cloudflare credentials, account-specific identifiers, and third-party market
+data. Findings print **redacted**, so a terminal or CI log never republishes
+the value.
+
+Three layers cover this, and they fail differently:
+
+| Layer | Stops | Weakness |
+| --- | --- | --- |
+| `pre-commit` hook | The commit being created | `--no-verify` skips it |
+| GitHub Push Protection | The push being accepted | Partner patterns only |
+| CI `hygiene` job | The merge, via a red check | Runs after the push |
+
+The hook is the control that matters — it acts before the object exists. CI is
+not a second chance at catching secrets; it catches the case where **the hook
+did not run**. Push Protection is enabled on this repository but only
+recognizes known vendor token formats, so it does not cover project-specific
+values or local paths.
+
+Never pass `--no-verify` to get a commit through.
+
+When it reports a finding:
+
+1. **Remove the value from the working tree.** Do not just unstage it.
+2. **Rotate the credential** if it ever reached a real service — Discord bot
+   token, webhook URL, `MANUAL_SCAN_TOKEN`, Cloudflare API token. Assume any
+   value that was written to disk in a shared or synced directory is
+   compromised.
+3. **If it already reached a commit**, say so explicitly and stop. Rotation
+   comes first; history rewriting is a human decision, and a pushed secret is
+   not fixed by a follow-up commit that deletes it.
+4. **Only if it is genuinely a false positive**, narrow the pattern in
+   `scripts/check-commit-hygiene.mjs` and say why in the commit body. Never
+   delete a rule, add a blanket ignore, or pass a bypass flag to silence it.
+
+Synthetic values used in tests and `.env.example` are expected to pass. If you
+need a new fixture value, make it obviously fake — the checker recognizes
+`example`, `replace-with`, `placeholder`, `dummy`, `sample`, and `fake`.
+
+The check is a backstop for judgment, not a replacement for it. It matches
+known shapes; it cannot recognize a secret it has no pattern for. Before
+staging any file that touches configuration, deployment, or an exported
+snapshot, read the diff yourself.
+
 ## Never commit
 
 - Credentials of any kind: bot tokens, webhook URLs, `MANUAL_SCAN_TOKEN`,
