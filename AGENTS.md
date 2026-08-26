@@ -148,6 +148,10 @@ printed redacted so a CI log never republishes the value.
 This is a required step, not an optional one. An agent staging a commit runs it
 between `git add` and `git commit`, alongside the CI commands above.
 
+CI runs the same check as a `hygiene` job on every push, over the whole tree.
+That is a backstop, not the primary control: by the time CI sees a secret it is
+already pushed, and pushed means compromised. Catch it locally.
+
 When it reports a finding:
 
 1. **Remove the value from the working tree.** Do not just unstage it.

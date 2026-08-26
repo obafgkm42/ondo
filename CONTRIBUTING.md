@@ -36,6 +36,9 @@ paths. If it finds something that already reached a commit, rotate the
 credential first and say so — deleting it in a later commit does not remove it
 from history. See [Pre-commit hygiene](AGENTS.md#pre-commit-hygiene).
 
+CI runs the same check over the whole tree, so a finding will fail the build.
+Treat that as a backstop: a secret CI catches has already been pushed.
+
 ## Larger changes
 
 A change that touches frozen thresholds, a diagnostic's behavior, KV schema,
