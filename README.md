@@ -209,25 +209,24 @@ before use.
 - Public, paid, personalized, or account-linked distribution can create legal
   and platform obligations beyond this private research deployment.
 
+## Working in this repository
+
+Changes follow a committed artifact chain — intent, spec, plan, diff, review,
+incident — so that a human and a coding agent can pick up the same change from
+the same files. See [Development lifecycle](docs/sdlc.md) for the stages and
+gates, [AGENTS.md](AGENTS.md) for the invariants an agent must not break, and
+[Contributing](CONTRIBUTING.md) for the mechanics.
+
 ## Documentation
 
-- [Roadmap](ROADMAP.md)
-- [Current evidence](docs/current-evidence.md)
-- [Operating Market Ondo](docs/operations.md)
-- [Offline research commands](docs/research-commands.md)
-- [Market activity methodology](docs/market-activity-methodology.md)
-- [Fragility backtest methodology](docs/fragility-backtest-methodology.md)
-- [Fragility v2 methodology](docs/fragility-v2-methodology.md)
-- [Fragility v2 evaluation](docs/fragility-v2-evaluation-report.md)
-- [Fragility shadow snapshot report](docs/fragility-shadow-report.md)
-- [Resilience decay methodology](docs/resilience-decay-methodology.md)
-- [Backtest evaluation plan](docs/backtest-evaluation-plan.md)
-- [Disclaimer](DISCLAIMER.md)
-- [Compliance notes](COMPLIANCE.md)
-- [Security policy](SECURITY.md)
-- [Third-party notices](THIRD_PARTY_NOTICES.md)
-- [Contributing](CONTRIBUTING.md)
-- [MIT License](LICENSE)
+[docs/README.md](docs/README.md) is the full documentation map. The usual
+starting points:
+
+- [Roadmap](ROADMAP.md) — milestones, evidence boundary, and open queue
+- [Current evidence](docs/current-evidence.md) — what the studies actually show
+- [Development lifecycle](docs/sdlc.md) — how a change moves from intent to review
+- [Operating Market Ondo](docs/operations.md) — setup, deployment, and schedule
+- [Disclaimer](DISCLAIMER.md) and [Compliance notes](COMPLIANCE.md) — limits and boundaries
 
 The MIT License covers this repository’s original code and documentation. It
 does not grant rights to third-party market data, service marks, APIs, or
