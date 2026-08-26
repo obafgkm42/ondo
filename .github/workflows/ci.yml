@@ -30,3 +30,14 @@ jobs:
       - run: python -m pip install uv
       - run: uv sync --dev --locked
       - run: uv run pytest
+
+  hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # No npm ci: the checker uses only the Node standard library, so it
+      # cannot be masked by a dependency-install failure.
+      - run: npm run check:hygiene -- --all

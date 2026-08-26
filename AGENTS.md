@@ -172,6 +172,10 @@ values or local paths.
 
 Never pass `--no-verify` to get a commit through.
 
+CI runs the same check as a `hygiene` job on every push, over the whole tree.
+That is a backstop, not the primary control: by the time CI sees a secret it is
+already pushed, and pushed means compromised. Catch it locally.
+
 When it reports a finding:
 
 1. **Remove the value from the working tree.** Do not just unstage it.
