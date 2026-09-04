@@ -208,16 +208,16 @@ Start here, one reviewable change at a time:
 5. [ ] Extend the fragility shadow report with predeclared outcome joins.
 6. [ ] Add the prospective reversal delivery/fill-eligibility audit.
 
-Each item becomes one `docs/work/NNNN-<slug>/` directory when work starts on
-it, beginning with an `intent.md`. The milestones above are long-lived intents
-and own the exit gates; the queue is the backlog that turns into artifacts. See
-[Development lifecycle](docs/sdlc.md).
+The queue is the backlog; starting an item does not require creating a
+`docs/work/` directory. Capture its scope and verification in the pull request,
+and update an existing methodology or evaluation document when the evidence
+contract changes. The older work directories remain useful historical context.
+See [Contributing](CONTRIBUTING.md).
 
 ## Definition of done for every milestone
 
-These criteria are the review gate applied at the Deploy stage of the
-[development lifecycle](docs/sdlc.md), alongside each milestone's own exit gate
-above.
+These criteria apply before a milestone is considered complete, alongside each
+milestone's own exit gate above.
 
 - Runtime behavior, TypeScript/Python parity, and stored schema are tested.
 - Relevant TypeScript, Python, and Worker build checks pass.

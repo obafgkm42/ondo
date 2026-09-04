@@ -43,13 +43,26 @@ history. Never use `--no-verify` to get around it. See
 CI runs the same check over the whole tree, so a finding will fail the build.
 Treat that as a backstop: a secret CI catches has already been pushed.
 
-## Larger changes
+## Change workflow
 
-A change that touches frozen thresholds, a diagnostic's behavior, KV schema,
-Discord routing, or the request budget goes through the artifact chain in
-[`docs/sdlc.md`](docs/sdlc.md): an intent, then a spec, then a plan, each
-committed and approved before the next begins. Typo fixes, dependency bumps,
-and documentation edits do not — an ordinary pull request is correct there.
+Use one pull request for planning, implementation, and review. Include:
+
+- why the change is needed and what is out of scope;
+- tests and other verification performed; and
+- effects on runtime behavior, evidence, stored data, Discord, and request use.
+
+Do not create per-change process files or pause at document-approval gates.
+Ask only when a real product, safety, or evidence decision is unresolved.
+
+Additional requirements:
+
+| Change | Required treatment |
+| --- | --- |
+| Runtime behavior, KV schema, Discord routing, cadence, or request budget | State the old and new behavior, include focused regression tests, and update the relevant operational or methodology documentation. |
+| Frozen threshold, shadow-to-live promotion, or evidence-backed claim | Obtain explicit human approval, satisfy the existing promotion gate, version all affected contracts together, and record the evidence in the relevant methodology or evaluation document. |
+
+Prefer updating an existing canonical document over adding a new process file.
+The older `docs/work/` directories are historical context only.
 
 ## Commit messages
 

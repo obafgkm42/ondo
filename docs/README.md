@@ -46,10 +46,9 @@ Results, and the decisions taken because of them.
 
 | Document | Answers |
 | --- | --- |
-| [Development lifecycle](sdlc.md) | How does a change move from intent to spec to plan to review? |
 | [AGENTS.md](../AGENTS.md) | What must a coding agent never break in this repository? |
-| [Contributing](../CONTRIBUTING.md) | What do I run before opening a pull request? |
-| [Work items](work/) | Per-change artifacts, and the templates for new ones. |
+| [Contributing](../CONTRIBUTING.md) | How should a change be scoped, verified, and described in a pull request? |
+| [Historical work records](work/) | What was recorded under the retired artifact-chain process? |
 
 ## Legal and policy
 
