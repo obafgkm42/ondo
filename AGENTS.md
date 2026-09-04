@@ -25,7 +25,7 @@ red tape around it.
 | `python/tests/` | pytest suites, including the cross-language contract parity test. |
 | `config/signal_frozen_v1.yaml` | The frozen signal contract. See below. |
 | `docs/` | Methodology, evidence, operations, and process. `docs/README.md` is the map. |
-| `docs/work/` | Per-change artifacts: intent, spec, plan, review, incident. |
+| `docs/work/` | Historical design and review records from the former artifact-chain process. |
 | `scripts/` | Local Node utilities for data conversion and Discord registration. |
 
 Python dependencies and generated reports are not part of the Worker runtime.
@@ -103,19 +103,18 @@ must keep `python/tests/test_contract_parity.py` green.
 
 ## How work is structured
 
-Non-trivial changes follow a committed artifact chain — intent → spec → plan →
-diff → review → incident. Each stage commits a file the next stage reads, so a
-human and an agent can pick up the same change from the same place. Read
-[`docs/sdlc.md`](docs/sdlc.md) for the stages, the templates, and the human
-approval gates.
+[`CONTRIBUTING.md`](CONTRIBUTING.md) is the single workflow entry point. Most
+changes are one reviewable diff with tests and any necessary documentation.
+Record purpose, scope, validation, and risk in the pull request; do not create
+separate process files or stop at document-approval gates.
 
-Use the full chain when a change touches frozen thresholds, a diagnostic's
-behavior, KV schema, Discord routing, or the resource budget. Skip it for typo
-fixes, dependency bumps, and documentation edits — an ordinary PR is correct
-there. Do not open a work item just to have one.
+A frozen-threshold change, shadow-to-live promotion, or evidence-claim change
+still needs an explicit human decision and durable evidence in the relevant
+existing methodology or evaluation document.
 
-If you are asked to implement something that has a `docs/work/NNNN-*/spec.md`,
-read that spec first; it outranks your own reading of the code.
+`docs/work/` preserves records created under the former artifact-chain process.
+They are historical context, not current requirements, unless the user
+explicitly adopts one as the specification for a change.
 
 ## Commit and PR conventions
 

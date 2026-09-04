@@ -211,11 +211,13 @@ before use.
 
 ## Working in this repository
 
-Changes follow a committed artifact chain — intent, spec, plan, diff, review,
-incident — so that a human and a coding agent can pick up the same change from
-the same files. See [Development lifecycle](docs/sdlc.md) for the stages and
-gates, [AGENTS.md](AGENTS.md) for the invariants an agent must not break, and
-[Contributing](CONTRIBUTING.md) for the mechanics.
+Use a pull request as the normal unit of planning, implementation, and review;
+separate intent, spec, plan, and review files are not required. Higher-risk
+changes still need explicit evidence and approval where the research contract
+requires it. See [Contributing](CONTRIBUTING.md) for the workflow,
+[AGENTS.md](AGENTS.md) for the invariants an agent must not break, and the
+[backtest evaluation plan](docs/backtest-evaluation-plan.md) for promotion
+gates.
 
 ## Documentation
 
@@ -224,7 +226,7 @@ starting points:
 
 - [Roadmap](ROADMAP.md) — milestones, evidence boundary, and open queue
 - [Current evidence](docs/current-evidence.md) — what the studies actually show
-- [Development lifecycle](docs/sdlc.md) — how a change moves from intent to review
+- [Contributing](CONTRIBUTING.md) — lightweight workflow and review checklist
 - [Operating Market Ondo](docs/operations.md) — setup, deployment, and schedule
 - [Disclaimer](DISCLAIMER.md) and [Compliance notes](COMPLIANCE.md) — limits and boundaries
 
