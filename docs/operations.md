@@ -109,6 +109,20 @@ five-minute candle since the previous allowed scan. A due brief adds one
 history-deficient RVOL installation may make one bounded 15-minute bootstrap
 request after a deployment or during its post-close retry window.
 
+Provider failures use a status-specific request budget. HTTP 429 stops the
+affected request after its first response; the Worker records any valid
+`Retry-After` guidance but waits for the next configured scan boundary instead
+of retrying inside the same invocation. Transient 5xx responses retain at most
+three total attempts, with one- and two-second exponential delays plus up to
+250 ms of jitter. Every failed response logs the operation, status, attempt,
+retry decision, planned local delay, and parsed `Retry-After` delay without
+logging response bodies or raw header values.
+
+A primary candle 429 keeps the existing incomplete-scan notification and
+catch-up behavior. A `perpCategories` 429 stops the later optional
+`metaAndAssetCtxs` request and builds a price-only fragility brief, so optional
+context remains fail-open without amplifying the same rate-limit window.
+
 The prospective diagnostics reuse those responses:
 
 - fragility shadow: at most about 13 KV reads and writes per full RTH day;

@@ -2,7 +2,7 @@
 id: 0002
 title: Harden Hyperliquid rate-limit handling
 stage: plan
-status: draft
+status: done
 milestone: M0
 date: 2026-09-04
 spec: ./spec.md
@@ -10,8 +10,7 @@ spec: ./spec.md
 
 # Plan: Harden Hyperliquid rate-limit handling
 
-> **Draft — awaiting approval at the Build gate.** No runtime code changes are
-> authorized until this plan is approved.
+> **Approved at the Build gate on 2026-09-04.**
 
 ## Approach
 

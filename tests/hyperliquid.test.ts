@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   fetchXyzStockCoins,
@@ -7,6 +7,11 @@ import {
   fetchXyzMarketContexts,
   HyperliquidRateLimitError,
 } from "../src/hyperliquid";
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 
 describe("fetchXyzStockCoins", () => {
   it("selects only xyz assets in the official stocks category", async () => {
@@ -91,10 +96,17 @@ describe("fetchFifteenMinuteCandles", () => {
 });
 
 describe("fetchFiveMinuteCandles", () => {
-  it("retries transient rate limits before returning candles", async () => {
+  it("retries transient server failures before returning candles", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random")
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(250 / 251);
+    const warning = vi.spyOn(console, "warn").mockImplementation(
+      () => undefined,
+    );
     const responses = [
-      new Response("rate limited", { status: 429 }),
-      new Response("rate limited", { status: 429 }),
+      new Response("unavailable", { status: 503 }),
+      new Response("bad gateway", { status: 502 }),
       Response.json([
         {
           t: 1_788_000_000_000,
@@ -116,20 +128,49 @@ describe("fetchFiveMinuteCandles", () => {
       return response;
     };
 
-    const candles = await fetchFiveMinuteCandles(
+    const pendingCandles = fetchFiveMinuteCandles(
       "xyz:SP500",
       new Date("2026-09-02T00:10:00Z"),
       fetcher as typeof fetch,
     );
+    await vi.runAllTimersAsync();
+    const candles = await pendingCandles;
 
     expect(candles).toHaveLength(1);
     expect(candles[0]?.close).toBe(100.5);
     expect(responses).toHaveLength(0);
+    expect(requestFailureLogs(warning)).toEqual([
+      expect.objectContaining({
+        operation: "candle",
+        responseStatus: 503,
+        attempt: 1,
+        maxAttempts: 3,
+        decision: "retry",
+        retryDelayMs: 1_000,
+      }),
+      expect.objectContaining({
+        operation: "candle",
+        responseStatus: 502,
+        attempt: 2,
+        maxAttempts: 3,
+        decision: "retry",
+        retryDelayMs: 2_250,
+      }),
+    ]);
   });
 
-  it("throws a typed error after repeated rate limits", async () => {
-    const fetcher = async (): Promise<Response> =>
-      new Response("rate limited", { status: 429 });
+  it("throws a typed error after one rate limit without retrying", async () => {
+    let requestCount = 0;
+    const warning = vi.spyOn(console, "warn").mockImplementation(
+      () => undefined,
+    );
+    const fetcher = async (): Promise<Response> => {
+      requestCount += 1;
+      return new Response("rate limited", {
+        status: 429,
+        headers: { "Retry-After": "12" },
+      });
+    };
 
     await expect(
       fetchFiveMinuteCandles(
@@ -138,6 +179,113 @@ describe("fetchFiveMinuteCandles", () => {
         fetcher as typeof fetch,
       ),
     ).rejects.toBeInstanceOf(HyperliquidRateLimitError);
+    expect(requestCount).toBe(1);
+    expect(requestFailureLogs(warning)).toEqual([
+      {
+        status: "hyperliquid_request_failed",
+        operation: "candle",
+        responseStatus: 429,
+        attempt: 1,
+        maxAttempts: 1,
+        decision: "abort",
+        retryDelayMs: null,
+        retryAfterMs: 12_000,
+      },
+    ]);
+  });
+
+  it("preserves rate-limit behavior when structured logging fails", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {
+      throw new Error("logging unavailable");
+    });
+    let requestCount = 0;
+    const fetcher = async (): Promise<Response> => {
+      requestCount += 1;
+      return new Response("rate limited", { status: 429 });
+    };
+
+    await expect(
+      fetchFiveMinuteCandles(
+        "xyz:SP500",
+        new Date("2026-09-02T00:10:00Z"),
+        fetcher as typeof fetch,
+      ),
+    ).rejects.toBeInstanceOf(HyperliquidRateLimitError);
+    expect(requestCount).toBe(1);
+  });
+
+  it("aborts an exhausted server failure after exactly three attempts", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const warning = vi.spyOn(console, "warn").mockImplementation(
+      () => undefined,
+    );
+    let requestCount = 0;
+    const fetcher = async (): Promise<Response> => {
+      requestCount += 1;
+      return new Response("unavailable", { status: 503 });
+    };
+
+    const pendingResult = fetchFiveMinuteCandles(
+      "xyz:SP500",
+      new Date("2026-09-02T00:10:00Z"),
+      fetcher as typeof fetch,
+    );
+    const assertion = expect(pendingResult).rejects.toThrow(
+      "Hyperliquid candle request failed: 503",
+    );
+    await vi.runAllTimersAsync();
+    await assertion;
+
+    expect(requestCount).toBe(3);
+    expect(requestFailureLogs(warning).at(-1)).toEqual(
+      expect.objectContaining({
+        attempt: 3,
+        maxAttempts: 3,
+        decision: "abort",
+        retryDelayMs: null,
+      }),
+    );
+  });
+
+  it.each([
+    ["delta seconds", "12", 12_000],
+    ["future HTTP date", "Fri, 04 Sep 2026 10:00:30 GMT", 30_000],
+    ["past HTTP date", "Fri, 04 Sep 2026 09:59:30 GMT", 0],
+    ["negative seconds", "-1", null],
+    ["malformed", "not-a-delay", null],
+    ["absent", undefined, null],
+    ["bounded", "999999", 24 * 60 * 60 * 1_000],
+  ])("normalizes %s Retry-After", async (_label, header, expected) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-04T10:00:00.000Z"));
+    const warning = vi.spyOn(console, "warn").mockImplementation(
+      () => undefined,
+    );
+    const fetcher = async (): Promise<Response> =>
+      new Response("rate limited", {
+        status: 429,
+        ...(header === undefined
+          ? {}
+          : { headers: { "Retry-After": header } }),
+      });
+
+    await expect(
+      fetchFiveMinuteCandles(
+        "xyz:SP500",
+        new Date("2026-09-04T10:00:00.000Z"),
+        fetcher as typeof fetch,
+      ),
+    ).rejects.toBeInstanceOf(HyperliquidRateLimitError);
+
+    const serializedLog = String(warning.mock.calls[0]?.[0]);
+    const parsedLog = JSON.parse(serializedLog) as Record<string, unknown>;
+    expect(parsedLog).toMatchObject({
+      retryAfterMs: expected,
+    });
+    expect(parsedLog).not.toHaveProperty("retryAfter");
+    expect(parsedLog).not.toHaveProperty("retryAfterRaw");
+    expect(serializedLog).not.toContain("not-a-delay");
   });
 });
 
@@ -211,4 +359,12 @@ function candlePayload(startTime: number, intervalMinutes: number): object {
     v: "42",
     n: 7,
   };
+}
+
+function requestFailureLogs(
+  warning: ReturnType<typeof vi.spyOn>,
+): Array<Record<string, unknown>> {
+  return warning.mock.calls.map(([message]) =>
+    JSON.parse(String(message)) as Record<string, unknown>
+  );
 }
