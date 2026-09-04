@@ -2,7 +2,7 @@
 id: 0002
 title: Harden Hyperliquid rate-limit handling
 stage: spec
-status: draft
+status: approved
 milestone: M0
 date: 2026-09-04
 intent: ./intent.md
@@ -10,8 +10,8 @@ intent: ./intent.md
 
 # Spec: Harden Hyperliquid rate-limit handling
 
-> **Draft — awaiting approval at the Design gate.** No runtime code changes are
-> authorized until this behavior contract is approved.
+> **Approved at the Design gate on 2026-09-04.** Runtime work remains gated by
+> approval of the implementation plan.
 
 ## Summary
 
