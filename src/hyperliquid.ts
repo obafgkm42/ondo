@@ -4,8 +4,10 @@ import { normalizeHyperliquidCandles } from "./market-data";
 const HYPERLIQUID_INFO_URL = "https://api.hyperliquid.xyz/info";
 const REQUEST_LOOKBACK_MS = 18 * 60 * 60 * 1_000;
 const MAX_BOOTSTRAP_LOOKBACK_DAYS = 30;
-const MAX_CANDLE_REQUEST_ATTEMPTS = 3;
-const RETRY_BASE_DELAY_MS = 250;
+const MAX_SERVER_REQUEST_ATTEMPTS = 3;
+const SERVER_RETRY_BASE_DELAY_MS = 1_000;
+const SERVER_RETRY_MAX_JITTER_MS = 250;
+const MAX_RETRY_AFTER_MS = 24 * 60 * 60 * 1_000;
 const RATE_LIMIT_STATUS = 429;
 
 interface HyperliquidPerpAsset {
@@ -206,8 +208,7 @@ async function fetchInfoWithRetry(
   operation: string,
   fetcher: typeof fetch,
 ): Promise<Response> {
-  let lastStatus = 0;
-  for (let attempt = 1; attempt <= MAX_CANDLE_REQUEST_ATTEMPTS; attempt += 1) {
+  for (let attempt = 1; attempt <= MAX_SERVER_REQUEST_ATTEMPTS; attempt += 1) {
     const response = await fetcher(HYPERLIQUID_INFO_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -216,21 +217,127 @@ async function fetchInfoWithRetry(
     if (response.ok) {
       return response;
     }
-    lastStatus = response.status;
-    if (!isTransientStatus(response.status)) {
+
+    const retryAfterMs = parseRetryAfterMs(
+      response.headers.get("Retry-After"),
+      Date.now(),
+    );
+    if (response.status === RATE_LIMIT_STATUS) {
+      logRequestFailure({
+        operation,
+        responseStatus: response.status,
+        attempt,
+        maxAttempts: 1,
+        decision: "abort",
+        retryDelayMs: null,
+        retryAfterMs,
+      });
+      throw new HyperliquidRateLimitError(response.status, operation);
+    }
+
+    if (!isServerFailure(response.status)) {
+      logRequestFailure({
+        operation,
+        responseStatus: response.status,
+        attempt,
+        maxAttempts: 1,
+        decision: "abort",
+        retryDelayMs: null,
+        retryAfterMs,
+      });
       throw new Error(
         `Hyperliquid ${operation} request failed: ${response.status}`,
       );
     }
-    if (attempt < MAX_CANDLE_REQUEST_ATTEMPTS) {
-      await sleep(RETRY_BASE_DELAY_MS * attempt);
+
+    if (attempt < MAX_SERVER_REQUEST_ATTEMPTS) {
+      const retryDelayMs = serverRetryDelayMs(attempt);
+      logRequestFailure({
+        operation,
+        responseStatus: response.status,
+        attempt,
+        maxAttempts: MAX_SERVER_REQUEST_ATTEMPTS,
+        decision: "retry",
+        retryDelayMs,
+        retryAfterMs,
+      });
+      await sleep(retryDelayMs);
+      continue;
     }
+
+    logRequestFailure({
+      operation,
+      responseStatus: response.status,
+      attempt,
+      maxAttempts: MAX_SERVER_REQUEST_ATTEMPTS,
+      decision: "abort",
+      retryDelayMs: null,
+      retryAfterMs,
+    });
+    throw new Error(
+      `Hyperliquid ${operation} request failed: ${response.status}`,
+    );
   }
 
-  if (lastStatus === RATE_LIMIT_STATUS) {
-    throw new HyperliquidRateLimitError(lastStatus, operation);
+  throw new Error(`Hyperliquid ${operation} request failed unexpectedly`);
+}
+
+interface RequestFailureLog {
+  operation: string;
+  responseStatus: number;
+  attempt: number;
+  maxAttempts: number;
+  decision: "retry" | "abort";
+  retryDelayMs: number | null;
+  retryAfterMs: number | null;
+}
+
+function logRequestFailure(details: RequestFailureLog): void {
+  try {
+    console.warn(
+      JSON.stringify({
+        status: "hyperliquid_request_failed",
+        ...details,
+      }),
+    );
+  } catch {
+    // Observability must never change the provider failure path.
   }
-  throw new Error(`Hyperliquid ${operation} request failed: ${lastStatus}`);
+}
+
+function parseRetryAfterMs(
+  rawValue: string | null,
+  nowMilliseconds: number,
+): number | null {
+  if (rawValue === null) {
+    return null;
+  }
+  const value = rawValue.trim();
+  if (/^\d+$/.test(value)) {
+    const seconds = Number(value);
+    if (!Number.isFinite(seconds)) {
+      return null;
+    }
+    return Math.min(seconds * 1_000, MAX_RETRY_AFTER_MS);
+  }
+  if (/^[+-]?\d+(?:\.\d+)?$/.test(value)) {
+    return null;
+  }
+
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) {
+    return null;
+  }
+  return Math.min(
+    Math.max(0, timestamp - nowMilliseconds),
+    MAX_RETRY_AFTER_MS,
+  );
+}
+
+function serverRetryDelayMs(attempt: number): number {
+  const exponentialDelay = SERVER_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1);
+  const jitter = Math.floor(Math.random() * (SERVER_RETRY_MAX_JITTER_MS + 1));
+  return exponentialDelay + jitter;
 }
 
 function parsePerpMetadata(value: unknown): HyperliquidPerpMetadata {
@@ -311,8 +418,8 @@ function isPerpCategory(value: unknown): value is HyperliquidPerpCategory {
     typeof value[1] === "string";
 }
 
-function isTransientStatus(status: number): boolean {
-  return status === RATE_LIMIT_STATUS || status >= 500;
+function isServerFailure(status: number): boolean {
+  return status >= 500 && status <= 599;
 }
 
 function sleep(milliseconds: number): Promise<void> {

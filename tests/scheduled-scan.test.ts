@@ -137,6 +137,113 @@ describe("scheduled catch-up scan", () => {
     expect(shadowState.sessions[0]?.observations).toHaveLength(1);
   });
 
+  it("stops optional context requests after a category rate limit", async () => {
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    const state = memoryKv({ "last-version-notice": "local-dev" });
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const warning = vi.spyOn(console, "warn").mockImplementation(
+      () => undefined,
+    );
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async (
+        input: string | URL | Request,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        const url = String(input);
+        calls.push({ url, init });
+        if (url !== HYPERLIQUID_INFO_URL) {
+          return new Response(null, { status: 204 });
+        }
+        const body = JSON.parse(String(init?.body)) as { type: string };
+        if (body.type === "perpCategories") {
+          return new Response("rate limited", {
+            status: 429,
+            headers: { "Retry-After": "60" },
+          });
+        }
+        if (body.type === "metaAndAssetCtxs") {
+          throw new Error("market contexts should be suppressed");
+        }
+        return Response.json(hyperliquidCandles());
+      },
+    );
+    const waitUntilPromises: Promise<unknown>[] = [];
+
+    await worker.scheduled(
+      scheduledController("2026-07-23T15:30:00.000Z"),
+      {
+        ...baseEnv(),
+        REGULAR_SCAN_MINUTES: "20",
+        BRIEF_INTERVAL_MINUTES: "30",
+        SCANNER_STATE: state,
+      },
+      waitUntilContext(waitUntilPromises),
+    );
+    await Promise.all(waitUntilPromises);
+
+    const infoRequestTypes = calls
+      .filter((call) => call.url === HYPERLIQUID_INFO_URL)
+      .map((call) =>
+        (JSON.parse(String(call.init?.body)) as { type: string }).type
+      );
+    expect(infoRequestTypes).toEqual(["candleSnapshot", "perpCategories"]);
+    expect(
+      calls.filter((call) => call.url !== HYPERLIQUID_INFO_URL),
+    ).toHaveLength(1);
+    expect(
+      warning.mock.calls.some(([message]) =>
+        String(message).includes(
+          '"operation":"perp categories","responseStatus":429',
+        )
+      ),
+    ).toBe(true);
+  });
+
+  it("still attempts frozen-basket contexts after a non-rate-limit category failure", async () => {
+    const infoRequestTypes: string[] = [];
+    const state = memoryKv({ "last-version-notice": "local-dev" });
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async (
+        input: string | URL | Request,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        if (String(input) !== HYPERLIQUID_INFO_URL) {
+          return new Response(null, { status: 204 });
+        }
+        const body = JSON.parse(String(init?.body)) as { type: string };
+        infoRequestTypes.push(body.type);
+        if (body.type === "perpCategories") {
+          return new Response("category unavailable", { status: 400 });
+        }
+        if (body.type === "metaAndAssetCtxs") {
+          return new Response("context unavailable", { status: 400 });
+        }
+        return Response.json(hyperliquidCandles());
+      },
+    );
+    const waitUntilPromises: Promise<unknown>[] = [];
+
+    await worker.scheduled(
+      scheduledController("2026-07-23T15:30:00.000Z"),
+      {
+        ...baseEnv(),
+        REGULAR_SCAN_MINUTES: "20",
+        BRIEF_INTERVAL_MINUTES: "30",
+        SCANNER_STATE: state,
+      },
+      waitUntilContext(waitUntilPromises),
+    );
+    await Promise.all(waitUntilPromises);
+
+    expect(infoRequestTypes).toEqual([
+      "candleSnapshot",
+      "perpCategories",
+      "metaAndAssetCtxs",
+    ]);
+  });
+
   it("does not persist or broadcast a stale market-state brief", async () => {
     const calls: Array<{ url: string; init?: RequestInit }> = [];
     const state = memoryKv({ "last-version-notice": "local-dev" });
@@ -292,7 +399,7 @@ describe("scheduled catch-up scan", () => {
         calls.push({ url, init });
         if (url === HYPERLIQUID_INFO_URL) {
           candleAttempts += 1;
-          if (candleAttempts <= 3) {
+          if (candleAttempts === 1) {
             return new Response(null, { status: 429 });
           }
           return Response.json(hyperliquidCandlesThroughClose());

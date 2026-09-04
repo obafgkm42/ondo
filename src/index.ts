@@ -745,6 +745,9 @@ async function calculateMarketFragility(
         effect: "expanded context omitted; frozen six-indicator classifier continues",
       }),
     );
+    if (error instanceof HyperliquidRateLimitError) {
+      return analyzeMarketFragility(candles, []);
+    }
   }
   try {
     const requestedCoins = [
