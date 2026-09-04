@@ -2,7 +2,7 @@
 id: 0002
 title: Harden Hyperliquid rate-limit handling
 stage: intent
-status: draft
+status: accepted
 milestone: M0
 date: 2026-09-04
 ---
