@@ -105,6 +105,38 @@ describe("handleDiscordInteraction", () => {
     await expect(response.json()).resolves.toEqual({ type: 1 });
   });
 
+  it("routes authenticated status through the coordinator after deferring", async () => {
+    const pending: Promise<unknown>[] = [];
+    const coordinatorFetch = vi.fn(async () => Response.json(scannerStatus()));
+    const name = vi.fn(() => "example-object-id");
+    const fetcher = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(null, { status: 204 }),
+    );
+    const env: Env = {
+      ...workerEnv(),
+      SCAN_EXECUTION_MODE: "durable-object",
+      SCAN_COORDINATOR: {
+        idFromName: name,
+        get: () => ({ fetch: coordinatorFetch }),
+      } as unknown as DurableObjectNamespace,
+    };
+    const context = executionContext();
+    context.waitUntil = (promise) => { pending.push(promise); };
+    const response = await worker.fetch(
+      await signedRequest(commandInteraction("status")), env, context,
+    );
+    await expect(response.json()).resolves.toEqual({
+      type: 5, data: { flags: 64 },
+    });
+    await Promise.all(pending);
+    expect(name).toHaveBeenCalledWith("scanner");
+    expect(coordinatorFetch).toHaveBeenCalledExactlyOnceWith(
+      "https://scanner.internal/status", { method: "POST" },
+    );
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher.mock.calls[0]?.[1]?.method).toBe("PATCH");
+  });
+
   it("returns the repair guide privately without requesting market data", async () => {
     const getStatus = vi.fn<() => Promise<DiscordScannerStatus>>();
     const request = await signedRequest(commandInteraction("repair"));

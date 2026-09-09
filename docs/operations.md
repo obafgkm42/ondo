@@ -93,6 +93,79 @@ available:
 npm run deploy
 ```
 
+### Coordinated scan execution
+
+The deployment uses `SCAN_EXECUTION_MODE = "durable-object"`. Cron ticks,
+authenticated `GET /scan`, and Discord `/scanner status` all reach the same
+named `ScanCoordinator` object through the `SCAN_COORDINATOR` binding. Discord
+signature/guild checks and HTTP authentication still run before forwarding.
+Help, repair, and endpoint-validation interactions do not request a scan.
+
+The coordinator runs scheduled and manual work sequentially. Overlapping
+manual queries share one in-flight result; a later query fetches fresh data.
+Scheduled work retains Cloudflare's original scheduled timestamp, including
+when it waits behind a manual query. A completed-tick watermark rejects repeat
+or older Cron deliveries, including after an object restart. It is written
+after completion, so it does not promise exactly-once external delivery if an
+execution is interrupted between a notification and the receipt write.
+
+`wrangler.toml` includes both the binding and the SQLite creation migration:
+
+```toml
+[[durable_objects.bindings]]
+name = "SCAN_COORDINATOR"
+class_name = "ScanCoordinator"
+
+[[migrations]]
+tag = "v1-scan-coordinator"
+new_sqlite_classes = ["ScanCoordinator"]
+```
+
+Deploy with `wrangler deploy` (the existing `npm run deploy` command). This
+creates the namespace and binding; do not manually create a second object or
+add a namespace ID. No new secret is needed. The first release adds a Durable
+Object class, so a build that only runs `wrangler versions upload` must instead
+apply this migration with `wrangler deploy`. Existing `SCANNER_STATE` KV and
+Discord secrets stay attached to the Worker. The new object's storage holds
+only its completed-tick watermark; existing research and notification state
+keeps the same KV keys and retention.
+
+After deployment, check **Worker → Bindings** for `SCAN_COORDINATOR`, linked to
+`ScanCoordinator`, and **Settings → Variables and Secrets** for the text value
+`SCAN_EXECUTION_MODE=durable-object`. These are supplied by the checked-in
+Wrangler config; routine deployment requires no manual Dashboard additions.
+
+For rollback, set `SCAN_EXECUTION_MODE=direct` and redeploy, or set that runtime
+text variable in the Dashboard as an emergency override. Keep the class,
+binding, and migration declaration so no namespace is deleted. Update the
+repository variable too if the override must survive the next deployment.
+Missing mode configuration also selects `direct`; an invalid value or a missing
+binding in `durable-object` mode fails visibly instead of silently retrying a
+possibly completed scan outside the object.
+
+This release preserves the cadence and the one-attempt 429 policy. It does not
+add a cross-request provider cooldown or change the Hyperliquid quota. A
+Durable Object has a stable execution location, not a guaranteed dedicated or
+fixed egress IP. Reduced production 429s remain a hypothesis to measure.
+See [Cloudflare data location][do-location] and
+[Hyperliquid rate limits][hyperliquid-limits].
+
+For verification, find `scan_coordinator_scheduled` and
+`scan_coordinator_duplicate_tick` in Worker logs, and compare
+`hyperliquid_request_failed` against actual attempted scans in comparable
+sessions. Count a provider failure once: the later `scheduled scan skipped`
+record describes the same incident. A green invocation outcome can include a
+gracefully handled 429. Also verify a successful scheduled scan and a Discord
+status query; a working health endpoint alone does not exercise this path.
+
+The local suite includes native workerd/Miniflare tests with external network
+access disabled. Miniflare is declared as a direct development dependency at
+the version already used by Wrangler, so these checks run with `npm test` in
+CI without introducing a Worker runtime dependency.
+
+[do-location]: https://developers.cloudflare.com/durable-objects/reference/data-location/
+[hyperliquid-limits]: https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/rate-limits-and-user-limits
+
 ## Schedule and free-tier discipline
 
 Cloudflare invokes the Worker every five minutes, then the Worker applies its
@@ -102,6 +175,12 @@ own gate:
 - scans every five minutes from 15:00–16:00 New York time;
 - standard-session briefs every 30 minutes; and
 - non-standard-session briefs no more frequently than hourly.
+
+Coordination adds one internal Durable Object request per Cron tick (288 per
+day), plus authorized manual queries. Each unique completed tick uses at most
+one coordinator storage read and one write. This does not add Hyperliquid
+requests or change the existing KV operation budget. Duplicate tick deliveries
+need only the coordinator storage read.
 
 Each scheduled scan uses one Hyperliquid candle request and evaluates every new
 five-minute candle since the previous allowed scan. A due brief adds one
