@@ -226,7 +226,7 @@ async function startRuntime() {
     kvNamespaces: ["SCANNER_STATE"],
     bindings: {
       SCAN_EXECUTION_MODE: "durable-object",
-      DISCORD_WEBHOOK_URL: `https://example.com${webhookPath}`,
+      DISCORD_WEBHOOK_URL: `https://discord.com${webhookPath}`,
       MANUAL_SCAN_TOKEN: "example-manual-token",
       MARKET_ACTIVITY_MODE: "off",
     },
