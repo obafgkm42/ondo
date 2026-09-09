@@ -22,6 +22,7 @@ import {
 
 const executeFile = promisify(execFile);
 const webhookPath = "/api/webhooks/example/token";
+const discordWebhookUrl = ["https://discord.com", webhookPath].join("");
 let directory: string;
 let script: string;
 let runtime: Miniflare | undefined;
@@ -226,7 +227,7 @@ async function startRuntime() {
     kvNamespaces: ["SCANNER_STATE"],
     bindings: {
       SCAN_EXECUTION_MODE: "durable-object",
-      DISCORD_WEBHOOK_URL: `https://discord.com${webhookPath}`,
+      DISCORD_WEBHOOK_URL: discordWebhookUrl,
       MANUAL_SCAN_TOKEN: "example-manual-token",
       MARKET_ACTIVITY_MODE: "off",
     },
