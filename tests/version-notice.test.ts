@@ -75,6 +75,40 @@ describe("scheduled version notices", () => {
     expect(String(requests[0]?.body)).toContain("2026.06.24.204500");
   });
 
+  it("waits for the scan before reporting a failed version notice", async () => {
+    const candle = Promise.withResolvers<Response>();
+    const candleStarted = Promise.withResolvers<void>();
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      if (String(input) === "https://api.hyperliquid.xyz/info") {
+        candleStarted.resolve();
+        return candle.promise;
+      }
+      return new Response("example notice failure", { status: 500 });
+    });
+    const pending: Promise<unknown>[] = [];
+    await worker.scheduled(
+      scheduledController("2026-07-23T15:45:39.000Z"),
+      {
+        ...baseEnv(),
+        MARKET_ACTIVITY_MODE: "off",
+        WORKER_VERSION: "example-new-version",
+        SCANNER_STATE: memoryKv().namespace,
+      },
+      waitUntilContext(pending),
+    );
+    let completed = false;
+    const outcome = Promise.all(pending).then(
+      () => { completed = true; return "success"; },
+      () => { completed = true; return "failure"; },
+    );
+    await candleStarted.promise;
+    expect(completed).toBe(false);
+    candle.resolve(Response.json([]));
+    expect(await outcome).toBe("failure");
+  });
+
   it("sends one version notice when the Cloudflare version changes", async () => {
     const requests: RequestInit[] = [];
     vi.spyOn(globalThis, "fetch").mockImplementation(

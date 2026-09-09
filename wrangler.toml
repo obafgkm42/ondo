@@ -8,6 +8,7 @@ preview_urls = false
 crons = ["*/5 * * * *"]
 
 [vars]
+SCAN_EXECUTION_MODE = "durable-object"
 LANGUAGE = "zh"
 HYPERLIQUID_COIN = "xyz:SP500"
 REGULAR_SCAN_MINUTES = "15"
@@ -26,6 +27,14 @@ binding = "CF_VERSION_METADATA"
 
 [[kv_namespaces]]
 binding = "SCANNER_STATE"
+
+[[durable_objects.bindings]]
+name = "SCAN_COORDINATOR"
+class_name = "ScanCoordinator"
+
+[[migrations]]
+tag = "v1-scan-coordinator"
+new_sqlite_classes = ["ScanCoordinator"]
 
 [observability]
 enabled = false

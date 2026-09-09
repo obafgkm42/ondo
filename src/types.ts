@@ -20,6 +20,8 @@ export interface Env {
   WORKER_VERSION?: string;
   CF_VERSION_METADATA?: WorkerVersionMetadata;
   SCANNER_STATE?: KVNamespace;
+  SCAN_EXECUTION_MODE?: string;
+  SCAN_COORDINATOR?: DurableObjectNamespace;
 }
 
 export type Language = "en" | "zh";
