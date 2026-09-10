@@ -21,6 +21,7 @@ const DISCORD_RESPONSE_MESSAGE = 4;
 const DISCORD_RESPONSE_DEFERRED_MESSAGE = 5;
 const DISCORD_EPHEMERAL_FLAG = 1 << 6;
 const MAXIMUM_SIGNATURE_AGE_MS = 5 * 60 * 1_000;
+const MAXIMUM_INTERACTION_BODY_BYTES = 64 * 1_024;
 
 interface DiscordCommandOption {
   name?: string;
@@ -55,6 +56,9 @@ export async function handleDiscordInteraction(
   request: Request,
   options: DiscordInteractionOptions,
 ): Promise<Response> {
+  if (declaredBodyIsTooLarge(request.headers)) {
+    return payloadTooLargeResponse();
+  }
   const publicKey = options.publicKey?.trim();
   const allowedGuildId = options.allowedGuildId?.trim();
   if (
@@ -71,7 +75,10 @@ export async function handleDiscordInteraction(
 
   const signature = request.headers.get("X-Signature-Ed25519") ?? "";
   const timestamp = request.headers.get("X-Signature-Timestamp") ?? "";
-  const body = await request.text();
+  const body = await readBodyWithinLimit(request);
+  if (body === null) {
+    return payloadTooLargeResponse();
+  }
   if (
     !(await verifyDiscordRequest(
       publicKey,
@@ -141,6 +148,51 @@ export async function handleDiscordInteraction(
     type: DISCORD_RESPONSE_DEFERRED_MESSAGE,
     data: { flags: DISCORD_EPHEMERAL_FLAG },
   });
+}
+
+function declaredBodyIsTooLarge(headers: Headers): boolean {
+  const contentLength = headers.get("Content-Length");
+  if (contentLength === null) {
+    return false;
+  }
+  const parsedLength = Number(contentLength);
+  return Number.isFinite(parsedLength) &&
+    parsedLength > MAXIMUM_INTERACTION_BODY_BYTES;
+}
+
+async function readBodyWithinLimit(request: Request): Promise<string | null> {
+  if (request.body === null) {
+    return "";
+  }
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let length = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    length += value.byteLength;
+    if (length > MAXIMUM_INTERACTION_BODY_BYTES) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+  const body = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(body);
+}
+
+function payloadTooLargeResponse(): Response {
+  return Response.json(
+    { error: "payload too large" },
+    { status: 413 },
+  );
 }
 
 /**

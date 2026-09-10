@@ -2,9 +2,36 @@ import { loadConfig } from "./config";
 import { publicScanResult } from "./discord";
 import { handleDiscordInteraction } from "./discord-interactions";
 import { dispatchManualScan, dispatchScheduledScan } from "./scan-dispatch";
-import type { Env } from "./types";
+import type { Env, RequestRateLimiter } from "./types";
 
 export { ScanCoordinator } from "./scan-coordinator";
+
+const NOT_FOUND_RESPONSE = { error: "not found" };
+
+async function rateLimitAllows(
+  limiter: RequestRateLimiter | undefined,
+  key: string,
+): Promise<boolean> {
+  if (limiter === undefined) {
+    return true;
+  }
+  try {
+    return (await limiter.limit({ key })).success;
+  } catch (error) {
+    console.error(
+      "request rate limit failed",
+      error instanceof Error ? error.name : "UnknownError",
+    );
+    return false;
+  }
+}
+
+function rateLimitedResponse(): Response {
+  return Response.json(
+    { error: "too many requests" },
+    { status: 429, headers: { "Retry-After": "60" } },
+  );
+}
 
 export default {
   async scheduled(
@@ -25,6 +52,12 @@ export default {
       request.method === "POST" &&
       url.pathname === "/discord/interactions"
     ) {
+      if (!(await rateLimitAllows(
+        env.DISCORD_INTERACTIONS_RATE_LIMITER,
+        "discord-interactions",
+      ))) {
+        return rateLimitedResponse();
+      }
       const config = loadConfig(env);
       return handleDiscordInteraction(request, {
         publicKey: env.DISCORD_APPLICATION_PUBLIC_KEY,
@@ -34,22 +67,24 @@ export default {
         waitUntil: (promise) => context.waitUntil(promise),
       });
     }
+    if (request.method === "GET" && url.pathname === "/") {
+      return Response.json({ status: "ok" });
+    }
     if (request.method !== "GET" || url.pathname !== "/scan") {
-      return Response.json(
-        {
-          service: "hyperliquid-sp500-reversal-scanner",
-          endpoint: "GET /scan",
-          execution: "read-only alerts; no order placement",
-        },
-        { status: 200 },
-      );
+      return Response.json(NOT_FOUND_RESPONSE, { status: 404 });
     }
     if (
       env.MANUAL_SCAN_TOKEN === undefined ||
       request.headers.get("Authorization") !==
         `Bearer ${env.MANUAL_SCAN_TOKEN}`
     ) {
-      return Response.json({ error: "not found" }, { status: 404 });
+      return Response.json(NOT_FOUND_RESPONSE, { status: 404 });
+    }
+    if (!(await rateLimitAllows(
+      env.MANUAL_SCAN_RATE_LIMITER,
+      "manual-scan",
+    ))) {
+      return rateLimitedResponse();
     }
 
     try {

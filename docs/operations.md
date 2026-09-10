@@ -18,7 +18,11 @@ orders. Responses to slash commands are ephemeral.
 - `/scanner help` shows the private command guide.
 
 Every interaction must have a valid Discord Ed25519 signature and match the
-configured `DISCORD_GUILD_ID`.
+configured `DISCORD_GUILD_ID`. The Worker rejects request bodies larger than
+64 KiB before signature verification and applies a loose Cloudflare-side limit
+of 60 interaction requests per minute per Cloudflare location. This limit is a
+coarse abuse guard; Discord signature verification and the guild allowlist
+remain the authorization boundary.
 
 ### Discord setup
 
@@ -80,6 +84,20 @@ To keep the emergency/manual endpoint, set it separately:
 npx wrangler secret put MANUAL_SCAN_TOKEN
 ```
 
+Only `GET /`, authenticated `GET /scan`, and `POST /discord/interactions` are
+publicly routed. The root returns only `{ "status": "ok" }`; every other path
+or method returns a minimal `404`, including dotfile and GraphQL probes.
+Authenticated manual scans are limited to six requests per minute per
+Cloudflare location before they can reach the scan coordinator or upstream
+provider. Unauthenticated scans return `404` without consuming the limiter.
+
+The two `[[ratelimits]]` bindings in `wrangler.toml` use account-local integer
+namespace identifiers; they are configuration, not credentials. Binding
+counters are local to a Cloudflare location and eventually consistent, so they
+protect capacity but are not an exact accounting or authorization mechanism.
+If broader probe traffic becomes material, add a zone-level WAF rate limiting
+rule for the custom hostname so rejected traffic does not invoke the Worker.
+
 An ID-free `SCANNER_STATE` KV binding is declared in `wrangler.toml`. It stores
 bounded RVOL history, failed-scan recovery, signal deduplication, diagnostic
 shadow state, rate-limit incident state, and version notices. Do not commit an
@@ -100,6 +118,9 @@ authenticated `GET /scan`, and Discord `/scanner status` all reach the same
 named `ScanCoordinator` object through the `SCAN_COORDINATOR` binding. Discord
 signature/guild checks and HTTP authentication still run before forwarding.
 Help, repair, and endpoint-validation interactions do not request a scan.
+The coordinator's `/scheduled` and `/status` handlers are reachable only
+through its Worker binding. Do not add a public proxy to those handlers without
+separate strong authentication.
 
 The coordinator runs scheduled and manual work sequentially. Overlapping
 manual queries share one in-flight result; a later query fetches fresh data.

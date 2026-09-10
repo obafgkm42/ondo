@@ -22,6 +22,13 @@ export interface Env {
   SCANNER_STATE?: KVNamespace;
   SCAN_EXECUTION_MODE?: string;
   SCAN_COORDINATOR?: DurableObjectNamespace;
+  MANUAL_SCAN_RATE_LIMITER?: RequestRateLimiter;
+  DISCORD_INTERACTIONS_RATE_LIMITER?: RequestRateLimiter;
+}
+
+/** Minimal structural type for Cloudflare's Rate Limiting binding. */
+export interface RequestRateLimiter {
+  limit(options: { key: string }): Promise<{ success: boolean }>;
 }
 
 export type Language = "en" | "zh";
