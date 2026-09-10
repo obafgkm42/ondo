@@ -39,8 +39,9 @@ bindings, upstream providers, route names, or deployment topology.
 
 Discord signatures are verified before parsing or command execution, and the
 configured guild is checked before a command can start a scan. Interaction
-bodies are bounded at 64 KiB. Rate limiting protects both interactive routes,
-but is not a substitute for the bearer token, Discord signature verification,
+bodies are bounded at 64 KiB. The checked-in rate-limit namespace numbers are account-local configuration, not
+Cloudflare resource identifiers or credentials. Rate limiting protects both
+interactive routes, but is not a substitute for the bearer token, Discord signature verification,
 or the guild allowlist. Durable Object HTTP handlers remain internal to the
 Worker binding and must not be publicly proxied without separate authentication.
 
