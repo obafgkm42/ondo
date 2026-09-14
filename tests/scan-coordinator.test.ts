@@ -152,9 +152,20 @@ describe("ScanCoordinator", () => {
     const coordinator = new ScanCoordinator(memoryState(), baseEnv());
     const manual = coordinator.fetch(statusRequest());
     await vi.waitFor(() => expect(executeManualScan).toHaveBeenCalledTimes(1));
-    const older = coordinator.fetch(scheduledRequest());
+
+    const olderPayload = Promise.withResolvers<unknown>();
+    const olderRequest = scheduledRequestWithPayload(olderPayload.promise);
+    const older = coordinator.fetch(olderRequest);
+    await vi.waitFor(() => expect(olderRequest.json).toHaveBeenCalledTimes(1));
+    olderPayload.resolve({ scheduledTime });
     await Promise.resolve();
-    const newer = coordinator.fetch(scheduledRequest(scheduledTime + 300_000));
+
+    const newerPayload = Promise.withResolvers<unknown>();
+    const newerRequest = scheduledRequestWithPayload(newerPayload.promise);
+    const newer = coordinator.fetch(newerRequest);
+    await vi.waitFor(() => expect(newerRequest.json).toHaveBeenCalledTimes(1));
+    newerPayload.resolve({ scheduledTime: scheduledTime + 300_000 });
+    await Promise.resolve();
     pending.resolve(scanResult());
 
     await Promise.all([manual, older, newer]);
@@ -363,6 +374,14 @@ function scheduledRequest(time = scheduledTime): Request {
   return new Request("https://scanner.internal/scheduled", {
     method: "POST", body: JSON.stringify({ scheduledTime: time }),
   });
+}
+
+function scheduledRequestWithPayload(payload: Promise<unknown>): Request {
+  return {
+    method: "POST",
+    url: "https://scanner.internal/scheduled",
+    json: vi.fn(() => payload),
+  } as unknown as Request;
 }
 
 function scanResult(): ScanExecutionResult {
