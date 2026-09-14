@@ -22,6 +22,13 @@ export function loadConfig(env: Env): ScannerConfig {
     discordWebhookUrl,
     language: parseLanguage(env.LANGUAGE),
     hyperliquidCoin: env.HYPERLIQUID_COIN?.trim() || "xyz:SP500",
+    hyperliquidWeightLimit: boundedInteger(
+      env.HYPERLIQUID_WEIGHT_LIMIT,
+      240,
+      "HYPERLIQUID_WEIGHT_LIMIT",
+      1,
+      240,
+    ),
     regularScanMinutes: positiveInteger(
       env.REGULAR_SCAN_MINUTES,
       15,

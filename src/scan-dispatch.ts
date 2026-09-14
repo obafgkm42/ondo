@@ -1,5 +1,8 @@
 import { loadConfig } from "./config";
-import { HyperliquidRateLimitError } from "./hyperliquid";
+import {
+  HyperliquidAdmissionError,
+  HyperliquidRateLimitError,
+} from "./hyperliquid";
 import {
   executeManualScan,
   executeScheduledScan,
@@ -56,10 +59,36 @@ export async function dispatchManualScan(env: Env): Promise<ScanExecutionResult>
     // Preserve Discord's existing provider-specific degradation message.
     throw new HyperliquidRateLimitError(429, "candle");
   }
+  if (response.status === 503) {
+    const payload: unknown = await response.json();
+    throw new HyperliquidAdmissionError(admissionReason(payload));
+  }
   if (!response.ok) {
     throw new Error("coordinated manual scan failed");
   }
   return response.json<ScanExecutionResult>();
+}
+
+function admissionReason(
+  payload: unknown,
+): HyperliquidAdmissionError["reason"] {
+  if (
+    typeof payload !== "object" ||
+    payload === null ||
+    !("error" in payload)
+  ) {
+    return "state_unavailable";
+  }
+  switch (payload.error) {
+    case "hyperliquid_budget":
+      return "budget";
+    case "hyperliquid_cooldown":
+      return "cooldown";
+    case "hyperliquid_deadline":
+      return "deadline";
+    default:
+      return "state_unavailable";
+  }
 }
 
 function getCoordinator(env: Env): DurableObjectStub {

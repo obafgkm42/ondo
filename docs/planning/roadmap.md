@@ -176,32 +176,32 @@ shadow until M6; wording improvements alone do not establish predictive skill.
 Primary files: `src/scan-coordinator.ts`, `src/hyperliquid.ts`,
 `src/scan-service.ts`, configuration/types, and `docs/operations/runtime.md`.
 
-- [ ] Add a versioned 24-hour category cache in existing coordinated storage.
+- [x] Add a versioned 24-hour category cache in existing coordinated storage.
   A failed refresh must not fan out into repeated category calls. Bound stale
   fallback at 72 hours and label its age; after expiry omit expanded breadth.
   Continue filtering delisted markets using current asset metadata.
-- [ ] Admit scheduled, manual, retry, category, and bootstrap requests through
+- [x] Admit scheduled, manual, retry, category, and bootstrap requests through
   one coordinator budget. Start with at most 240 estimated weight units per
   rolling 60 seconds and one in-flight Hyperliquid call. This is a local
   engineering ceiling, not a claim of upstream capacity or a market threshold.
-- [ ] Reserve a conservative response-size bound before each candle request;
+- [x] Reserve a conservative response-size bound before each candle request;
   count each attempted HTTP request, including failed attempts. Reconcile
   response-size estimates conservatively and log estimate uncertainty.
-- [ ] Retain one attempt on 429. Persist `blockedUntil` across ticks/restarts;
+- [x] Retain one attempt on 429. Persist `blockedUntil` across ticks/restarts;
   respect valid Retry-After within the existing bounded parsing contract. Use a
   60-second fallback when absent/invalid and allow one probe after expiry.
   Extend cooldown on a failed probe; do not sleep inside a Worker to retry.
-- [ ] Keep at most three total attempts for 5xx, all subject to admission and
+- [x] Keep at most three total attempts for 5xx, all subject to admission and
   the invocation deadline. Defer optional context/bootstrap when budget is
   insufficient; a context 429 suppresses further Hyperliquid calls that tick.
-- [ ] Keep concurrent manual-query coalescing and add a bounded manual refresh
+- [x] Keep concurrent manual-query coalescing and add a bounded manual refresh
   policy: at most one new upstream refresh per 60 seconds. During cooldown or
   admission denial return clearly timestamped cached/partial output or an
   unavailable result, never bypass the budget. Preserve authentication.
-- [ ] Persist cooldown and budget reservations safely across eviction; bound
+- [x] Persist cooldown and budget reservations safely across eviction; bound
   queued work, discard obsolete ticks, and prioritize the next valid scheduled
   scan over repeated manual queries. Do not replay a backlog as a request burst.
-- [ ] Test rolling-minute boundaries, 429 with every Retry-After variant, 5xx,
+- [x] Test rolling-minute boundaries, 429 with every Retry-After variant, 5xx,
   category expiry, large bootstrap responses, cold starts, storage failure,
   concurrent manual/cron work, and lost responses. No direct fallback may
   bypass coordinated admission. Budget-state failure suppresses fresh fetches

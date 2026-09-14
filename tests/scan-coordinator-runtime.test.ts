@@ -71,7 +71,7 @@ afterAll(async () => {
 });
 
 describe("ScanCoordinator in workerd", { timeout: 15_000 }, () => {
-  it("routes public manual scans and preserves HTTP failures", async () => {
+  it("routes public manual scans and serves the bounded cached result", async () => {
     const fixture = await startRuntime();
     const unauthorized = await runtime!.dispatchFetch(
       "https://scanner.example/scan",
@@ -98,9 +98,14 @@ describe("ScanCoordinator in workerd", { timeout: 15_000 }, () => {
       "https://scanner.example/scan",
       options,
     );
-    expect(failed.status).toBe(502);
-    await expect(failed.json()).resolves.toEqual({ error: "scan failed" });
-    expect(fixture.requests).toHaveLength(4);
+    expect(failed.status).toBe(200);
+    await expect(failed.json()).resolves.toMatchObject({
+      providerAccess: {
+        status: "cached",
+        reason: "refresh_interval",
+      },
+    });
+    expect(fixture.requests).toHaveLength(3);
   });
 
   it("preserves cadence, single-attempt 429 and recovery", async () => {
@@ -210,7 +215,12 @@ async function startRuntime() {
             : body.type === "metaAndAssetCtxs"
               ? [{ universe: [] }, []]
               : [];
-        return RuntimeResponse.json(data, { status });
+        return RuntimeResponse.json(data, {
+          status,
+          ...(status === 429
+            ? { headers: { "Retry-After": "0" } }
+            : {}),
+        });
       }
       if (
         url.origin === "https://discord.com" &&

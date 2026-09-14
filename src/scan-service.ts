@@ -6,9 +6,9 @@ import {
   sendVersionNotice,
 } from "./discord";
 import {
-  fetchXyzStockCoins,
-  fetchFiveMinuteCandles,
-  fetchXyzMarketContexts,
+  directHyperliquidAccess,
+  type HyperliquidAccess,
+  HyperliquidAdmissionError,
   HyperliquidRateLimitError,
 } from "./hyperliquid";
 import {
@@ -59,6 +59,7 @@ import type {
   MarketDataHealth,
   MarketDataSessionScope,
   MarketFragilitySnapshot,
+  ProviderAccessSummary,
   ResiliencePriceSnapshot,
   ScanResult,
   ScannerConfig,
@@ -76,12 +77,14 @@ export interface ScanExecutionResult {
   fragility: MarketFragilitySnapshot | null;
   activity: MarketActivitySnapshot | null;
   dataHealth: MarketDataHealth;
+  providerAccess?: ProviderAccessSummary;
 }
 
 /** Run one scheduled tick and await every side effect before releasing the lock. */
 export async function executeScheduledScan(
   config: ScannerConfig,
   now: Date,
+  provider: HyperliquidAccess = directHyperliquidAccess(),
 ): Promise<void> {
   const decision = getScheduleDecision(now, config);
   const briefIntervalMinutes = getBriefIntervalMinutes(
@@ -99,7 +102,7 @@ export async function executeScheduledScan(
       changed && config.marketActivityMode !== "off";
     if (!decision.shouldRun && !briefDue) {
       if (bootstrapImmediately) {
-        await bootstrapMarketActivityForNewVersion(config, now);
+        await bootstrapMarketActivityForNewVersion(config, now, provider);
       } else {
         console.log(`scan skipped: ${decision.reason}`);
       }
@@ -112,6 +115,7 @@ export async function executeScheduledScan(
       briefDue,
       fallbackNotificationWindowStart,
       bootstrapImmediately,
+      provider,
     );
   });
   // A failed notice must not release the coordinator while a scan still runs.
@@ -127,8 +131,9 @@ export async function executeScheduledScan(
 export function executeManualScan(
   config: ScannerConfig,
   now: Date,
+  provider: HyperliquidAccess = directHyperliquidAccess(),
 ): Promise<ScanExecutionResult> {
-  return runScan(config, now, false, false, null, false);
+  return runScan(config, now, false, false, null, false, false, provider);
 }
 
 async function runScan(
@@ -139,8 +144,9 @@ async function runScan(
   notificationWindowStart: Date | null,
   scheduledExecution: boolean,
   bootstrapActivityImmediately = false,
+  provider: HyperliquidAccess = directHyperliquidAccess(),
 ): Promise<ScanExecutionResult> {
-  const candles = await fetchFiveMinuteCandles(
+  const candles = await provider.fetchFiveMinuteCandles(
     config.hyperliquidCoin,
     now,
   );
@@ -229,6 +235,7 @@ async function runScan(
     ? await calculateMarketFragility(
         sessionCandles,
         analysisSession.kind,
+        provider,
       )
     : null;
   console.log(
@@ -312,12 +319,14 @@ async function runScan(
     now,
     scheduledExecution,
     bootstrapActivityImmediately,
+    provider,
   );
   if (sendBrief && fragility === null) {
     // Optional cross-market work runs after time-sensitive signal delivery.
     fragility = await calculateMarketFragility(
       sessionCandles,
       analysisSession.kind,
+      provider,
     );
   }
   let fragilityPersistenceBrief: MarketFragilityPersistenceBrief | undefined;
@@ -364,6 +373,10 @@ async function runScan(
                   fragility.expandedEquityBreadth.declinerRatio,
                 declineThreshold:
                   fragility.expandedEquityBreadth.declineThreshold,
+                categoryCacheStatus:
+                  fragility.expandedEquityBreadth.categoryCacheStatus,
+                categoryCacheAgeMs:
+                  fragility.expandedEquityBreadth.categoryCacheAgeMs,
               },
       }),
     );
@@ -501,6 +514,7 @@ async function maybeEvaluateMarketActivity(
   timestamp: Date,
   scheduledExecution: boolean,
   bootstrapImmediately = false,
+  provider: HyperliquidAccess = directHyperliquidAccess(),
 ): Promise<MarketActivitySnapshot | null> {
   if (
     config.marketActivityMode === "off" ||
@@ -522,6 +536,12 @@ async function maybeEvaluateMarketActivity(
         allowBootstrap: scheduledExecution,
         bootstrapImmediately,
         persistState: scheduledExecution,
+        fetchBootstrapCandles: (market, bootstrapTime, lookbackDays) =>
+          provider.fetchFifteenMinuteCandles(
+            market,
+            bootstrapTime,
+            lookbackDays,
+          ),
       },
     );
     console.log(
@@ -720,10 +740,21 @@ function buildResilienceSnapshots(
 async function calculateMarketFragility(
   candles: readonly Candle[],
   sessionScope: MarketDataSessionScope,
+  provider: HyperliquidAccess = directHyperliquidAccess(),
 ): Promise<MarketFragilitySnapshot> {
   let expandedEquityCoins: string[] = [];
+  let categoryCacheStatus:
+    | "direct"
+    | "refreshed"
+    | "cached"
+    | "stale"
+    | "unavailable" = "unavailable";
+  let categoryCacheAgeMs: number | null = null;
   try {
-    expandedEquityCoins = await fetchXyzStockCoins();
+    const categorySelection = await provider.fetchXyzStockCoins();
+    expandedEquityCoins = categorySelection.coins;
+    categoryCacheStatus = categorySelection.cacheStatus;
+    categoryCacheAgeMs = categorySelection.cacheAgeMs;
   } catch (error) {
     console.warn(
       JSON.stringify({
@@ -743,7 +774,7 @@ async function calculateMarketFragility(
     const requestedCoins = [
       ...new Set([...FRAGILITY_CONTEXT_COINS, ...expandedEquityCoins]),
     ];
-    const contexts = await fetchXyzMarketContexts(requestedCoins);
+    const contexts = await provider.fetchXyzMarketContexts(requestedCoins);
     return analyzeMarketFragility(
       candles,
       contexts,
@@ -751,6 +782,10 @@ async function calculateMarketFragility(
         evaluatedAt: Date.now(),
         sessionScope,
         expandedEquityCoins,
+        expandedEquityCategoryCache: {
+          status: categoryCacheStatus,
+          ageMs: categoryCacheAgeMs,
+        },
       },
     );
   } catch (error) {
@@ -775,6 +810,7 @@ async function runScheduledScan(
   sendBrief: boolean,
   fallbackNotificationWindowStart: Date | null,
   bootstrapActivityImmediately = false,
+  provider: HyperliquidAccess = directHyperliquidAccess(),
 ): Promise<void> {
   let rateLimitIncidentActive = false;
   try {
@@ -813,6 +849,7 @@ async function runScheduledScan(
       notificationWindowStart,
       true,
       bootstrapActivityImmediately,
+      provider,
     );
     if (rateLimitIncidentActive) {
       await clearRateLimitIncident(
@@ -845,6 +882,19 @@ async function runScheduledScan(
           market: config.hyperliquidCoin,
           scheduledTime: now.toISOString(),
           discordNotice,
+        }),
+      );
+      return;
+    }
+    if (error instanceof HyperliquidAdmissionError) {
+      console.warn(
+        JSON.stringify({
+          message: "scheduled scan skipped: local provider guard denied access",
+          status: "skipped",
+          reason: `hyperliquid_${error.reason}`,
+          market: config.hyperliquidCoin,
+          scheduledTime: now.toISOString(),
+          effect: "fresh provider data unavailable; no decision was emitted",
         }),
       );
       return;
@@ -906,6 +956,7 @@ async function maybeSendVersionNotice(
 async function bootstrapMarketActivityForNewVersion(
   config: ScannerConfig,
   now: Date,
+  provider: HyperliquidAccess = directHyperliquidAccess(),
 ): Promise<void> {
   try {
     const evaluation = await evaluateMarketActivity(
@@ -917,6 +968,12 @@ async function bootstrapMarketActivityForNewVersion(
         allowBootstrap: true,
         bootstrapImmediately: true,
         persistState: true,
+        fetchBootstrapCandles: (market, bootstrapTime, lookbackDays) =>
+          provider.fetchFifteenMinuteCandles(
+            market,
+            bootstrapTime,
+            lookbackDays,
+          ),
       },
     );
     const message = JSON.stringify({

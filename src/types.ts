@@ -5,6 +5,7 @@ export interface Env {
   MANUAL_SCAN_TOKEN?: string;
   LANGUAGE?: string;
   HYPERLIQUID_COIN?: string;
+  HYPERLIQUID_WEIGHT_LIMIT?: string;
   REGULAR_SCAN_MINUTES?: string;
   FINAL_HOUR_SCAN_MINUTES?: string;
   BRIEF_INTERVAL_MINUTES?: string;
@@ -40,6 +41,7 @@ export interface ScannerConfig {
   discordWebhookUrl: string;
   language: Language;
   hyperliquidCoin: string;
+  hyperliquidWeightLimit: number;
   regularScanMinutes: number;
   finalHourScanMinutes: number;
   briefIntervalMinutes: number;
@@ -54,6 +56,13 @@ export interface ScannerConfig {
   workerVersionLabel: string;
   workerVersionUploadedAt: Date | null;
   scannerState?: KVNamespace;
+}
+
+export interface ProviderAccessSummary {
+  status: "fresh" | "cached" | "unavailable";
+  asOf: number | null;
+  reason: "refresh_interval" | "budget" | "cooldown" | "deadline" |
+    "state_unavailable" | null;
 }
 
 export interface Candle {
@@ -185,6 +194,13 @@ export interface ExpandedEquityBreadthSnapshot {
   declinerCount: number;
   declinerRatio: number;
   declineThreshold: number;
+  categoryCacheStatus?:
+    | "direct"
+    | "refreshed"
+    | "cached"
+    | "stale"
+    | "unavailable";
+  categoryCacheAgeMs?: number | null;
 }
 
 export type Direction = "bullish" | "bearish";

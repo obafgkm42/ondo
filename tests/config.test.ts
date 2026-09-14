@@ -11,6 +11,7 @@ describe("loadConfig", () => {
 
     expect(config.language).toBe("zh");
     expect(config.hyperliquidCoin).toBe("xyz:SP500");
+    expect(config.hyperliquidWeightLimit).toBe(240);
     expect(config.regularScanMinutes).toBe(15);
     expect(config.finalHourScanMinutes).toBe(5);
     expect(config.briefIntervalMinutes).toBe(30);
@@ -59,6 +60,23 @@ describe("loadConfig", () => {
     });
 
     expect(config.language).toBe("en");
+  });
+
+  it("keeps the provider ceiling bounded by the reviewed maximum", () => {
+    expect(
+      loadConfig({
+        DISCORD_WEBHOOK_URL:
+          "https://discord.com/api/webhooks/example/token",
+        HYPERLIQUID_WEIGHT_LIMIT: "120",
+      }).hyperliquidWeightLimit,
+    ).toBe(120);
+    expect(() =>
+      loadConfig({
+        DISCORD_WEBHOOK_URL:
+          "https://discord.com/api/webhooks/example/token",
+        HYPERLIQUID_WEIGHT_LIMIT: "241",
+      })
+    ).toThrow("HYPERLIQUID_WEIGHT_LIMIT");
   });
 
   it("rejects an unsupported language", () => {

@@ -16,11 +16,23 @@ export function formatExpandedEquityBreadth(
   const ratio = `${(breadth.declinerRatio * 100).toFixed(0)}%`;
   const threshold = `${Math.abs(breadth.declineThreshold * 100).toFixed(1)}%`;
   const count = `${breadth.declinerCount}/${breadth.assetCount}`;
+  const cacheLabel = breadth.categoryCacheStatus === undefined
+    ? null
+    : language === "en"
+      ? `${breadth.categoryCacheStatus} category cache${formatCacheAge(
+          breadth.categoryCacheAgeMs ?? null,
+          language,
+        )}`
+      : `分類快取 ${breadth.categoryCacheStatus}${formatCacheAge(
+          breadth.categoryCacheAgeMs ?? null,
+          language,
+        )}`;
   if (language === "en") {
     return [
       `${ratio} down at least ${threshold} (${count})`,
       "vs Hyperliquid prevDayPx",
       "xyz stock-perp proxy",
+      ...(cacheLabel === null ? [] : [cacheLabel]),
       "context only",
     ].join(" · ");
   }
@@ -28,8 +40,19 @@ export function formatExpandedEquityBreadth(
     `${ratio} 跌幅至少 ${threshold}（${count}）`,
     "相對 Hyperliquid prevDayPx",
     "xyz 股票永續合約代理",
+    ...(cacheLabel === null ? [] : [cacheLabel]),
     "僅供背景參考",
   ].join(" · ");
+}
+
+function formatCacheAge(ageMs: number | null, language: Language): string {
+  if (ageMs === null) {
+    return language === "en" ? " (age unavailable)" : "（年齡不可用）";
+  }
+  const hours = ageMs / (60 * 60 * 1_000);
+  return language === "en"
+    ? ` (${hours.toFixed(1)}h old)`
+    : `（${hours.toFixed(1)} 小時）`;
 }
 
 /**
