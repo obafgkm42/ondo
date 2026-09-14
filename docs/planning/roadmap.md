@@ -216,18 +216,18 @@ Do not change regions, rotate IPs, or add identities to evade upstream limits.
 Depends on M1-M3. Primary files: scheduling/configuration, scan service,
 coordinator, shadow collectors, and their integration tests.
 
-- [ ] Add an explicit opt-in five-minute RTH acquisition mode for stage B.
+- [x] Add an explicit opt-in five-minute RTH acquisition mode for stage B.
   Retain the current five-minute cron and current non-RTH acquisition policy.
   Reuse one SP500 candle response for all diagnostics at each acquired tick.
-- [ ] Keep original reversal evaluation/delivery opportunities on the existing
+- [x] Keep original reversal evaluation/delivery opportunities on the existing
   15-minute/final-hour-five-minute grid. Faster acquisition must not silently
   create earlier alerts, alter entry eligibility, or advance its catch-up
   watermark. Maintain separate scheduling/watermarks for shadow work.
-- [ ] Preserve half-hour live fragility/resilience and existing Discord cadence.
+- [x] Preserve half-hour live fragility/resilience and existing Discord cadence.
   New five-minute price-only observations have a separate identity; contexts
   reused between refreshes carry their true age and coverage. Never backfill
   past shadow rows using newly fetched cross-market values.
-- [ ] Give the faster collector its own versioned storage key and bounds: at
+- [x] Give the faster collector its own versioned storage key and bounds: at
   most 78 observation opportunities per full RTH session and 60 retained
   sessions, with an explicit byte-size ceiling. Do not write five-minute rows
   into the existing 16-row half-hour schema. Test retention and export before
@@ -235,11 +235,11 @@ coordinator, shadow collectors, and their integration tests.
 - [ ] Implement stage C only as a separate opt-in context-sampling mode after
   stage B passes operational review. Reuse each batch context response across
   all requested symbols. Avoid changing two experimental factors together.
-- [ ] Differentially replay identical timestamped provider responses through
+- [x] Differentially replay identical timestamped provider responses through
   baseline and candidate. With shadow enabled, existing live signal payloads,
   mentions, eligibility, and half-hour outputs must match, except explicitly
   approved M1/M2 data-quality wording. More live alerts is a regression here.
-- [ ] Assert the daily request table, peak weights, first eligible observation,
+- [x] Assert the daily request table, peak weights, first eligible observation,
   09:30/15:00/16:00 boundaries, DST, closure dates, delays, and catch-up behavior.
 
 Done when shadow captures the intended grid without changing the frozen live

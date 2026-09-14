@@ -18,6 +18,7 @@ describe("loadConfig", () => {
     expect(config.fragilityPersistenceMode).toBe("off");
     expect(config.marketActivityMode).toBe("shadow");
     expect(config.resilienceDecayShadowMode).toBe("off");
+    expect(config.fiveMinuteRthAcquisitionMode).toBe("off");
     expect(config.minimumWatchPriceR).toBe(2);
     expect(config.minimumWatchConfidenceScore).toBe(64);
     expect(config.minimumPriceR).toBe(3.5);
@@ -112,10 +113,12 @@ describe("loadConfig", () => {
         "https://discord.com/api/webhooks/example/token",
       FRAGILITY_PERSISTENCE_MODE: "SHADOW",
       RESILIENCE_DECAY_SHADOW_MODE: "shadow",
+      FIVE_MINUTE_RTH_ACQUISITION_MODE: "SHADOW",
     });
 
     expect(config.fragilityPersistenceMode).toBe("shadow");
     expect(config.resilienceDecayShadowMode).toBe("shadow");
+    expect(config.fiveMinuteRthAcquisitionMode).toBe("shadow");
     expect(
       loadConfig({
         DISCORD_WEBHOOK_URL:
@@ -137,6 +140,13 @@ describe("loadConfig", () => {
         RESILIENCE_DECAY_SHADOW_MODE: "display",
       }),
     ).toThrow("RESILIENCE_DECAY_SHADOW_MODE");
+    expect(() =>
+      loadConfig({
+        DISCORD_WEBHOOK_URL:
+          "https://discord.com/api/webhooks/example/token",
+        FIVE_MINUTE_RTH_ACQUISITION_MODE: "display",
+      }),
+    ).toThrow("FIVE_MINUTE_RTH_ACQUISITION_MODE");
   });
 
   it("supports the legacy fragility persistence alias without ambiguity", () => {

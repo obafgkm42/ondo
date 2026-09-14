@@ -5,6 +5,7 @@ import {
   getBriefIntervalMinutes,
   getPreviousScanTime,
   getScheduleDecision,
+  isFiveMinuteRthAcquisitionTime,
   isRthClose,
   isTwoHourCheckpointEligible,
   selectAnalysisSession,
@@ -95,6 +96,57 @@ describe("getPreviousScanTime", () => {
         cadence,
       ).toISOString(),
     ).toBe("2026-06-23T19:55:00.000Z");
+  });
+});
+
+describe("isFiveMinuteRthAcquisitionTime", () => {
+  it("uses the 78 completed-candle boundaries without changing live cadence", () => {
+    expect(
+      isFiveMinuteRthAcquisitionTime(new Date("2026-07-23T13:30:00Z")),
+    ).toBe(false);
+    expect(
+      isFiveMinuteRthAcquisitionTime(new Date("2026-07-23T13:35:00Z")),
+    ).toBe(true);
+    expect(
+      isFiveMinuteRthAcquisitionTime(new Date("2026-07-23T19:00:00Z")),
+    ).toBe(true);
+    expect(
+      isFiveMinuteRthAcquisitionTime(new Date("2026-07-23T20:00:00Z")),
+    ).toBe(true);
+    expect(
+      isFiveMinuteRthAcquisitionTime(new Date("2026-07-23T20:05:00Z")),
+    ).toBe(false);
+  });
+
+  it("handles winter time and rejects closures", () => {
+    expect(
+      isFiveMinuteRthAcquisitionTime(new Date("2026-12-15T14:35:00Z")),
+    ).toBe(true);
+    expect(
+      isFiveMinuteRthAcquisitionTime(new Date("2026-07-03T13:35:00Z")),
+    ).toBe(false);
+    expect(
+      isFiveMinuteRthAcquisitionTime(new Date("2026-11-27T14:35:00Z")),
+    ).toBe(false);
+  });
+
+  it("matches the reviewed stage B daily request table", () => {
+    const easternMidnight = Date.parse("2026-07-23T04:00:00Z");
+    const ticks = Array.from({ length: 288 }, (_, index) =>
+      new Date(easternMidnight + index * 5 * 60_000)
+    );
+    const baselineCandleCalls = ticks.filter(
+      (tick) => getScheduleDecision(tick, cadence).shouldRun,
+    ).length;
+    const stageBCandleCalls = ticks.filter(
+      (tick) =>
+        getScheduleDecision(tick, cadence).shouldRun ||
+        isFiveMinuteRthAcquisitionTime(tick),
+    ).length;
+
+    expect(baselineCandleCalls).toBe(104);
+    expect(stageBCandleCalls).toBe(148);
+    expect(stageBCandleCalls + 48 + 1).toBe(197);
   });
 });
 

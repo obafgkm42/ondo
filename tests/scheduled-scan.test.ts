@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import worker from "../src/index";
+import { rthShadowAcquisitionKey } from "../src/rth-shadow-acquisition";
 import type { Env } from "../src/types";
 
 const HYPERLIQUID_INFO_URL = "https://api.hyperliquid.xyz/info";
@@ -8,6 +9,223 @@ const HYPERLIQUID_INFO_URL = "https://api.hyperliquid.xyz/info";
 describe("scheduled catch-up scan", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("keeps the 09:35 RTH tick idle when acquisition is off", async () => {
+    const calls: string[] = [];
+    const state = memoryKv({ "last-version-notice": "local-dev" });
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      calls.push(String(input));
+      return Response.json(firstRthCandle());
+    });
+    const waitUntilPromises: Promise<unknown>[] = [];
+
+    await worker.scheduled(
+      scheduledController("2026-07-23T13:35:00.000Z"),
+      {
+        ...baseEnv(),
+        BRIEF_INTERVAL_MINUTES: "17",
+        MARKET_ACTIVITY_MODE: "off",
+        SCANNER_STATE: state,
+      },
+      waitUntilContext(waitUntilPromises),
+    );
+    await Promise.all(waitUntilPromises);
+
+    expect(calls).toHaveLength(0);
+    expect(await state.get(
+      rthShadowAcquisitionKey("xyz:SP500"),
+    )).toBeNull();
+  });
+
+  it("captures the opt-in 09:35 tick without live side effects", async () => {
+    const calls: string[] = [];
+    const state = memoryKv({ "last-version-notice": "local-dev" });
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      calls.push(String(input));
+      return Response.json(firstRthCandle());
+    });
+    const waitUntilPromises: Promise<unknown>[] = [];
+
+    await worker.scheduled(
+      scheduledController("2026-07-23T13:35:00.000Z"),
+      {
+        ...baseEnv(),
+        BRIEF_INTERVAL_MINUTES: "17",
+        MARKET_ACTIVITY_MODE: "off",
+        FIVE_MINUTE_RTH_ACQUISITION_MODE: "shadow",
+        SCANNER_STATE: state,
+      },
+      waitUntilContext(waitUntilPromises),
+    );
+    await Promise.all(waitUntilPromises);
+
+    expect(calls).toEqual([HYPERLIQUID_INFO_URL]);
+    const rawState = await state.get(
+      rthShadowAcquisitionKey("xyz:SP500"),
+    );
+    const shadowState = JSON.parse(String(rawState)) as {
+      sessions: Array<{ observations: Array<{ acquiredAt: number }> }>;
+    };
+    expect(shadowState.sessions[0]?.observations).toEqual([
+      expect.objectContaining({
+        acquiredAt: Date.parse("2026-07-23T13:35:00.000Z"),
+      }),
+    ]);
+    expect(await state.get("last-successful-candle:xyz:SP500")).toBeNull();
+    expect(await state.get("market-fragility-v2-shadow:xyz:SP500")).toBeNull();
+  });
+
+  it("does not turn a shadow-only 429 into a live incident", async () => {
+    const calls: string[] = [];
+    const state = memoryKv({ "last-version-notice": "local-dev" });
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      calls.push(String(input));
+      return new Response(null, { status: 429 });
+    });
+    const waitUntilPromises: Promise<unknown>[] = [];
+
+    await worker.scheduled(
+      scheduledController("2026-07-23T13:35:00.000Z"),
+      {
+        ...baseEnv(),
+        BRIEF_INTERVAL_MINUTES: "17",
+        MARKET_ACTIVITY_MODE: "off",
+        FIVE_MINUTE_RTH_ACQUISITION_MODE: "shadow",
+        SCANNER_STATE: state,
+      },
+      waitUntilContext(waitUntilPromises),
+    );
+    await expect(Promise.all(waitUntilPromises)).resolves.toBeDefined();
+
+    expect(calls).toEqual([HYPERLIQUID_INFO_URL]);
+    expect(await state.get("rate-limit-incident:xyz:SP500")).toBeNull();
+    expect(await state.get(
+      rthShadowAcquisitionKey("xyz:SP500"),
+    )).toBeNull();
+  });
+
+  it("reuses the live candle response for a due shadow observation", async () => {
+    const state = memoryKv({ "last-version-notice": "local-dev" });
+    let candleRequestCount = 0;
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async (input, init): Promise<Response> => {
+        if (String(input) === HYPERLIQUID_INFO_URL) {
+          const body = JSON.parse(String(init?.body)) as { type: string };
+          if (body.type === "candleSnapshot") {
+            candleRequestCount += 1;
+            return Response.json(hyperliquidCandles());
+          }
+          return Response.json([]);
+        }
+        return new Response(null, { status: 204 });
+      },
+    );
+    const waitUntilPromises: Promise<unknown>[] = [];
+
+    await worker.scheduled(
+      scheduledController("2026-07-23T15:45:00.000Z"),
+      {
+        ...baseEnv(),
+        BRIEF_INTERVAL_MINUTES: "17",
+        MARKET_ACTIVITY_MODE: "off",
+        FIVE_MINUTE_RTH_ACQUISITION_MODE: "shadow",
+        SCANNER_STATE: state,
+      },
+      waitUntilContext(waitUntilPromises),
+    );
+    await Promise.all(waitUntilPromises);
+
+    expect(candleRequestCount).toBe(1);
+    expect(await state.get(
+      rthShadowAcquisitionKey("xyz:SP500"),
+    )).not.toBeNull();
+  });
+
+  it("keeps identical live half-hour output with stage B enabled", async () => {
+    type CapturedCall = { url: string; init?: RequestInit };
+    let activeCalls: CapturedCall[] = [];
+    vi.spyOn(Date, "now").mockReturnValue(
+      Date.parse("2026-07-23T15:30:00.000Z"),
+    );
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async (input, init): Promise<Response> => {
+        const url = String(input);
+        activeCalls.push({ url, init });
+        if (url !== HYPERLIQUID_INFO_URL) {
+          return new Response(null, { status: 204 });
+        }
+        const body = JSON.parse(String(init?.body)) as { type: string };
+        if (body.type === "candleSnapshot") {
+          return Response.json(hyperliquidCandles().slice(0, 9));
+        }
+        if (body.type === "perpCategories") {
+          return Response.json([]);
+        }
+        return new Response("context unavailable", { status: 400 });
+      },
+    );
+
+    const run = async (mode: "off" | "shadow") => {
+      activeCalls = [];
+      const state = memoryKv({ "last-version-notice": "local-dev" });
+      const waitUntilPromises: Promise<unknown>[] = [];
+      await worker.scheduled(
+        scheduledController("2026-07-23T15:30:00.000Z"),
+        {
+          ...baseEnv(),
+          MARKET_ACTIVITY_MODE: "off",
+          FRAGILITY_PERSISTENCE_MODE: "shadow",
+          RESILIENCE_DECAY_SHADOW_MODE: "off",
+          FIVE_MINUTE_RTH_ACQUISITION_MODE: mode,
+          SCANNER_STATE: state,
+        },
+        waitUntilContext(waitUntilPromises),
+      );
+      await Promise.all(waitUntilPromises);
+      const providerRequestTypes = activeCalls
+        .filter((call) => call.url === HYPERLIQUID_INFO_URL)
+        .map((call) =>
+          (JSON.parse(String(call.init?.body)) as { type: string }).type
+        );
+      const webhook = activeCalls.find(
+        (call) => call.url !== HYPERLIQUID_INFO_URL,
+      );
+      const body = webhook?.init?.body;
+      expect(body).toBeInstanceOf(FormData);
+      return {
+        providerRequestTypes,
+        payload: String((body as FormData).get("payload_json")),
+        liveFragility: await state.get(
+          "market-fragility-v2-shadow:xyz:SP500",
+        ),
+        liveResilience: await state.get("resilience-decay:xyz:SP500"),
+        shadowAcquisition: await state.get(
+          rthShadowAcquisitionKey("xyz:SP500"),
+        ),
+      };
+    };
+
+    const baseline = await run("off");
+    const candidate = await run("shadow");
+
+    expect(candidate.providerRequestTypes).toEqual(
+      baseline.providerRequestTypes,
+    );
+    expect(candidate.payload).toBe(baseline.payload);
+    expect(candidate.liveFragility).toBe(baseline.liveFragility);
+    expect(candidate.liveResilience).toBe(baseline.liveResilience);
+    expect(baseline.shadowAcquisition).toBeNull();
+    expect(candidate.shadowAcquisition).not.toBeNull();
   });
 
   it("catches a signal between boundaries with one candle request", async () => {
@@ -564,6 +782,20 @@ function baseEnv(): Env {
     MINIMUM_PRICE_R: "1",
     MINIMUM_CONFIDENCE_SCORE: "60",
   };
+}
+
+function firstRthCandle(): Array<Record<string, number | string>> {
+  const startTime = Date.parse("2026-07-23T13:30:00.000Z");
+  return [{
+    t: startTime,
+    T: startTime + 5 * 60_000 - 1,
+    o: "100",
+    h: "101",
+    l: "99",
+    c: "100",
+    v: "10",
+    n: 1,
+  }];
 }
 
 function hyperliquidCandles(): Array<Record<string, number | string>> {

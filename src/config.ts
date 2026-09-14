@@ -50,6 +50,10 @@ export function loadConfig(env: Env): ScannerConfig {
       env.RESILIENCE_DECAY_SHADOW_MODE,
       "RESILIENCE_DECAY_SHADOW_MODE",
     ),
+    fiveMinuteRthAcquisitionMode: parseDiagnosticShadowMode(
+      env.FIVE_MINUTE_RTH_ACQUISITION_MODE,
+      "FIVE_MINUTE_RTH_ACQUISITION_MODE",
+    ),
     minimumWatchPriceR: positiveNumber(
       env.MINIMUM_WATCH_PRICE_R,
       2,

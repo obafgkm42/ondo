@@ -62,6 +62,21 @@ The default output directory is
 a compact Markdown report. The parser accepts current schema v4 and legacy v2/v3
 state, but never invents missing mechanism identities or availability.
 
+The separate stage B price-only snapshot can be exported without touching the
+live half-hour key:
+
+```bash
+npx wrangler kv key get \
+  "rth-shadow-acquisition-5m:v1:xyz:SP500" \
+  --binding SCANNER_STATE \
+  --remote \
+  --text > reports/generated/rth-shadow-acquisition-5m.json
+```
+
+Keep this licensed research snapshot private. Its rows include `acquiredAt`
+and `context.status=not_collected`, so delayed catch-up is distinguishable and
+cannot be mistaken for contemporaneous six-mechanism coverage.
+
 Interpret the output using these denominators:
 
 - level, transition, family, and mechanism counts use retained observations;

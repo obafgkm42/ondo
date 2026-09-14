@@ -89,13 +89,13 @@ with renormalized weights.
 
 The shadow path uses the same event and checkpoint equations, bounded state,
 runtime validation, duplicate handling, and fail-open behavior as production.
-It adds no provider request and cannot affect messages or signal decisions.
-The parser default remains `off`; this repository's deployment config opts into
-`shadow` prospective collection. Under the configured 15-minute cadence and
-five-minute final hour, a standard full RTH day can add at most about 35 KV
-reads and 35 writes. Even the more conservative every-five-minute upper bound
-is 78 of each. The current-session snapshot array is explicitly capped at the
-78 five-minute RTH boundaries, while completed shocks are capped at 12.
+It cannot affect messages or signal decisions. Its parser default remains
+`off`; this repository's deployment config opts into `shadow` collection.
+With five-minute RTH acquisition enabled, it reuses the same candle response
+and can add at most 78 KV reads and writes per full RTH day. The current-session
+snapshot array is capped at those 78 boundaries, while completed shocks are
+capped at 12. Disabling faster acquisition restores the previous mixed cadence
+without changing the resilience mode or live half-hour state.
 
 ## State compatibility and data quality
 

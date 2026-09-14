@@ -14,6 +14,7 @@ export interface Env {
   FRAGILITY_V2_MODE?: string;
   MARKET_ACTIVITY_MODE?: string;
   RESILIENCE_DECAY_SHADOW_MODE?: string;
+  FIVE_MINUTE_RTH_ACQUISITION_MODE?: string;
   MINIMUM_WATCH_PRICE_R?: string;
   MINIMUM_WATCH_CONFIDENCE_SCORE?: string;
   MINIMUM_PRICE_R?: string;
@@ -48,6 +49,7 @@ export interface ScannerConfig {
   fragilityPersistenceMode: FragilityPersistenceMode;
   marketActivityMode: MarketActivityMode;
   resilienceDecayShadowMode: DiagnosticShadowMode;
+  fiveMinuteRthAcquisitionMode: DiagnosticShadowMode;
   minimumWatchPriceR: number;
   minimumWatchConfidenceScore: number;
   minimumPriceR: number;

@@ -131,6 +131,17 @@ export function isRthClose(timestamp: Date): boolean {
   );
 }
 
+/** Identify the 78 completed-candle opportunities in a full RTH session. */
+export function isFiveMinuteRthAcquisitionTime(timestamp: Date): boolean {
+  const eastern = getEasternTimeParts(timestamp);
+  return (
+    isStandardUsEquityRthSession(eastern.dateKey) &&
+    eastern.minuteOfDay > RTH_START_MINUTE &&
+    eastern.minuteOfDay <= RTH_END_MINUTE &&
+    eastern.minuteOfDay % CRON_INTERVAL_MINUTES === 0
+  );
+}
+
 /** Return whether a full two-hour checkpoint fits before the RTH close. */
 export function isTwoHourCheckpointEligible(timestamp: Date): boolean {
   const eastern = getEasternTimeParts(timestamp);
