@@ -125,7 +125,9 @@ through its Worker binding. Do not add a public proxy to those handlers without
 separate strong authentication.
 
 The coordinator runs scheduled and manual work sequentially. Overlapping
-manual queries share one in-flight result; a later query fetches fresh data.
+manual queries share one in-flight result. Later manual queries reuse a
+timestamped result until the 60-second refresh boundary; after that boundary a
+local admission denial can still return the older, explicitly labelled cache.
 Scheduled work retains Cloudflare's original scheduled timestamp, including
 when it waits behind a manual query. A completed-tick watermark rejects repeat
 or older Cron deliveries, including after an object restart. It is written
@@ -149,14 +151,17 @@ creates the namespace and binding; do not manually create a second object or
 add a namespace ID. No new secret is needed. The first release adds a Durable
 Object class, so a build that only runs `wrangler versions upload` must instead
 apply this migration with `wrangler deploy`. Existing `SCANNER_STATE` KV and
-Discord secrets stay attached to the Worker. The new object's storage holds
-only its completed-tick watermark; existing research and notification state
-keeps the same KV keys and retention.
+Discord secrets stay attached to the Worker. The object's storage holds its
+completed-tick watermark, rolling provider reservations, provider cooldown,
+the versioned category cache, and the bounded manual result cache. Existing
+research and notification state keeps the same KV keys and retention.
 
 After deployment, check **Worker → Bindings** for `SCAN_COORDINATOR`, linked to
 `ScanCoordinator`, and **Settings → Variables and Secrets** for the text value
 `SCAN_EXECUTION_MODE=durable-object`. These are supplied by the checked-in
 Wrangler config; routine deployment requires no manual Dashboard additions.
+Also verify `HYPERLIQUID_WEIGHT_LIMIT=240`. The parser deliberately rejects a
+higher value; raising the local ceiling requires a reviewed code change.
 
 For rollback, set `SCAN_EXECUTION_MODE=direct` and redeploy, or set that runtime
 text variable in the Dashboard as an emergency override. Keep the class,
@@ -164,12 +169,15 @@ binding, and migration declaration so no namespace is deleted. Update the
 repository variable too if the override must survive the next deployment.
 Missing mode configuration also selects `direct`; an invalid value or a missing
 binding in `durable-object` mode fails visibly instead of silently retrying a
-possibly completed scan outside the object.
+possibly completed scan outside the object. Direct mode is an emergency
+rollback and does not provide M3's persisted budget, cooldown, or category
+cache; do not use it as an admission fallback inside coordinated mode.
 
-This release preserves the cadence and the one-attempt 429 policy. It does not
-add a cross-request provider cooldown or change the Hyperliquid quota. A
-Durable Object has a stable execution location, not a guaranteed dedicated or
-fixed egress IP. Reduced production 429s remain a hypothesis to measure.
+The coordinated mode reserves at most 240 estimated Hyperliquid weight units
+in a rolling 60-second window and permits one provider request in flight. It
+does not change the Hyperliquid quota. A Durable Object has a stable execution
+location, not a guaranteed dedicated or fixed egress IP. Reduced production
+429s remain a hypothesis to measure.
 See [Cloudflare data location][do-location] and
 [Hyperliquid rate limits][hyperliquid-limits].
 
@@ -200,25 +208,34 @@ own gate:
 - non-standard-session briefs no more frequently than hourly.
 
 Coordination adds one internal Durable Object request per Cron tick (288 per
-day), plus authorized manual queries. Each unique completed tick uses at most
-one coordinator storage read and one write. This does not add Hyperliquid
-requests or change the existing KV operation budget. Duplicate tick deliveries
-need only the coordinator storage read.
+day), plus authorized manual queries. Provider admission adds a storage read
+and a reservation write before every attempted Hyperliquid request. This does
+not change the existing KV operation budget. Duplicate and obsolete tick
+deliveries do not make provider requests.
 
 Each scheduled scan uses one Hyperliquid candle request and evaluates every new
 five-minute candle since the previous allowed scan. A due brief adds one
-`perpCategories` and one `metaAndAssetCtxs` request for fragility context. A
-history-deficient RVOL installation may make one bounded 15-minute bootstrap
-request after a deployment or during its post-close retry window.
+`metaAndAssetCtxs` request for fragility context. `perpCategories` is cached for
+24 hours in coordinated storage. A failed refresh backs off for one hour and
+may use a labelled stale value for at most 72 hours; after that, expanded
+breadth is omitted. A history-deficient RVOL installation may make one bounded
+15-minute bootstrap request after a deployment or during its post-close retry
+window.
 
 Provider failures use a status-specific request budget. HTTP 429 stops the
-affected request after its first response; the Worker records any valid
-`Retry-After` guidance but waits for the next configured scan boundary instead
-of retrying inside the same invocation. Transient 5xx responses retain at most
-three total attempts, with one- and two-second exponential delays plus up to
-250 ms of jitter. Every failed response logs the operation, status, attempt,
-retry decision, planned local delay, and parsed `Retry-After` delay without
-logging response bodies or raw header values.
+affected request after its first response, suppresses later provider calls in
+that invocation, and persists a cross-request cooldown. A valid `Retry-After`
+sets its bounded duration; absent or invalid guidance uses 60 seconds. Exactly
+one request may probe after expiry, and a failed probe extends cooldown without
+sleeping for another attempt. Transient 5xx responses retain at most three
+total attempts, with one- and two-second exponential delays plus up to 250 ms
+of jitter. Every attempt is admitted and reserved separately before I/O.
+
+Candle requests reserve `20 + ceil(maximum response candles / 60)` estimated
+units. Context and category requests reserve 20 units; the category endpoint's
+weight remains explicitly uncertain. Successful candle responses log their
+returned count and reconciled estimate without logging bodies. A lost response
+keeps its reservation. Admission-state failure suppresses fresh provider I/O.
 
 A primary candle 429 keeps the existing incomplete-scan notification and
 catch-up behavior. A `perpCategories` 429 stops the later optional

@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { HyperliquidRateLimitError } from "../src/hyperliquid";
+import {
+  HyperliquidAdmissionError,
+  HyperliquidRateLimitError,
+} from "../src/hyperliquid";
 import worker from "../src/index";
 import { ScanCoordinator } from "../src/scan-coordinator";
 import {
@@ -31,10 +34,13 @@ beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => undefined);
 });
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 
 describe("ScanCoordinator", () => {
-  it("shares concurrent manual queries without caching later ones", async () => {
+  it("shares concurrent manual queries and bounds later refreshes", async () => {
     const pending = Promise.withResolvers<ScanExecutionResult>();
     vi.mocked(executeManualScan).mockReturnValueOnce(pending.promise);
     const coordinator = new ScanCoordinator(memoryState(), baseEnv());
@@ -45,10 +51,16 @@ describe("ScanCoordinator", () => {
     const responses = await Promise.all([first, second]);
     for (const response of responses) {
       expect(response.status).toBe(200);
-      await expect(response.json()).resolves.toEqual(scanResult());
+      await expect(response.json()).resolves.toMatchObject({
+        ...scanResult(),
+        providerAccess: { status: "fresh", reason: null },
+      });
     }
-    await coordinator.fetch(statusRequest());
-    expect(executeManualScan).toHaveBeenCalledTimes(2);
+    const cached = await coordinator.fetch(statusRequest());
+    await expect(cached.json()).resolves.toMatchObject({
+      providerAccess: { status: "cached", reason: "refresh_interval" },
+    });
+    expect(executeManualScan).toHaveBeenCalledTimes(1);
   });
 
   it("queues scheduled work without changing the original tick time", async () => {
@@ -64,6 +76,7 @@ describe("ScanCoordinator", () => {
     expect(executeScheduledScan).toHaveBeenCalledExactlyOnceWith(
       expect.any(Object),
       new Date(scheduledTime),
+      expect.any(Object),
     );
   });
 
@@ -106,6 +119,24 @@ describe("ScanCoordinator", () => {
     expect(executeManualScan).toHaveBeenCalledTimes(2);
   });
 
+  it("serves an older labelled cache when a refresh is rate limited", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-15T00:00:00.000Z"));
+    const coordinator = new ScanCoordinator(memoryState(), baseEnv());
+    expect((await coordinator.fetch(statusRequest())).status).toBe(200);
+    vi.advanceTimersByTime(61_000);
+    vi.mocked(executeManualScan).mockRejectedValueOnce(
+      new HyperliquidRateLimitError(429, "candle"),
+    );
+
+    const response = await coordinator.fetch(statusRequest());
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      providerAccess: { status: "cached", reason: "cooldown" },
+    });
+    expect(executeManualScan).toHaveBeenCalledTimes(2);
+  });
+
   it("keeps failed ticks retryable and allows later work", async () => {
     vi.mocked(executeScheduledScan).mockRejectedValueOnce(new Error("example"));
     const coordinator = new ScanCoordinator(memoryState(), baseEnv());
@@ -113,6 +144,49 @@ describe("ScanCoordinator", () => {
     expect((await coordinator.fetch(statusRequest())).status).toBe(200);
     expect((await coordinator.fetch(scheduledRequest())).status).toBe(204);
     expect(executeScheduledScan).toHaveBeenCalledTimes(2);
+  });
+
+  it("discards obsolete queued ticks instead of replaying a backlog", async () => {
+    const pending = Promise.withResolvers<ScanExecutionResult>();
+    vi.mocked(executeManualScan).mockReturnValueOnce(pending.promise);
+    const coordinator = new ScanCoordinator(memoryState(), baseEnv());
+    const manual = coordinator.fetch(statusRequest());
+    await vi.waitFor(() => expect(executeManualScan).toHaveBeenCalledTimes(1));
+    const older = coordinator.fetch(scheduledRequest());
+    await Promise.resolve();
+    const newer = coordinator.fetch(scheduledRequest(scheduledTime + 300_000));
+    pending.resolve(scanResult());
+
+    await Promise.all([manual, older, newer]);
+    expect(executeScheduledScan).toHaveBeenCalledTimes(1);
+    expect(executeScheduledScan).toHaveBeenCalledWith(
+      expect.any(Object),
+      new Date(scheduledTime + 300_000),
+      expect.any(Object),
+    );
+  });
+
+  it("returns a labelled unavailable result when coordinator state fails", async () => {
+    const state = {
+      storage: {
+        get: async () => {
+          throw new Error("example storage failure");
+        },
+      },
+    } as unknown as DurableObjectState;
+    const coordinator = new ScanCoordinator(state, baseEnv());
+
+    const response = await coordinator.fetch(statusRequest());
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      error: "hyperliquid_state_unavailable",
+      providerAccess: {
+        status: "unavailable",
+        asOf: null,
+        reason: "state_unavailable",
+      },
+    });
+    expect(executeManualScan).not.toHaveBeenCalled();
   });
 
   it("rejects malformed ticks before any scan or state update", async () => {
@@ -150,11 +224,14 @@ describe("scan dispatch", () => {
   it("routes both entry points to the same named object", async () => {
     const { env, name, fetcher } = coordinatedEnv();
     await dispatchScheduledScan(env, scheduledTime);
-    await expect(dispatchManualScan(env)).resolves.toEqual(scanResult());
+    await expect(dispatchManualScan(env)).resolves.toMatchObject({
+      ...scanResult(),
+      providerAccess: { status: "fresh", reason: null },
+    });
     expect(name.mock.calls).toEqual([["scanner"], ["scanner"]]);
     expect(fetcher).toHaveBeenCalledTimes(2);
     expect(executeScheduledScan).toHaveBeenCalledWith(
-      expect.any(Object), new Date(scheduledTime),
+      expect.any(Object), new Date(scheduledTime), expect.any(Object),
     );
   });
 
@@ -178,6 +255,26 @@ describe("scan dispatch", () => {
       .toBeInstanceOf(HyperliquidRateLimitError);
   });
 
+  it("restores a typed local admission error without a direct fallback", async () => {
+    const fetcher = vi.fn(async () => Response.json(
+      { error: "hyperliquid_budget" },
+      { status: 503 },
+    ));
+    const env = {
+      ...baseEnv(),
+      SCAN_EXECUTION_MODE: "durable-object",
+      SCAN_COORDINATOR: {
+        idFromName: () => "example-object-id",
+        get: () => ({ fetch: fetcher }),
+      } as unknown as DurableObjectNamespace,
+    };
+
+    await expect(dispatchManualScan(env)).rejects.toEqual(
+      new HyperliquidAdmissionError("budget"),
+    );
+    expect(executeManualScan).not.toHaveBeenCalled();
+  });
+
   it("authenticates HTTP scans before contacting the object", async () => {
     const { env, fetcher } = coordinatedEnv();
     env.MANUAL_SCAN_TOKEN = "example-manual-token";
@@ -193,6 +290,40 @@ describe("scan dispatch", () => {
     ), env, context);
     expect(response.status).toBe(200);
     expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns a labelled public 503 when fresh provider access is denied", async () => {
+    const fetcher = vi.fn(async () => Response.json(
+      { error: "hyperliquid_budget" },
+      { status: 503 },
+    ));
+    const env = {
+      ...baseEnv(),
+      MANUAL_SCAN_TOKEN: "example-manual-token",
+      SCAN_EXECUTION_MODE: "durable-object",
+      SCAN_COORDINATOR: {
+        idFromName: () => "example-object-id",
+        get: () => ({ fetch: fetcher }),
+      } as unknown as DurableObjectNamespace,
+    };
+    const response = await worker.fetch(
+      new Request("https://scanner.example/scan", {
+        headers: { Authorization: "Bearer example-manual-token" },
+      }),
+      env,
+      { waitUntil: vi.fn() } as unknown as ExecutionContext,
+    );
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      error: "provider data unavailable",
+      providerAccess: {
+        status: "unavailable",
+        asOf: null,
+        reason: "budget",
+      },
+    });
+    expect(executeManualScan).not.toHaveBeenCalled();
   });
 });
 

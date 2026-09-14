@@ -31,10 +31,61 @@ interface HyperliquidAssetContext {
 type HyperliquidPerpCategory = [coin: string, category: string];
 
 export class HyperliquidRateLimitError extends Error {
-  constructor(status: number, operation = "info") {
+  constructor(
+    status: number,
+    operation = "info",
+    readonly retryAfterMs: number | null = null,
+  ) {
     super(`Hyperliquid ${operation} request failed: ${status}`);
     this.name = "HyperliquidRateLimitError";
   }
+}
+
+export class HyperliquidAdmissionError extends Error {
+  constructor(
+    readonly reason: "budget" | "cooldown" | "deadline" | "state_unavailable",
+  ) {
+    super(`Hyperliquid request denied by local ${reason} guard`);
+    this.name = "HyperliquidAdmissionError";
+  }
+}
+
+export interface XyzStockCoinSelection {
+  coins: string[];
+  cacheStatus: "direct" | "refreshed" | "cached" | "stale" | "unavailable";
+  cacheAgeMs: number | null;
+}
+
+export interface HyperliquidAccess {
+  fetchFiveMinuteCandles(coin: string, now: Date): Promise<Candle[]>;
+  fetchFifteenMinuteCandles(
+    coin: string,
+    now: Date,
+    lookbackDays: number,
+  ): Promise<Candle[]>;
+  fetchXyzMarketContexts(
+    coins: readonly string[],
+  ): Promise<MarketAssetContext[]>;
+  fetchXyzStockCoins(): Promise<XyzStockCoinSelection>;
+}
+
+/** Build the legacy direct client used only outside coordinated rollout mode. */
+export function directHyperliquidAccess(
+  fetcher: typeof fetch = fetch,
+): HyperliquidAccess {
+  return {
+    fetchFiveMinuteCandles: (coin, now) =>
+      fetchFiveMinuteCandles(coin, now, fetcher),
+    fetchFifteenMinuteCandles: (coin, now, lookbackDays) =>
+      fetchFifteenMinuteCandles(coin, now, lookbackDays, fetcher),
+    fetchXyzMarketContexts: (coins) =>
+      fetchXyzMarketContexts(coins, fetcher),
+    fetchXyzStockCoins: async () => ({
+      coins: await fetchXyzStockCoins(fetcher),
+      cacheStatus: "direct",
+      cacheAgeMs: 0,
+    }),
+  };
 }
 
 /**
@@ -238,7 +289,11 @@ async function fetchInfoWithRetry(
         retryDelayMs: null,
         retryAfterMs,
       });
-      throw new HyperliquidRateLimitError(response.status, operation);
+      throw new HyperliquidRateLimitError(
+        response.status,
+        operation,
+        retryAfterMs,
+      );
     }
 
     if (!isServerFailure(response.status)) {
@@ -311,7 +366,7 @@ function logRequestFailure(details: RequestFailureLog): void {
   }
 }
 
-function parseRetryAfterMs(
+export function parseRetryAfterMs(
   rawValue: string | null,
   nowMilliseconds: number,
 ): number | null {

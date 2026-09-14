@@ -129,7 +129,13 @@ describe("analyzeMarketFragility", () => {
     const result = analyzeMarketFragility(
       candlesFromCloses([100, 100.1, 100.2, 100.15, 100.3, 100.4, 100.5]),
       contexts,
-      analysisOptions(stockCoins),
+      {
+        ...analysisOptions(stockCoins),
+        expandedEquityCategoryCache: {
+          status: "stale",
+          ageMs: 25 * 60 * 60 * 1_000,
+        },
+      },
     );
 
     expect(result.level).toBe("resilient");
@@ -141,18 +147,22 @@ describe("analyzeMarketFragility", () => {
       declinerCount: 9,
       declinerRatio: 0.75,
       declineThreshold: -0.005,
+      categoryCacheStatus: "stale",
+      categoryCacheAgeMs: 25 * 60 * 60 * 1_000,
     });
     expect(
       formatExpandedEquityBreadth(result.expandedEquityBreadth!, "en"),
     ).toBe(
       "75% down at least 0.5% (9/12) · vs Hyperliquid prevDayPx · " +
-        "xyz stock-perp proxy · context only",
+        "xyz stock-perp proxy · stale category cache (25.0h old) · " +
+        "context only",
     );
     expect(
       formatExpandedEquityBreadth(result.expandedEquityBreadth!, "zh"),
     ).toBe(
       "75% 跌幅至少 0.5%（9/12） · 相對 Hyperliquid prevDayPx · " +
-        "xyz 股票永續合約代理 · 僅供背景參考",
+        "xyz 股票永續合約代理 · 分類快取 stale（25.0 小時） · " +
+        "僅供背景參考",
     );
   });
 

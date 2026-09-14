@@ -1,6 +1,7 @@
 import { loadConfig } from "./config";
 import { publicScanResult } from "./discord";
 import { handleDiscordInteraction } from "./discord-interactions";
+import { HyperliquidAdmissionError } from "./hyperliquid";
 import { dispatchManualScan, dispatchScheduledScan } from "./scan-dispatch";
 import type { Env, RequestRateLimiter } from "./types";
 
@@ -91,19 +92,37 @@ export default {
       const config = loadConfig(env);
       const execution = await dispatchManualScan(env);
       return Response.json(
-        publicScanResult(
-          execution.scan,
-          config.language,
-          execution.fragility ?? undefined,
-          execution.activity ?? undefined,
-          execution.dataHealth,
-        ),
+        {
+          ...publicScanResult(
+            execution.scan,
+            config.language,
+            execution.fragility ?? undefined,
+            execution.activity ?? undefined,
+            execution.dataHealth,
+          ),
+          ...(execution.providerAccess === undefined
+            ? {}
+            : { providerAccess: execution.providerAccess }),
+        },
       );
     } catch (error) {
       console.error(
         "manual scan failed",
         error instanceof Error ? error.name : "UnknownError",
       );
+      if (error instanceof HyperliquidAdmissionError) {
+        return Response.json(
+          {
+            error: "provider data unavailable",
+            providerAccess: {
+              status: "unavailable",
+              asOf: null,
+              reason: error.reason,
+            },
+          },
+          { status: 503 },
+        );
+      }
       return Response.json({ error: "scan failed" }, { status: 502 });
     }
   },

@@ -78,6 +78,10 @@ export interface MarketFragilityAnalysisOptions {
   evaluatedAt: number;
   sessionScope: MarketDataSessionScope;
   expandedEquityCoins?: readonly string[];
+  expandedEquityCategoryCache?: {
+    status: ExpandedEquityBreadthSnapshot["categoryCacheStatus"];
+    ageMs: number | null;
+  };
 }
 
 /**
@@ -109,6 +113,7 @@ export function analyzeMarketFragility(
   const expandedEquityBreadth = expandedBreadthContext(
     assetContexts,
     options.expandedEquityCoins ?? [],
+    options.expandedEquityCategoryCache,
   );
   return {
     level: enoughData
@@ -163,6 +168,10 @@ function buildObservationWindow(
 function expandedBreadthContext(
   assetContexts: readonly MarketAssetContext[],
   expandedEquityCoins: readonly string[],
+  categoryCache: {
+    status: ExpandedEquityBreadthSnapshot["categoryCacheStatus"];
+    ageMs: number | null;
+  } | undefined,
 ): ExpandedEquityBreadthSnapshot | null {
   const requestedCoins = new Set(expandedEquityCoins);
   const returns = assetContexts.flatMap((context) => {
@@ -184,6 +193,12 @@ function expandedBreadthContext(
     declinerCount,
     declinerRatio: declinerCount / returns.length,
     declineThreshold: BREADTH_DECLINE_THRESHOLD,
+    ...(categoryCache === undefined
+      ? {}
+      : {
+          categoryCacheStatus: categoryCache.status,
+          categoryCacheAgeMs: categoryCache.ageMs,
+        }),
   };
 }
 

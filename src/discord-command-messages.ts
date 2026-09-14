@@ -1,4 +1,7 @@
-import { HyperliquidRateLimitError } from "./hyperliquid";
+import {
+  HyperliquidAdmissionError,
+  HyperliquidRateLimitError,
+} from "./hyperliquid";
 import { localizeDiagnostic } from "./i18n";
 import { formatIneligibleMarketDataStatus } from "./market-data-health";
 import {
@@ -19,6 +22,7 @@ import type {
   MarketFragilityIndicatorId,
   MarketFragilitySnapshot,
   MarketActivitySnapshot,
+  ProviderAccessSummary,
   ReversalLocation,
   ScanResult,
 } from "./types";
@@ -59,6 +63,7 @@ export interface DiscordScannerStatus {
   fragility: MarketFragilitySnapshot | null;
   activity?: MarketActivitySnapshot | null;
   dataHealth?: MarketDataHealth;
+  providerAccess?: ProviderAccessSummary;
 }
 
 /**
@@ -127,6 +132,18 @@ export function buildDiscordStatusMessage(
                   value: formatStatusDataHealth(status.dataHealth, language),
                 },
               ]),
+          ...(status.providerAccess === undefined
+            ? []
+            : [
+                {
+                  name: english ? "Provider data" : "資料來源",
+                  value: formatProviderAccess(
+                    status.providerAccess,
+                    language,
+                    queriedAt,
+                  ),
+                },
+              ]),
           {
             name: english ? "Repair mechanisms" : "修復機制",
             value: indicatorLines,
@@ -188,6 +205,30 @@ export function buildDiscordStatusMessage(
     ],
     allowed_mentions: { parse: [] },
   };
+}
+
+function formatProviderAccess(
+  access: ProviderAccessSummary,
+  language: Language,
+  queriedAt: Date,
+): string {
+  if (access.status === "unavailable" || access.asOf === null) {
+    return language === "en"
+      ? `unavailable · ${access.reason ?? "provider guard"}`
+      : `不可用 · ${access.reason ?? "資料來源保護"}`;
+  }
+  const ageSeconds = Math.max(
+    0,
+    Math.floor((queriedAt.getTime() - access.asOf) / 1_000),
+  );
+  if (language === "en") {
+    return access.status === "fresh"
+      ? `fresh · as of ${new Date(access.asOf).toISOString()}`
+      : `cached · ${ageSeconds}s old · ${access.reason ?? "refresh unavailable"}`;
+  }
+  return access.status === "fresh"
+    ? `最新 · 截至 ${new Date(access.asOf).toISOString()}`
+    : `快取 · ${ageSeconds} 秒前 · ${access.reason ?? "無法重新整理"}`;
 }
 
 function formatStatusDataHealth(
@@ -298,6 +339,7 @@ export function buildDiscordStatusErrorMessage(
   language: Language,
 ): DiscordMessageData {
   const rateLimited = error instanceof HyperliquidRateLimitError;
+  const admissionDenied = error instanceof HyperliquidAdmissionError;
   const english = language === "en";
   return {
     embeds: [
@@ -309,7 +351,13 @@ export function buildDiscordStatusErrorMessage(
           ? english
             ? "Hyperliquid rate limited the live data request. Scheduled scans will continue retrying normally."
             : "Hyperliquid 限制了即時資料請求；排程掃描仍會照常繼續重試。"
-          : english
+          : admissionDenied
+            ? english
+              ? "The local provider guard withheld a fresh request " +
+                `(${error.reason}). No decision was emitted.`
+              : "本機資料來源保護已暫停新的請求" +
+                `（${error.reason}）；未產生決策。`
+            : english
             ? "The live status query failed. Check Worker logs before relying on the latest scanner state."
             : "即時狀態查詢失敗；請先查看 Worker logs，再判斷最新掃描器狀態。",
         color: 0xe67e22,

@@ -6,7 +6,10 @@ import {
   type DiscordInteractionOptions,
   type DiscordScannerStatus,
 } from "../src/discord-interactions";
-import { HyperliquidRateLimitError } from "../src/hyperliquid";
+import {
+  HyperliquidAdmissionError,
+  HyperliquidRateLimitError,
+} from "../src/hyperliquid";
 import worker from "../src/index";
 import type {
   Env,
@@ -262,6 +265,37 @@ describe("handleDiscordInteraction", () => {
     };
     expect(message.embeds?.[0]?.title).toContain("查詢未完成");
     expect(message.embeds?.[0]?.description).toContain("限制了即時資料請求");
+  });
+
+  it("labels a local provider admission denial", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const responseBodies: string[] = [];
+    const waitUntilPromises: Promise<void>[] = [];
+    const request = await signedRequest(commandInteraction("status"));
+    const response = await handleDiscordInteraction(
+      request,
+      baseOptions({
+        getStatus: async () => {
+          throw new HyperliquidAdmissionError("cooldown");
+        },
+        fetcher: (async (
+          _input: string | URL | Request,
+          init?: RequestInit,
+        ): Promise<Response> => {
+          responseBodies.push(String(init?.body));
+          return new Response(null, { status: 204 });
+        }) as typeof fetch,
+        waitUntil: (promise) => waitUntilPromises.push(promise),
+      }),
+    );
+
+    expect((await response.json() as { type: number }).type).toBe(5);
+    await Promise.all(waitUntilPromises);
+    const message = JSON.parse(responseBodies[0] ?? "{}") as {
+      embeds?: Array<{ description: string }>;
+    };
+    expect(message.embeds?.[0]?.description).toContain("暫停新的請求");
+    expect(message.embeds?.[0]?.description).toContain("未產生決策");
   });
 
   it("rejects commands from any guild other than the configured guild", async () => {
