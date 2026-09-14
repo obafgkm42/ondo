@@ -5,6 +5,7 @@ import type {
   ResiliencePriceSnapshot,
   ResilienceShockEvent,
 } from "./types";
+import { isFiniteNumber } from "./runtime-validation";
 
 const RESILIENCE_STATE_PREFIX = "resilience-decay";
 const RESILIENCE_STATE_VERSION = 2 as const;
@@ -760,10 +761,6 @@ function isResilienceShockEvent(
       event.completionReason === "recovered" ||
       event.completionReason === "session_close")
   );
-}
-
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
 }
 
 function isPositiveFiniteNumber(value: unknown): value is number {
