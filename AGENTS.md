@@ -24,8 +24,7 @@ red tape around it.
 | `tests/` | Vitest suites for `src/`. |
 | `python/tests/` | pytest suites, including the cross-language contract parity test. |
 | `config/signal_frozen_v1.yaml` | The frozen signal contract. See below. |
-| `docs/` | Methodology, evidence, operations, and process. `docs/README.md` is the map. |
-| `docs/work/` | Historical design and review records from the former artifact-chain process. |
+| `docs/` | Methodology, evidence, and operations. `docs/README.md` is the map. |
 | `scripts/` | Local Node utilities for data conversion and Discord registration. |
 
 Python dependencies and generated reports are not part of the Worker runtime.
@@ -111,10 +110,6 @@ separate process files or stop at document-approval gates.
 A frozen-threshold change, shadow-to-live promotion, or evidence-claim change
 still needs an explicit human decision and durable evidence in the relevant
 existing methodology or evaluation document.
-
-`docs/work/` preserves records created under the former artifact-chain process.
-They are historical context, not current requirements, unless the user
-explicitly adopts one as the specification for a change.
 
 ## Commit and PR conventions
 

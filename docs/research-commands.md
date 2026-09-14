@@ -52,8 +52,27 @@ uv run fragility-shadow-report \
 ```
 
 The ignored report separates repeated brief counts from unique-session
-prevalence. It is descriptive telemetry only. See
-[Fragility shadow snapshot report](fragility-shadow-report.md).
+prevalence. It is descriptive telemetry only: it does not alter the classifier,
+Discord routing, thresholds, colors, mentions, or Worker runtime.
+
+The default output directory is
+`reports/generated/fragility-shadow/`. It contains a versioned JSON payload and
+a compact Markdown report. The parser accepts current schema v4 and legacy v2/v3
+state, but never invents missing mechanism identities or availability.
+
+Interpret the output using these denominators:
+
+- level, transition, family, and mechanism counts use retained observations;
+- mechanism and family prevalence count each affected `BREAKING` or `PANIC`
+  session once;
+- duration uses one maximum continuously observed high-stress duration per
+  evaluable session, separate from wall-clock elapsed time; and
+- confirmation uses sessions containing a `PENDING` or `CONFIRMED` candidate.
+
+The 30-session marker is only a descriptive collection checkpoint. Rolling KV
+is not a complete archive, repeated intraday briefs are dependent, and the state
+cannot estimate data-health exclusion frequency. It does not establish a
+promotion gate, alert rule, or trading inference.
 
 ### Resilience event study
 
