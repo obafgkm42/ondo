@@ -73,6 +73,15 @@ describe("analyzeMarketFragility", () => {
     expect(result.score).toBeNull();
     expect(result.dataQuality).toBe("insufficient");
     expect(result.availableIndicatorCount).toBe(0);
+    expect(result.indicators.map((indicator) => indicator.unavailableReason))
+      .toEqual([
+        "insufficient_price_candles",
+        "insufficient_price_candles",
+        "insufficient_price_candles",
+        "insufficient_price_candles",
+        "insufficient_asset_context",
+        "missing_cross_asset_context",
+      ]);
   });
 
   it("keeps a price-only result visible as partial data", () => {

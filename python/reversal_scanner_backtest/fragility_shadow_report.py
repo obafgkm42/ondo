@@ -11,7 +11,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal, cast
 
-
 MAX_RETAINED_SESSIONS = 60
 MAX_OBSERVATIONS_PER_SESSION = 16
 MINIMUM_DESCRIPTIVE_SESSIONS = 30
@@ -34,6 +33,15 @@ Transition = Literal[
     "IMPROVING",
     "RECOVERED",
     "RELAPSE",
+    "NON_COMPARABLE",
+]
+IndicatorState = Literal["healthy", "stressed", "unavailable", "unknown"]
+ContinuityBreakReason = Literal[
+    "first_observation",
+    "missing_expected_brief",
+    "coverage_changed",
+    "measurement_changed",
+    "legacy_unknown",
 ]
 IndicatorId = Literal[
     "session_loss",
@@ -72,6 +80,7 @@ TRANSITIONS: tuple[Transition, ...] = (
     "IMPROVING",
     "RECOVERED",
     "RELAPSE",
+    "NON_COMPARABLE",
 )
 INDICATOR_IDS: tuple[IndicatorId, ...] = (
     "session_loss",
@@ -87,11 +96,44 @@ MECHANISM_FAMILIES: tuple[MechanismFamily, ...] = (
     "breadth",
     "cross_market_confirmation",
 )
+INDICATOR_STATES: tuple[IndicatorState, ...] = (
+    "healthy",
+    "stressed",
+    "unavailable",
+    "unknown",
+)
+CONTINUITY_BREAK_REASONS: tuple[ContinuityBreakReason, ...] = (
+    "first_observation",
+    "missing_expected_brief",
+    "coverage_changed",
+    "measurement_changed",
+    "legacy_unknown",
+)
+MEASUREMENT_VERSIONS = ("market-fragility/v1", "legacy_unknown")
+UNAVAILABLE_REASONS = (
+    "insufficient_price_candles",
+    "invalid_session_open",
+    "invalid_atr",
+    "zero_session_range",
+    "insufficient_return_history",
+    "insufficient_asset_context",
+    "missing_cross_asset_context",
+    "legacy_unknown",
+)
+
+
+@dataclass(frozen=True)
+class IndicatorObservation:
+    """Availability-aware state for one frozen v1 indicator."""
+
+    indicator_id: IndicatorId
+    state: IndicatorState
+    unavailable_reason: str | None
 
 
 @dataclass(frozen=True)
 class ShadowObservation:
-    """One normalized schema-v3 shadow observation."""
+    """One normalized availability-aware shadow observation."""
 
     timestamp: int
     price: float
@@ -101,12 +143,21 @@ class ShadowObservation:
     breaking_streak: int
     breaking_status: BreakingStatus
     breaking_started_at: int | None
+    breaking_elapsed_minutes: int
+    breaking_observed_duration_minutes: int
     breaking_duration_minutes: int
     transition: Transition
+    measurement_version: str
+    indicator_states: tuple[IndicatorObservation, ...]
+    coverage_comparable: bool
+    continuous_from_previous: bool
+    continuity_break_reason: ContinuityBreakReason | None
     stressed_indicator_ids: tuple[IndicatorId, ...]
     persistent_indicator_ids: tuple[IndicatorId, ...]
     added_indicator_ids: tuple[IndicatorId, ...]
     recovered_indicator_ids: tuple[IndicatorId, ...]
+    lost_coverage_indicator_ids: tuple[IndicatorId, ...]
+    gained_coverage_indicator_ids: tuple[IndicatorId, ...]
     stressed_family_ids: tuple[MechanismFamily, ...]
     mechanism_history_available: bool
 
@@ -129,7 +180,7 @@ class ShadowSession:
 class ShadowState:
     """Validated snapshot plus its original on-disk schema version."""
 
-    source_version: Literal[2, 3]
+    source_version: Literal[2, 3, 4]
     market: str
     sessions: tuple[ShadowSession, ...]
 
@@ -150,22 +201,18 @@ def load_fragility_shadow_state(path: Path) -> ShadowState:
 
 
 def parse_fragility_shadow_state(raw: object) -> ShadowState:
-    """Validate schema v3 or normalize the in-place legacy schema v2."""
+    """Validate schema v4 or normalize the in-place legacy schemas."""
 
     root = _require_object(raw, "state")
     source_version = _require_int(root, "version", "state", minimum=2)
-    if source_version not in {2, 3}:
-        raise ValueError(
-            f"state.version must be 2 or 3, got {source_version}"
-        )
+    if source_version not in {2, 3, 4}:
+        raise ValueError(f"state.version must be 2, 3, or 4, got {source_version}")
     market = _require_nonempty_string(root, "market", "state")
     raw_sessions = _require_list(root, "sessions", "state")
     if not raw_sessions:
         raise ValueError("state.sessions must contain at least one session")
     if len(raw_sessions) > MAX_RETAINED_SESSIONS:
-        raise ValueError(
-            "state.sessions exceeds the bounded 60-session contract"
-        )
+        raise ValueError("state.sessions exceeds the bounded 60-session contract")
 
     sessions: list[ShadowSession] = []
     seen_session_keys: set[str] = set()
@@ -196,9 +243,7 @@ def parse_fragility_shadow_state(raw: object) -> ShadowState:
 
         observations: list[ShadowObservation] = []
         for observation_index, raw_observation in enumerate(raw_observations):
-            observation_path = (
-                f"{session_path}.observations[{observation_index}]"
-            )
+            observation_path = f"{session_path}.observations[{observation_index}]"
             observation = _parse_observation(
                 raw_observation,
                 observation_path,
@@ -222,7 +267,7 @@ def parse_fragility_shadow_state(raw: object) -> ShadowState:
         )
 
     return ShadowState(
-        source_version=cast(Literal[2, 3], source_version),
+        source_version=cast(Literal[2, 3, 4], source_version),
         market=market,
         sessions=tuple(sessions),
     )
@@ -278,24 +323,19 @@ def summarize_fragility_shadow(state: ShadowState) -> dict[str, object]:
                 family_sessions[family_id].add(session.session_key)
             if observation.mechanism_history_available:
                 evaluable_durations.append(
-                    observation.breaking_duration_minutes
+                    observation.breaking_observed_duration_minutes
                 )
         if evaluable_durations:
             duration_maxima.append(max(evaluable_durations))
 
     level_counts = Counter(observation.v1_level for observation in observations)
-    status_counts = Counter(
-        observation.breaking_status for observation in observations
-    )
-    transition_counts = Counter(
-        observation.transition for observation in observations
-    )
+    status_counts = Counter(observation.breaking_status for observation in observations)
+    transition_counts = Counter(observation.transition for observation in observations)
     breaking_observation_count = sum(
         observation.is_breaking for observation in observations
     )
     history_available = sum(
-        observation.mechanism_history_available
-        for observation in observations
+        observation.mechanism_history_available for observation in observations
     )
     latest = observations[-1]
     breaking_session_count = len(breaking_sessions)
@@ -303,7 +343,7 @@ def summarize_fragility_shadow(state: ShadowState) -> dict[str, object]:
     return {
         "market": state.market,
         "sourceStateVersion": state.source_version,
-        "normalizedStateVersion": 3,
+        "normalizedStateVersion": 4,
         "window": {
             "retainedSessions": len(state.sessions),
             "retainedObservations": len(observations),
@@ -312,9 +352,7 @@ def summarize_fragility_shadow(state: ShadowState) -> dict[str, object]:
             "lastTimestamp": latest.timestamp,
             "lastTimestampUtc": _timestamp_iso(latest.timestamp),
         },
-        "levels": {
-            level: level_counts[level] for level in FRAGILITY_LEVELS
-        },
+        "levels": {level: level_counts[level] for level in FRAGILITY_LEVELS},
         "breaking": {
             "observations": breaking_observation_count,
             "sessions": breaking_session_count,
@@ -325,14 +363,12 @@ def summarize_fragility_shadow(state: ShadowState) -> dict[str, object]:
                 len(pending_sessions),
             ),
             "statusObservations": {
-                status: status_counts[status]
-                for status in BREAKING_STATUSES
+                status: status_counts[status] for status in BREAKING_STATUSES
             },
         },
         "transitions": {
             "observationCounts": {
-                transition: transition_counts[transition]
-                for transition in TRANSITIONS
+                transition: transition_counts[transition] for transition in TRANSITIONS
             },
             "worseningObservations": sum(
                 transition_counts[transition]
@@ -353,9 +389,7 @@ def summarize_fragility_shadow(state: ShadowState) -> dict[str, object]:
                     "breakingObservationOccurrences": (
                         indicator_observations[indicator_id]
                     ),
-                    "breakingSessionCount": len(
-                        indicator_sessions[indicator_id]
-                    ),
+                    "breakingSessionCount": len(indicator_sessions[indicator_id]),
                     "breakingSessionPrevalence": _safe_ratio(
                         len(indicator_sessions[indicator_id]),
                         breaking_session_count,
@@ -366,9 +400,7 @@ def summarize_fragility_shadow(state: ShadowState) -> dict[str, object]:
             "families": [
                 {
                     "id": family_id,
-                    "breakingObservationOccurrences": (
-                        family_observations[family_id]
-                    ),
+                    "breakingObservationOccurrences": (family_observations[family_id]),
                     "breakingSessionCount": len(family_sessions[family_id]),
                     "breakingSessionPrevalence": _safe_ratio(
                         len(family_sessions[family_id]),
@@ -390,12 +422,17 @@ def summarize_fragility_shadow(state: ShadowState) -> dict[str, object]:
             "v1Level": latest.v1_level,
             "breakingStatus": latest.breaking_status,
             "breakingDurationMinutes": latest.breaking_duration_minutes,
+            "breakingElapsedMinutes": latest.breaking_elapsed_minutes,
+            "breakingObservedDurationMinutes": (
+                latest.breaking_observed_duration_minutes
+            ),
             "transition": latest.transition,
+            "coverageComparable": latest.coverage_comparable,
+            "continuousFromPrevious": latest.continuous_from_previous,
+            "continuityBreakReason": latest.continuity_break_reason,
             "stressedIndicatorIds": list(latest.stressed_indicator_ids),
             "stressedFamilyIds": list(latest.stressed_family_ids),
-            "mechanismHistoryAvailable": (
-                latest.mechanism_history_available
-            ),
+            "mechanismHistoryAvailable": (latest.mechanism_history_available),
         },
         "dataQuality": {
             "mechanismHistoryAvailableObservations": history_available,
@@ -406,7 +443,7 @@ def summarize_fragility_shadow(state: ShadowState) -> dict[str, object]:
             "readyForDescriptiveReview": (
                 len(state.sessions) >= MINIMUM_DESCRIPTIVE_SESSIONS
             ),
-            "legacyStateMigrated": state.source_version == 2,
+            "legacyStateMigrated": state.source_version < 4,
         },
         "limitations": [
             (
@@ -486,9 +523,7 @@ def render_fragility_shadow_markdown(payload: dict[str, object]) -> str:
         "| frozen v1 level | observations |",
         "| --- | ---: |",
     ]
-    lines.extend(
-        f"| {level.upper()} | {levels[level]} |" for level in FRAGILITY_LEVELS
-    )
+    lines.extend(f"| {level.upper()} | {levels[level]} |" for level in FRAGILITY_LEVELS)
     lines.extend(
         [
             "",
@@ -511,8 +546,7 @@ def render_fragility_shadow_markdown(payload: dict[str, object]) -> str:
         ]
     )
     lines.extend(
-        f"| {status} | {status_counts[status]} |"
-        for status in BREAKING_STATUSES
+        f"| {status} | {status_counts[status]} |" for status in BREAKING_STATUSES
     )
     lines.extend(
         [
@@ -589,7 +623,15 @@ def render_fragility_shadow_markdown(payload: dict[str, object]) -> str:
             f"- time: {latest['timestampUtc']}",
             f"- v1 level / persistence: `{latest['v1Level']}` / `{latest['breakingStatus']}`",
             f"- transition: `{latest['transition']}`",
-            f"- breaking duration: {latest['breakingDurationMinutes']} minutes",
+            (
+                "- continuously observed / elapsed BREAKING duration: "
+                f"{latest['breakingObservedDurationMinutes']} / "
+                f"{latest['breakingElapsedMinutes']} minutes"
+            ),
+            (
+                "- comparable to previous coverage: "
+                f"{'yes' if latest['coverageComparable'] else 'no'}"
+            ),
             (
                 "- stressed indicators: "
                 f"{_format_ids(cast(list[str], latest['stressedIndicatorIds']))}"
@@ -631,7 +673,7 @@ def _parse_observation(
         value,
         "v1Level",
         path,
-        FRAGILITY_LEVELS if source_version == 3 else FRAGILITY_LEVELS[:-1],
+        FRAGILITY_LEVELS if source_version >= 3 else FRAGILITY_LEVELS[:-1],
     )
     stressed_count = _require_int(
         value,
@@ -649,8 +691,7 @@ def _parse_observation(
     )
     if stressed_count > available_count:
         raise ValueError(
-            f"{path}.stressedIndicatorCount cannot exceed "
-            "availableIndicatorCount"
+            f"{path}.stressedIndicatorCount cannot exceed availableIndicatorCount"
         )
     breaking_streak = _require_int(
         value,
@@ -677,12 +718,21 @@ def _parse_observation(
             breaking_started_at=(
                 None if breaking_status == "BELOW_THRESHOLD" else timestamp
             ),
+            breaking_elapsed_minutes=0,
+            breaking_observed_duration_minutes=0,
             breaking_duration_minutes=0,
             transition="UNAVAILABLE",
+            measurement_version="legacy_unknown",
+            indicator_states=_legacy_indicator_states(()),
+            coverage_comparable=False,
+            continuous_from_previous=False,
+            continuity_break_reason="legacy_unknown",
             stressed_indicator_ids=(),
             persistent_indicator_ids=(),
             added_indicator_ids=(),
             recovered_indicator_ids=(),
+            lost_coverage_indicator_ids=(),
+            gained_coverage_indicator_ids=(),
             stressed_family_ids=(),
             mechanism_history_available=False,
         )
@@ -733,9 +783,91 @@ def _parse_observation(
     )
     history_available = value.get("mechanismHistoryAvailable")
     if type(history_available) is not bool:
-        raise ValueError(
-            f"{path}.mechanismHistoryAvailable must be a boolean"
+        raise ValueError(f"{path}.mechanismHistoryAvailable must be a boolean")
+    if source_version == 4:
+        breaking_elapsed = _require_int(
+            value,
+            "breakingElapsedMinutes",
+            path,
+            minimum=0,
         )
+        breaking_observed = _require_int(
+            value,
+            "breakingObservedDurationMinutes",
+            path,
+            minimum=0,
+        )
+        measurement_version = _require_enum(
+            value,
+            "measurementVersion",
+            path,
+            MEASUREMENT_VERSIONS,
+        )
+        indicator_states = _parse_indicator_states(value, path)
+        coverage_comparable = _require_bool(
+            value,
+            "coverageComparable",
+            path,
+        )
+        continuous_from_previous = _require_bool(
+            value,
+            "continuousFromPrevious",
+            path,
+        )
+        continuity_break_reason = _parse_optional_enum(
+            value,
+            "continuityBreakReason",
+            path,
+            CONTINUITY_BREAK_REASONS,
+        )
+        lost_coverage_ids = _require_enum_array(
+            value,
+            "lostCoverageIndicatorIds",
+            path,
+            INDICATOR_IDS,
+        )
+        gained_coverage_ids = _require_enum_array(
+            value,
+            "gainedCoverageIndicatorIds",
+            path,
+            INDICATOR_IDS,
+        )
+        observed_stressed = sum(
+            indicator.state == "stressed" for indicator in indicator_states
+        )
+        observed_available = sum(
+            indicator.state in {"healthy", "stressed"} for indicator in indicator_states
+        )
+        if observed_stressed != stressed_count:
+            raise ValueError(
+                f"{path}.indicatorStates does not match stressedIndicatorCount"
+            )
+        has_unknown_state = any(
+            indicator.state == "unknown" for indicator in indicator_states
+        )
+        if not has_unknown_state and observed_available != available_count:
+            raise ValueError(
+                f"{path}.indicatorStates does not match availableIndicatorCount"
+            )
+        stressed_from_states = {
+            indicator.indicator_id
+            for indicator in indicator_states
+            if indicator.state == "stressed"
+        }
+        if stressed_from_states != set(stressed_ids):
+            raise ValueError(
+                f"{path}.indicatorStates does not match stressedIndicatorIds"
+            )
+    else:
+        breaking_elapsed = breaking_duration
+        breaking_observed = 0
+        measurement_version = "legacy_unknown"
+        indicator_states = _legacy_indicator_states(stressed_ids)
+        coverage_comparable = False
+        continuous_from_previous = False
+        continuity_break_reason = "legacy_unknown"
+        lost_coverage_ids = ()
+        gained_coverage_ids = ()
     return ShadowObservation(
         timestamp=timestamp,
         price=price,
@@ -745,8 +877,18 @@ def _parse_observation(
         breaking_streak=breaking_streak,
         breaking_status=cast(BreakingStatus, breaking_status),
         breaking_started_at=breaking_started_at,
+        breaking_elapsed_minutes=breaking_elapsed,
+        breaking_observed_duration_minutes=breaking_observed,
         breaking_duration_minutes=breaking_duration,
         transition=cast(Transition, transition),
+        measurement_version=measurement_version,
+        indicator_states=indicator_states,
+        coverage_comparable=coverage_comparable,
+        continuous_from_previous=continuous_from_previous,
+        continuity_break_reason=cast(
+            ContinuityBreakReason | None,
+            continuity_break_reason,
+        ),
         stressed_indicator_ids=cast(tuple[IndicatorId, ...], stressed_ids),
         persistent_indicator_ids=cast(
             tuple[IndicatorId, ...],
@@ -756,6 +898,14 @@ def _parse_observation(
         recovered_indicator_ids=cast(
             tuple[IndicatorId, ...],
             recovered_ids,
+        ),
+        lost_coverage_indicator_ids=cast(
+            tuple[IndicatorId, ...],
+            lost_coverage_ids,
+        ),
+        gained_coverage_indicator_ids=cast(
+            tuple[IndicatorId, ...],
+            gained_coverage_ids,
         ),
         stressed_family_ids=cast(
             tuple[MechanismFamily, ...],
@@ -825,9 +975,7 @@ def _require_number(
         raise ValueError(f"{path}.{key} must be a finite number")
     number = float(candidate)
     if minimum_exclusive is not None and number <= minimum_exclusive:
-        raise ValueError(
-            f"{path}.{key} must be greater than {minimum_exclusive}"
-        )
+        raise ValueError(f"{path}.{key} must be greater than {minimum_exclusive}")
     return number
 
 
@@ -839,9 +987,7 @@ def _require_enum(
 ) -> str:
     candidate = value.get(key)
     if not isinstance(candidate, str) or candidate not in allowed:
-        raise ValueError(
-            f"{path}.{key} must be one of: {', '.join(allowed)}"
-        )
+        raise ValueError(f"{path}.{key} must be one of: {', '.join(allowed)}")
     return candidate
 
 
@@ -856,13 +1002,87 @@ def _require_enum_array(
         not isinstance(candidate, str) or candidate not in allowed
         for candidate in candidates
     ):
-        raise ValueError(
-            f"{path}.{key} entries must be one of: {', '.join(allowed)}"
-        )
+        raise ValueError(f"{path}.{key} entries must be one of: {', '.join(allowed)}")
     result = cast(tuple[str, ...], tuple(candidates))
     if len(result) != len(set(result)):
         raise ValueError(f"{path}.{key} must not contain duplicates")
     return result
+
+
+def _require_bool(
+    value: dict[str, object],
+    key: str,
+    path: str,
+) -> bool:
+    candidate = value.get(key)
+    if type(candidate) is not bool:
+        raise ValueError(f"{path}.{key} must be a boolean")
+    return candidate
+
+
+def _parse_optional_enum(
+    value: dict[str, object],
+    key: str,
+    path: str,
+    allowed: tuple[str, ...],
+) -> str | None:
+    candidate = value.get(key)
+    if candidate is None:
+        return None
+    if not isinstance(candidate, str) or candidate not in allowed:
+        raise ValueError(f"{path}.{key} must be null or one of: {', '.join(allowed)}")
+    return candidate
+
+
+def _parse_indicator_states(
+    value: dict[str, object],
+    path: str,
+) -> tuple[IndicatorObservation, ...]:
+    rows = _require_list(value, "indicatorStates", path)
+    observations: list[IndicatorObservation] = []
+    for index, raw_row in enumerate(rows):
+        row_path = f"{path}.indicatorStates[{index}]"
+        row = _require_object(raw_row, row_path)
+        indicator_id = _require_enum(row, "id", row_path, INDICATOR_IDS)
+        state = _require_enum(row, "state", row_path, INDICATOR_STATES)
+        reason = row.get("unavailableReason")
+        if state in {"healthy", "stressed"} and reason is not None:
+            raise ValueError(
+                f"{row_path}.unavailableReason must be null when available"
+            )
+        if state == "unavailable" and reason not in UNAVAILABLE_REASONS[:-1]:
+            raise ValueError(f"{row_path}.unavailableReason must explain missing state")
+        if state == "unknown" and reason != "legacy_unknown":
+            raise ValueError(f"{row_path}.unavailableReason must explain missing state")
+        observations.append(
+            IndicatorObservation(
+                indicator_id=cast(IndicatorId, indicator_id),
+                state=cast(IndicatorState, state),
+                unavailable_reason=cast(str | None, reason),
+            )
+        )
+    observed_ids = [row.indicator_id for row in observations]
+    if len(observed_ids) != len(INDICATOR_IDS) or set(observed_ids) != set(
+        INDICATOR_IDS
+    ):
+        raise ValueError(
+            f"{path}.indicatorStates must contain each indicator exactly once"
+        )
+    return tuple(observations)
+
+
+def _legacy_indicator_states(
+    stressed_ids: tuple[str, ...],
+) -> tuple[IndicatorObservation, ...]:
+    stressed = set(stressed_ids)
+    return tuple(
+        IndicatorObservation(
+            indicator_id=indicator_id,
+            state="stressed" if indicator_id in stressed else "unknown",
+            unavailable_reason=(None if indicator_id in stressed else "legacy_unknown"),
+        )
+        for indicator_id in INDICATOR_IDS
+    )
 
 
 def _distribution(values: list[int]) -> dict[str, object]:

@@ -123,12 +123,22 @@ export type MarketFragilityIndicatorState =
   | "stressed"
   | "unavailable";
 
+export type MarketFragilityUnavailableReason =
+  | "insufficient_price_candles"
+  | "invalid_session_open"
+  | "invalid_atr"
+  | "zero_session_range"
+  | "insufficient_return_history"
+  | "insufficient_asset_context"
+  | "missing_cross_asset_context";
+
 export interface MarketFragilityIndicator {
   id: MarketFragilityIndicatorId;
   state: MarketFragilityIndicatorState;
   value: number | null;
   displayValue: string;
   threshold: string;
+  unavailableReason: MarketFragilityUnavailableReason | null;
 }
 
 export interface MarketFragilitySnapshot {

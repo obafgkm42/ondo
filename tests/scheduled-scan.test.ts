@@ -132,7 +132,7 @@ describe("scheduled catch-up scan", () => {
       version: number;
       sessions: Array<{ observations: unknown[] }>;
     };
-    expect(shadowState.version).toBe(3);
+    expect(shadowState.version).toBe(4);
     expect(shadowState.sessions).toHaveLength(1);
     expect(shadowState.sessions[0]?.observations).toHaveLength(1);
   });

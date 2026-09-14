@@ -1,12 +1,15 @@
 import type {
   MarketFragilityIndicatorId,
+  MarketFragilityIndicatorState,
   MarketFragilitySnapshot,
+  MarketFragilityUnavailableReason,
 } from "./types";
 
-// Keep the physical key stable so the v3 schema migrates in place with the
-// same one-read/one-write budget as v2.
+// Keep the physical key stable so newer schemas migrate in place with the same
+// one-read/one-write budget as earlier versions.
 const SHADOW_STATE_PREFIX = "market-fragility-v2-shadow";
-const SHADOW_STATE_VERSION = 3 as const;
+const SHADOW_STATE_VERSION = 4 as const;
+const MEASUREMENT_VERSION = "market-fragility/v1" as const;
 const MAX_RETAINED_SESSIONS = 60;
 const MAX_OBSERVATIONS_PER_SESSION = 16;
 
@@ -25,7 +28,21 @@ export type MarketFragilityTransition =
   | "ROTATING"
   | "IMPROVING"
   | "RECOVERED"
-  | "RELAPSE";
+  | "RELAPSE"
+  | "NON_COMPARABLE";
+
+export type MarketFragilityContinuityBreakReason =
+  | "first_observation"
+  | "missing_expected_brief"
+  | "coverage_changed"
+  | "measurement_changed"
+  | "legacy_unknown";
+
+export interface MarketFragilityIndicatorObservation {
+  id: MarketFragilityIndicatorId;
+  state: MarketFragilityIndicatorState | "unknown";
+  unavailableReason: MarketFragilityUnavailableReason | "legacy_unknown" | null;
+}
 
 export type MarketFragilityBreakingStatus =
   | "BELOW_THRESHOLD"
@@ -41,12 +58,22 @@ export interface MarketFragilityShadowObservation {
   breakingStreak: number;
   breakingStatus: MarketFragilityBreakingStatus;
   breakingStartedAt: number | null;
+  breakingElapsedMinutes: number;
+  breakingObservedDurationMinutes: number;
+  /** @deprecated Use breakingElapsedMinutes. */
   breakingDurationMinutes: number;
   transition: MarketFragilityTransition;
+  measurementVersion: typeof MEASUREMENT_VERSION | "legacy_unknown";
+  indicatorStates: MarketFragilityIndicatorObservation[];
+  coverageComparable: boolean;
+  continuousFromPrevious: boolean;
+  continuityBreakReason: MarketFragilityContinuityBreakReason | null;
   stressedIndicatorIds: MarketFragilityIndicatorId[];
   persistentIndicatorIds: MarketFragilityIndicatorId[];
   addedIndicatorIds: MarketFragilityIndicatorId[];
   recoveredIndicatorIds: MarketFragilityIndicatorId[];
+  lostCoverageIndicatorIds: MarketFragilityIndicatorId[];
+  gainedCoverageIndicatorIds: MarketFragilityIndicatorId[];
   stressedFamilyIds: MarketFragilityMechanismFamily[];
   mechanismHistoryAvailable: boolean;
 }
@@ -57,7 +84,7 @@ export interface MarketFragilityShadowSession {
 }
 
 export interface MarketFragilityShadowState {
-  version: 3;
+  version: 4;
   market: string;
   sessions: MarketFragilityShadowSession[];
 }
@@ -95,6 +122,7 @@ export async function recordMarketFragilityShadow(
   timestamp: number,
   price: number,
   snapshot: MarketFragilitySnapshot,
+  expectedBriefIntervalMinutes = 30,
 ): Promise<MarketFragilityShadowUpdate> {
   const rawState = await state?.get(shadowStateKey(market));
   const previousState = parseShadowState(rawState ?? null, market);
@@ -115,6 +143,7 @@ export async function recordMarketFragilityShadow(
     price,
     previousObservation,
     currentSession?.observations.some(isBreakingObservation) ?? false,
+    expectedBriefIntervalMinutes,
   );
   const observation =
     ignoredReason === null
@@ -164,11 +193,25 @@ export function buildMarketFragilityShadowObservation(
   price: number,
   previous: MarketFragilityShadowObservation | undefined,
   hadEarlierBreaking = false,
+  expectedBriefIntervalMinutes = 30,
 ): MarketFragilityShadowObservation {
+  const indicatorStates = snapshot.indicators.map((indicator) => ({
+    id: indicator.id,
+    state: indicator.state,
+    unavailableReason: indicator.unavailableReason,
+  }));
+  const comparison = compareObservations(
+    previous,
+    indicatorStates,
+    timestamp,
+    expectedBriefIntervalMinutes,
+  );
   const breakingCandidate =
     snapshot.level === "breaking" || snapshot.level === "panic";
   const breakingStreak = breakingCandidate
-    ? (isBreakingObservation(previous) ? previous?.breakingStreak ?? 0 : 0) + 1
+    ? (isBreakingObservation(previous) && comparison.continuous
+        ? previous?.breakingStreak ?? 0
+        : 0) + 1
     : 0;
   const breakingStatus: MarketFragilityBreakingStatus =
     !breakingCandidate
@@ -179,30 +222,20 @@ export function buildMarketFragilityShadowObservation(
   const stressedIndicatorIds = snapshot.indicators
     .filter((indicator) => indicator.state === "stressed")
     .map((indicator) => indicator.id);
-  const previousStressedIds = previous?.mechanismHistoryAvailable === true
-    ? previous.stressedIndicatorIds
-    : [];
-  const persistentIndicatorIds = intersection(
-    stressedIndicatorIds,
-    previousStressedIds,
-  );
-  const addedIndicatorIds = difference(
-    stressedIndicatorIds,
-    previousStressedIds,
-  );
-  const recoveredIndicatorIds = difference(
-    previousStressedIds,
-    stressedIndicatorIds,
-  );
   const previousBreaking = isBreakingObservation(previous);
   const breakingStartedAt = breakingCandidate
-    ? previousBreaking
+    ? previousBreaking && comparison.continuous
       ? previous?.breakingStartedAt ?? previous?.timestamp ?? timestamp
       : timestamp
     : null;
-  const breakingDurationMinutes = breakingStartedAt === null
+  const breakingElapsedMinutes = breakingStartedAt === null
     ? 0
     : Math.max(0, Math.floor((timestamp - breakingStartedAt) / 60_000));
+  const breakingObservedDurationMinutes =
+    breakingCandidate && previousBreaking && comparison.continuous
+      ? (previous?.breakingObservedDurationMinutes ?? 0) +
+        Math.floor((timestamp - (previous?.timestamp ?? timestamp)) / 60_000)
+      : 0;
   return {
     timestamp,
     price,
@@ -212,20 +245,27 @@ export function buildMarketFragilityShadowObservation(
     breakingStreak,
     breakingStatus,
     breakingStartedAt,
-    breakingDurationMinutes,
+    breakingElapsedMinutes,
+    breakingObservedDurationMinutes,
+    breakingDurationMinutes: breakingElapsedMinutes,
     transition: classifyTransition(
       snapshot,
       previous,
       breakingCandidate,
       hadEarlierBreaking,
-      persistentIndicatorIds,
-      addedIndicatorIds,
-      recoveredIndicatorIds,
+      comparison,
     ),
+    measurementVersion: MEASUREMENT_VERSION,
+    indicatorStates,
+    coverageComparable: comparison.coverageComparable,
+    continuousFromPrevious: comparison.continuous,
+    continuityBreakReason: comparison.breakReason,
     stressedIndicatorIds,
-    persistentIndicatorIds,
-    addedIndicatorIds,
-    recoveredIndicatorIds,
+    persistentIndicatorIds: comparison.persistentIndicatorIds,
+    addedIndicatorIds: comparison.addedIndicatorIds,
+    recoveredIndicatorIds: comparison.recoveredIndicatorIds,
+    lostCoverageIndicatorIds: comparison.lostCoverageIndicatorIds,
+    gainedCoverageIndicatorIds: comparison.gainedCoverageIndicatorIds,
     stressedFamilyIds: mechanismFamilies(stressedIndicatorIds),
     mechanismHistoryAvailable: true,
   };
@@ -254,12 +294,13 @@ function classifyTransition(
   previous: MarketFragilityShadowObservation | undefined,
   breakingCandidate: boolean,
   hadEarlierBreaking: boolean,
-  persistentIndicatorIds: readonly MarketFragilityIndicatorId[],
-  addedIndicatorIds: readonly MarketFragilityIndicatorId[],
-  recoveredIndicatorIds: readonly MarketFragilityIndicatorId[],
+  comparison: ObservationComparison,
 ): MarketFragilityTransition {
   if (previous === undefined) {
     return breakingCandidate ? "NEW_BREAK" : "STABLE";
+  }
+  if (!comparison.continuous) {
+    return "NON_COMPARABLE";
   }
   const previousBreaking = isBreakingObservation(previous);
   if (!breakingCandidate) {
@@ -283,41 +324,121 @@ function classifyTransition(
   }
   if (
     snapshot.stressedIndicatorCount < previous.stressedIndicatorCount ||
-    recoveredIndicatorIds.length > addedIndicatorIds.length
+    comparison.recoveredIndicatorIds.length >
+      comparison.addedIndicatorIds.length
   ) {
     return "IMPROVING";
   }
   if (
     previous.mechanismHistoryAvailable &&
-    persistentIndicatorIds.length === 0 &&
-    addedIndicatorIds.length > 0 &&
-    recoveredIndicatorIds.length > 0
+    comparison.persistentIndicatorIds.length === 0 &&
+    comparison.addedIndicatorIds.length > 0 &&
+    comparison.recoveredIndicatorIds.length > 0
   ) {
     return "ROTATING";
   }
   return "PERSISTENT";
 }
 
+interface ObservationComparison {
+  coverageComparable: boolean;
+  continuous: boolean;
+  breakReason: MarketFragilityContinuityBreakReason | null;
+  persistentIndicatorIds: MarketFragilityIndicatorId[];
+  addedIndicatorIds: MarketFragilityIndicatorId[];
+  recoveredIndicatorIds: MarketFragilityIndicatorId[];
+  lostCoverageIndicatorIds: MarketFragilityIndicatorId[];
+  gainedCoverageIndicatorIds: MarketFragilityIndicatorId[];
+}
+
+function compareObservations(
+  previous: MarketFragilityShadowObservation | undefined,
+  currentStates: readonly MarketFragilityIndicatorObservation[],
+  timestamp: number,
+  expectedBriefIntervalMinutes: number,
+): ObservationComparison {
+  if (previous === undefined) {
+    return emptyComparison("first_observation");
+  }
+  if (
+    !previous.mechanismHistoryAvailable ||
+    previous.measurementVersion === "legacy_unknown"
+  ) {
+    return emptyComparison("legacy_unknown");
+  }
+  if (previous.measurementVersion !== MEASUREMENT_VERSION) {
+    return emptyComparison("measurement_changed");
+  }
+
+  const previousById = new Map(
+    previous.indicatorStates.map((indicator) => [indicator.id, indicator]),
+  );
+  const persistentIndicatorIds: MarketFragilityIndicatorId[] = [];
+  const addedIndicatorIds: MarketFragilityIndicatorId[] = [];
+  const recoveredIndicatorIds: MarketFragilityIndicatorId[] = [];
+  const lostCoverageIndicatorIds: MarketFragilityIndicatorId[] = [];
+  const gainedCoverageIndicatorIds: MarketFragilityIndicatorId[] = [];
+  for (const current of currentStates) {
+    const prior = previousById.get(current.id);
+    if (prior === undefined || prior.state === "unknown") {
+      continue;
+    }
+    if (prior.state !== "unavailable" && current.state === "unavailable") {
+      lostCoverageIndicatorIds.push(current.id);
+      continue;
+    }
+    if (prior.state === "unavailable" && current.state !== "unavailable") {
+      gainedCoverageIndicatorIds.push(current.id);
+      continue;
+    }
+    if (prior.state === "stressed" && current.state === "stressed") {
+      persistentIndicatorIds.push(current.id);
+    } else if (prior.state === "healthy" && current.state === "stressed") {
+      addedIndicatorIds.push(current.id);
+    } else if (prior.state === "stressed" && current.state === "healthy") {
+      recoveredIndicatorIds.push(current.id);
+    }
+  }
+  const coverageComparable =
+    lostCoverageIndicatorIds.length === 0 &&
+    gainedCoverageIndicatorIds.length === 0;
+  const missingExpectedBrief =
+    timestamp - previous.timestamp > expectedBriefIntervalMinutes * 60_000;
+  return {
+    coverageComparable,
+    continuous: coverageComparable && !missingExpectedBrief,
+    breakReason: !coverageComparable
+      ? "coverage_changed"
+      : missingExpectedBrief
+        ? "missing_expected_brief"
+        : null,
+    persistentIndicatorIds,
+    addedIndicatorIds,
+    recoveredIndicatorIds,
+    lostCoverageIndicatorIds,
+    gainedCoverageIndicatorIds,
+  };
+}
+
+function emptyComparison(
+  breakReason: MarketFragilityContinuityBreakReason,
+): ObservationComparison {
+  return {
+    coverageComparable: false,
+    continuous: false,
+    breakReason,
+    persistentIndicatorIds: [],
+    addedIndicatorIds: [],
+    recoveredIndicatorIds: [],
+    lostCoverageIndicatorIds: [],
+    gainedCoverageIndicatorIds: [],
+  };
+}
+
 function mechanismFamilies(
   indicatorIds: readonly MarketFragilityIndicatorId[],
 ): MarketFragilityMechanismFamily[] {
   return [...new Set(indicatorIds.map(mechanismFamily))];
-}
-
-function intersection(
-  current: readonly MarketFragilityIndicatorId[],
-  previous: readonly MarketFragilityIndicatorId[],
-): MarketFragilityIndicatorId[] {
-  const previousIds = new Set(previous);
-  return current.filter((id) => previousIds.has(id));
-}
-
-function difference(
-  left: readonly MarketFragilityIndicatorId[],
-  right: readonly MarketFragilityIndicatorId[],
-): MarketFragilityIndicatorId[] {
-  const rightIds = new Set(right);
-  return left.filter((id) => !rightIds.has(id));
 }
 
 function isBreakingObservation(
@@ -422,11 +543,15 @@ interface LegacyShadowObservation {
 }
 
 interface LegacyShadowState {
-  version: 2;
+  version: 2 | 3;
   market: string;
   sessions: Array<{
     sessionKey: string;
-    observations: LegacyShadowObservation[];
+    observations: Array<LegacyShadowObservation & {
+      breakingStartedAt?: number | null;
+      breakingDurationMinutes?: number;
+      stressedIndicatorIds?: MarketFragilityIndicatorId[];
+    }>;
   }>;
 }
 
@@ -441,15 +566,33 @@ function migrateLegacyShadowState(
       observations: session.observations.map((observation) => ({
         ...observation,
         breakingStartedAt:
-          observation.breakingStatus === "BELOW_THRESHOLD"
+          observation.breakingStartedAt ??
+          (observation.breakingStatus === "BELOW_THRESHOLD"
             ? null
-            : observation.timestamp,
-        breakingDurationMinutes: 0,
+            : observation.timestamp),
+        breakingElapsedMinutes: observation.breakingDurationMinutes ?? 0,
+        breakingObservedDurationMinutes: 0,
+        breakingDurationMinutes: observation.breakingDurationMinutes ?? 0,
         transition: "UNAVAILABLE",
-        stressedIndicatorIds: [],
+        measurementVersion: "legacy_unknown",
+        indicatorStates: indicatorIds().map((id) => ({
+          id,
+          state: observation.stressedIndicatorIds?.includes(id)
+            ? "stressed" as const
+            : "unknown" as const,
+          unavailableReason: observation.stressedIndicatorIds?.includes(id)
+            ? null
+            : "legacy_unknown" as const,
+        })),
+        coverageComparable: false,
+        continuousFromPrevious: false,
+        continuityBreakReason: "legacy_unknown",
+        stressedIndicatorIds: observation.stressedIndicatorIds ?? [],
         persistentIndicatorIds: [],
         addedIndicatorIds: [],
         recoveredIndicatorIds: [],
+        lostCoverageIndicatorIds: [],
+        gainedCoverageIndicatorIds: [],
         stressedFamilyIds: [],
         mechanismHistoryAvailable: false,
       })),
@@ -519,13 +662,50 @@ function isShadowObservation(
       isFiniteNumber(candidate.breakingStartedAt)) &&
     isNonNegativeInteger(candidate.breakingDurationMinutes) &&
     isTransition(candidate.transition) &&
+    (candidate.measurementVersion === MEASUREMENT_VERSION ||
+      candidate.measurementVersion === "legacy_unknown") &&
+    isIndicatorObservationArray(candidate.indicatorStates) &&
+    typeof candidate.coverageComparable === "boolean" &&
+    typeof candidate.continuousFromPrevious === "boolean" &&
+    isContinuityBreakReason(candidate.continuityBreakReason) &&
+    isNonNegativeInteger(candidate.breakingElapsedMinutes) &&
+    isNonNegativeInteger(candidate.breakingObservedDurationMinutes) &&
     isIndicatorIdArray(candidate.stressedIndicatorIds) &&
     isIndicatorIdArray(candidate.persistentIndicatorIds) &&
     isIndicatorIdArray(candidate.addedIndicatorIds) &&
     isIndicatorIdArray(candidate.recoveredIndicatorIds) &&
+    isIndicatorIdArray(candidate.lostCoverageIndicatorIds) &&
+    isIndicatorIdArray(candidate.gainedCoverageIndicatorIds) &&
     isMechanismFamilyArray(candidate.stressedFamilyIds) &&
-    typeof candidate.mechanismHistoryAvailable === "boolean"
+    typeof candidate.mechanismHistoryAvailable === "boolean" &&
+    indicatorContractMatches(candidate)
   );
+}
+
+function indicatorContractMatches(
+  observation: Partial<MarketFragilityShadowObservation>,
+): boolean {
+  const indicatorStates = observation.indicatorStates;
+  const stressedIndicatorIds = observation.stressedIndicatorIds;
+  if (!isIndicatorObservationArray(indicatorStates) ||
+    !isIndicatorIdArray(stressedIndicatorIds)) {
+    return false;
+  }
+  const stressedFromStates = indicatorStates
+    .filter((indicator) => indicator.state === "stressed")
+    .map((indicator) => indicator.id);
+  const availableFromStates = indicatorStates.filter(
+    (indicator) => indicator.state === "healthy" ||
+      indicator.state === "stressed",
+  ).length;
+  const hasUnknownState = indicatorStates.some(
+    (indicator) => indicator.state === "unknown",
+  );
+  return stressedFromStates.length === observation.stressedIndicatorCount &&
+    (hasUnknownState ||
+      availableFromStates === observation.availableIndicatorCount) &&
+    stressedFromStates.every((id) => stressedIndicatorIds.includes(id)) &&
+    stressedIndicatorIds.every((id) => stressedFromStates.includes(id));
 }
 
 function isLegacyShadowState(
@@ -537,7 +717,7 @@ function isLegacyShadowState(
   }
   const candidate = value as Partial<LegacyShadowState>;
   return (
-    candidate.version === 2 &&
+    (candidate.version === 2 || candidate.version === 3) &&
     candidate.market === market &&
     Array.isArray(candidate.sessions) &&
     candidate.sessions.every((session) =>
@@ -577,7 +757,64 @@ function isTransition(value: unknown): value is MarketFragilityTransition {
     value === "NEW_BREAK" || value === "ESCALATING" ||
     value === "PERSISTENT" || value === "ROTATING" ||
     value === "IMPROVING" || value === "RECOVERED" ||
-    value === "RELAPSE";
+    value === "RELAPSE" || value === "NON_COMPARABLE";
+}
+
+function isContinuityBreakReason(
+  value: unknown,
+): value is MarketFragilityContinuityBreakReason | null {
+  return value === null || value === "first_observation" ||
+    value === "missing_expected_brief" || value === "coverage_changed" ||
+    value === "measurement_changed" || value === "legacy_unknown";
+}
+
+function isIndicatorObservationArray(
+  value: unknown,
+): value is MarketFragilityIndicatorObservation[] {
+  if (!Array.isArray(value) || value.length !== indicatorIds().length) {
+    return false;
+  }
+  const valid = value.every((indicator) => {
+      if (typeof indicator !== "object" || indicator === null) {
+        return false;
+      }
+      const candidate = indicator as Partial<MarketFragilityIndicatorObservation>;
+      if (!isIndicatorId(candidate.id)) {
+        return false;
+      }
+      if (candidate.state === "healthy" || candidate.state === "stressed") {
+        return candidate.unavailableReason === null;
+      }
+      if (candidate.state === "unavailable") {
+        return isUnavailableReason(candidate.unavailableReason);
+      }
+      return candidate.state === "unknown" &&
+        candidate.unavailableReason === "legacy_unknown";
+    });
+  return valid && new Set(value.map((indicator) => indicator.id)).size ===
+    indicatorIds().length;
+}
+
+function isUnavailableReason(
+  value: unknown,
+): value is MarketFragilityUnavailableReason {
+  return value === "insufficient_price_candles" ||
+    value === "invalid_session_open" || value === "invalid_atr" ||
+    value === "zero_session_range" ||
+    value === "insufficient_return_history" ||
+    value === "insufficient_asset_context" ||
+    value === "missing_cross_asset_context";
+}
+
+function indicatorIds(): MarketFragilityIndicatorId[] {
+  return [
+    "session_loss",
+    "vwap_repair_failure",
+    "poor_close_location",
+    "downside_tail_cluster",
+    "mega_cap_breadth",
+    "equity_cross_confirmation",
+  ];
 }
 
 function isIndicatorIdArray(

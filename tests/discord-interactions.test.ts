@@ -514,5 +514,8 @@ function indicator(
     value: state === "unavailable" ? null : 1,
     displayValue,
     threshold: "test threshold",
+    unavailableReason: state === "unavailable"
+      ? "insufficient_price_candles"
+      : null,
   };
 }

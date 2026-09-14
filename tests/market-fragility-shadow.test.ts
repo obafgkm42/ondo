@@ -74,7 +74,7 @@ describe("market fragility persistence shadow", () => {
     });
   });
 
-  it("uses elapsed time and mechanism overlap instead of brief count alone", () => {
+  it("breaks confirmation when an expected brief is missing", () => {
     const startedAt = Date.parse("2026-08-11T14:00:00Z");
     const first = buildMarketFragilityShadowObservation(
       snapshotWithStressedIds([
@@ -99,11 +99,14 @@ describe("market fragility persistence shadow", () => {
     );
 
     expect(second).toMatchObject({
-      breakingStatus: "CONFIRMED",
-      breakingStreak: 2,
-      breakingStartedAt: startedAt,
-      breakingDurationMinutes: 45,
-      transition: "ESCALATING",
+      breakingStatus: "PENDING",
+      breakingStreak: 1,
+      breakingStartedAt: startedAt + 45 * 60_000,
+      breakingElapsedMinutes: 0,
+      breakingObservedDurationMinutes: 0,
+      continuousFromPrevious: false,
+      continuityBreakReason: "missing_expected_brief",
+      transition: "NON_COMPARABLE",
       persistentIndicatorIds: [
         "session_loss",
         "vwap_repair_failure",
@@ -117,6 +120,137 @@ describe("market fragility persistence shadow", () => {
         "breadth",
         "cross_market_confirmation",
       ],
+    });
+  });
+
+  it("separates continuously observed duration from wall-clock fields", () => {
+    const startedAt = Date.parse("2026-08-11T14:00:00Z");
+    const first = buildMarketFragilityShadowObservation(
+      snapshot(3),
+      startedAt,
+      6000,
+      undefined,
+    );
+    const second = buildMarketFragilityShadowObservation(
+      snapshot(3),
+      startedAt + 30 * 60_000,
+      5990,
+      first,
+    );
+
+    expect(second).toMatchObject({
+      breakingStatus: "CONFIRMED",
+      breakingStreak: 2,
+      breakingElapsedMinutes: 30,
+      breakingObservedDurationMinutes: 30,
+      continuousFromPrevious: true,
+      continuityBreakReason: null,
+      transition: "PERSISTENT",
+    });
+  });
+
+  it("does not report unavailable stressed indicators as recovered", () => {
+    const full = buildMarketFragilityShadowObservation(
+      snapshotWithStates({
+        session_loss: "stressed",
+        vwap_repair_failure: "stressed",
+        poor_close_location: "stressed",
+      }),
+      1,
+      6000,
+      undefined,
+    );
+    const partial = buildMarketFragilityShadowObservation(
+      snapshotWithStates({
+        session_loss: "stressed",
+        vwap_repair_failure: "unavailable",
+        poor_close_location: "unavailable",
+      }),
+      2,
+      6000,
+      full,
+    );
+    const restored = buildMarketFragilityShadowObservation(
+      snapshotWithStates({
+        session_loss: "stressed",
+        vwap_repair_failure: "stressed",
+        poor_close_location: "stressed",
+      }),
+      3,
+      6000,
+      partial,
+    );
+
+    expect(partial).toMatchObject({
+      v1Level: "resilient",
+      availableIndicatorCount: 4,
+      transition: "NON_COMPARABLE",
+      recoveredIndicatorIds: [],
+      lostCoverageIndicatorIds: [
+        "vwap_repair_failure",
+        "poor_close_location",
+      ],
+      breakingStatus: "BELOW_THRESHOLD",
+    });
+    expect(restored).toMatchObject({
+      v1Level: "breaking",
+      transition: "NON_COMPARABLE",
+      addedIndicatorIds: [],
+      recoveredIndicatorIds: [],
+      gainedCoverageIndicatorIds: [
+        "vwap_repair_failure",
+        "poor_close_location",
+      ],
+      breakingStatus: "PENDING",
+    });
+  });
+
+  it("records genuine stressed-to-healthy recovery over joint coverage", () => {
+    const stressed = buildMarketFragilityShadowObservation(
+      snapshotWithStates({ session_loss: "stressed" }),
+      1,
+      6000,
+      undefined,
+    );
+    const healthy = buildMarketFragilityShadowObservation(
+      snapshotWithStates({ session_loss: "healthy" }),
+      2,
+      6000,
+      stressed,
+    );
+
+    expect(healthy).toMatchObject({
+      coverageComparable: true,
+      transition: "IMPROVING",
+      recoveredIndicatorIds: ["session_loss"],
+      lostCoverageIndicatorIds: [],
+    });
+  });
+
+  it("keeps a genuine repair visible while labelling changed coverage", () => {
+    const partial = buildMarketFragilityShadowObservation(
+      snapshotWithStates({
+        session_loss: "stressed",
+        mega_cap_breadth: "unavailable",
+      }),
+      1,
+      6000,
+      undefined,
+    );
+    const full = buildMarketFragilityShadowObservation(
+      snapshotWithStates({
+        session_loss: "healthy",
+        mega_cap_breadth: "healthy",
+      }),
+      2,
+      6000,
+      partial,
+    );
+
+    expect(full).toMatchObject({
+      transition: "NON_COMPARABLE",
+      recoveredIndicatorIds: ["session_loss"],
+      gainedCoverageIndicatorIds: ["mega_cap_breadth"],
     });
   });
 
@@ -299,17 +433,93 @@ describe("market fragility persistence shadow", () => {
       snapshot(3),
     );
 
-    expect(update.state?.version).toBe(3);
+    expect(update.state?.version).toBe(4);
     expect(update.state?.sessions[0]?.observations[0]).toMatchObject({
       transition: "UNAVAILABLE",
       mechanismHistoryAvailable: false,
     });
     expect(update.observation).toMatchObject({
-      transition: "PERSISTENT",
+      transition: "NON_COMPARABLE",
       mechanismHistoryAvailable: true,
+      breakingStatus: "PENDING",
     });
     expect(JSON.parse(String(await state.get(shadowStateKey("xyz:SP500")))))
-      .toMatchObject({ version: 3 });
+      .toMatchObject({ version: 4 });
+  });
+
+  it("migrates v3 identity-level availability as unknown", async () => {
+    const legacyObservation = buildMarketFragilityShadowObservation(
+      snapshot(3),
+      1,
+      6000,
+      undefined,
+    ) as unknown as Record<string, unknown>;
+    for (const key of [
+      "breakingElapsedMinutes",
+      "breakingObservedDurationMinutes",
+      "measurementVersion",
+      "indicatorStates",
+      "coverageComparable",
+      "continuousFromPrevious",
+      "continuityBreakReason",
+      "lostCoverageIndicatorIds",
+      "gainedCoverageIndicatorIds",
+    ]) {
+      delete legacyObservation[key];
+    }
+    const state = memoryKv({
+      [shadowStateKey("xyz:SP500")]: JSON.stringify({
+        version: 3,
+        market: "xyz:SP500",
+        sessions: [{
+          sessionKey: "2026-08-11",
+          observations: [legacyObservation],
+        }],
+      }),
+    });
+
+    const update = await recordMarketFragilityShadow(
+      state,
+      "xyz:SP500",
+      "2026-08-11",
+      2,
+      5990,
+      snapshot(3),
+    );
+
+    const migrated = update.state?.sessions[0]?.observations[0];
+    expect(migrated).toMatchObject({
+      measurementVersion: "legacy_unknown",
+      coverageComparable: false,
+      continuityBreakReason: "legacy_unknown",
+      mechanismHistoryAvailable: false,
+    });
+    expect(migrated?.indicatorStates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "poor_close_location",
+          state: "stressed",
+        }),
+        expect.objectContaining({
+          id: "mega_cap_breadth",
+          state: "unknown",
+        }),
+      ]),
+    );
+    expect(update.observation).toMatchObject({
+      transition: "NON_COMPARABLE",
+      breakingStatus: "PENDING",
+    });
+    const afterRestart = await recordMarketFragilityShadow(
+      state,
+      "xyz:SP500",
+      "2026-08-11",
+      3,
+      5980,
+      snapshot(3),
+    );
+    expect(afterRestart.state?.sessions[0]?.observations).toHaveLength(3);
+    expect(afterRestart.observation.breakingStatus).toBe("CONFIRMED");
   });
 
   it("retains at most 60 compact sessions", async () => {
@@ -331,7 +541,7 @@ describe("market fragility persistence shadow", () => {
     };
     expect(stored.sessions).toHaveLength(60);
     expect(stored.sessions[0]?.sessionKey).toBe("2026-session-01");
-    expect(String(rawState).length).toBeLessThan(40_000);
+    expect(String(rawState).length).toBeLessThan(100_000);
   });
 
   it("retains at most 16 observations in one session", async () => {
@@ -394,6 +604,7 @@ function snapshot(
       value: values[index] ?? 0,
       displayValue: String(values[index] ?? 0),
       threshold: "test",
+      unavailableReason: null,
     })),
   };
 }
@@ -420,7 +631,58 @@ function snapshotWithStressedIds(
       value: stressed.has(id) ? -1 : 0,
       displayValue: stressed.has(id) ? "stressed" : "healthy",
       threshold: "test",
+      unavailableReason: null,
     })),
+  };
+}
+
+function snapshotWithStates(
+  states: Partial<
+    Record<
+      MarketFragilityIndicatorId,
+      "healthy" | "stressed" | "unavailable"
+    >
+  >,
+): MarketFragilitySnapshot {
+  const indicators = INDICATOR_IDS.map((id) => {
+    const state = states[id] ?? "healthy";
+    return {
+      id,
+      state,
+      value: state === "unavailable" ? null : state === "stressed" ? -1 : 0,
+      displayValue: state,
+      threshold: "test",
+      unavailableReason: state === "unavailable"
+        ? "insufficient_asset_context" as const
+        : null,
+    };
+  });
+  const stressedIndicatorCount = indicators.filter(
+    (indicator) => indicator.state === "stressed",
+  ).length;
+  const availableIndicatorCount = indicators.filter(
+    (indicator) => indicator.state !== "unavailable",
+  ).length;
+  return {
+    ...snapshot(stressedIndicatorCount),
+    level: availableIndicatorCount < 4
+      ? "unknown"
+      : stressedIndicatorCount >= 4
+        ? "panic"
+        : stressedIndicatorCount === 3
+          ? "breaking"
+          : stressedIndicatorCount === 2
+            ? "fragile"
+            : "resilient",
+    score: availableIndicatorCount < 4 ? null : 60,
+    stressedIndicatorCount,
+    availableIndicatorCount,
+    dataQuality: availableIndicatorCount === 6
+      ? "full"
+      : availableIndicatorCount >= 4
+        ? "partial"
+        : "insufficient",
+    indicators,
   };
 }
 
