@@ -30,6 +30,7 @@ import {
   getBriefIntervalMinutes,
   getPreviousScanTime,
   getScheduleDecision,
+  isFiveMinuteRthAcquisitionTime,
   isRthClose,
   isTwoHourCheckpointEligible,
   selectAnalysisSession,
@@ -39,6 +40,7 @@ import {
   updateResilienceDecayStateBatch,
 } from "./resilience-decay";
 import type { ResilienceDecayUpdate } from "./resilience-decay";
+import { recordRthShadowAcquisition } from "./rth-shadow-acquisition";
 import {
   clearRateLimitIncident,
   getLastSuccessfulCandleEnd,
@@ -92,6 +94,9 @@ export async function executeScheduledScan(
     config.briefIntervalMinutes,
   );
   const briefDue = isBriefDue(now, briefIntervalMinutes);
+  const shadowAcquisitionDue =
+    config.fiveMinuteRthAcquisitionMode === "shadow" &&
+    isFiveMinuteRthAcquisitionTime(now);
   const versionChanged = hasWorkerVersionChanged(config);
   const versionNotice = maybeSendVersionNotice(config, now, versionChanged);
   const fallbackNotificationWindowStart = decision.shouldRun
@@ -101,9 +106,12 @@ export async function executeScheduledScan(
     const bootstrapImmediately =
       changed && config.marketActivityMode !== "off";
     if (!decision.shouldRun && !briefDue) {
+      if (shadowAcquisitionDue) {
+        await runRthShadowAcquisition(config, now, provider);
+      }
       if (bootstrapImmediately) {
         await bootstrapMarketActivityForNewVersion(config, now, provider);
-      } else {
+      } else if (!shadowAcquisitionDue) {
         console.log(`scan skipped: ${decision.reason}`);
       }
       return;
@@ -114,6 +122,7 @@ export async function executeScheduledScan(
       decision.shouldRun,
       briefDue,
       fallbackNotificationWindowStart,
+      shadowAcquisitionDue,
       bootstrapImmediately,
       provider,
     );
@@ -133,7 +142,17 @@ export function executeManualScan(
   now: Date,
   provider: HyperliquidAccess = directHyperliquidAccess(),
 ): Promise<ScanExecutionResult> {
-  return runScan(config, now, false, false, null, false, false, provider);
+  return runScan(
+    config,
+    now,
+    false,
+    false,
+    null,
+    false,
+    false,
+    false,
+    provider,
+  );
 }
 
 async function runScan(
@@ -143,6 +162,7 @@ async function runScan(
   sendBrief: boolean,
   notificationWindowStart: Date | null,
   scheduledExecution: boolean,
+  shadowAcquisitionDue: boolean,
   bootstrapActivityImmediately = false,
   provider: HyperliquidAccess = directHyperliquidAccess(),
 ): Promise<ScanExecutionResult> {
@@ -313,6 +333,13 @@ async function runScan(
       notificationOpportunity.signal,
     );
   }
+  // Shadow persistence stays behind time-sensitive live signal delivery.
+  await maybeRecordRthShadowAcquisition(
+    config,
+    shadowAcquisitionDue && dataHealth.stateEligible,
+    sessionCandles,
+    now,
+  );
   const activity = await maybeEvaluateMarketActivity(
     config,
     candles,
@@ -695,6 +722,92 @@ async function maybeRecordFiveMinuteResilienceShadow(
   }
 }
 
+async function runRthShadowAcquisition(
+  config: ScannerConfig,
+  now: Date,
+  provider: HyperliquidAccess,
+): Promise<void> {
+  try {
+    const candles = await provider.fetchFiveMinuteCandles(
+      config.hyperliquidCoin,
+      now,
+    );
+    const analysisSession = selectAnalysisSession(candles, now);
+    const dataHealth = assessMarketDataHealth(
+      analysisSession.candles,
+      now,
+      analysisSession.kind,
+    );
+    if (!dataHealth.stateEligible) {
+      console.warn(JSON.stringify({
+        status: "rth_shadow_acquisition_skipped",
+        market: config.hyperliquidCoin,
+        reason: dataHealth.status,
+        candleCount: dataHealth.candleCount,
+      }));
+      return;
+    }
+    await maybeRecordRthShadowAcquisition(
+      config,
+      true,
+      analysisSession.candles,
+      now,
+    );
+    await maybeRecordFiveMinuteResilienceShadow(
+      config,
+      analysisSession.candles,
+    );
+  } catch (error) {
+    console.warn(JSON.stringify({
+      status: "rth_shadow_acquisition_degraded",
+      market: config.hyperliquidCoin,
+      reason: safeErrorName(error),
+      effect: "five-minute shadow omitted; live schedule remains unchanged",
+    }));
+  }
+}
+
+async function maybeRecordRthShadowAcquisition(
+  config: ScannerConfig,
+  collectionDue: boolean,
+  sessionCandles: readonly Candle[],
+  acquiredAt: Date,
+): Promise<void> {
+  if (
+    !collectionDue ||
+    config.fiveMinuteRthAcquisitionMode !== "shadow" ||
+    config.hyperliquidCoin !== "xyz:SP500"
+  ) {
+    return;
+  }
+  try {
+    const update = await recordRthShadowAcquisition(
+      config.scannerState,
+      config.hyperliquidCoin,
+      acquiredAt.getTime(),
+      sessionCandles,
+    );
+    console.log(JSON.stringify({
+      status: "rth_shadow_acquisition_5m",
+      market: config.hyperliquidCoin,
+      changed: update.changed,
+      recordedObservationCount: update.recordedObservationCount,
+      ignoredObservationCount: update.ignoredObservationCount,
+      retainedSessionCount: update.state?.sessions.length ?? 0,
+      serializedBytes: update.serializedBytes,
+      recoveredCorruptState: update.recoveredCorruptState,
+      liveEffect: "none",
+    }));
+  } catch (error) {
+    console.warn(JSON.stringify({
+      status: "rth_shadow_acquisition_state_degraded",
+      market: config.hyperliquidCoin,
+      reason: safeErrorName(error),
+      effect: "five-minute shadow omitted; live state remains unchanged",
+    }));
+  }
+}
+
 /**
  * Build the fixed half-hour RTH sampling grid from completed five-minute
  * candles. Rebuilding the candidates on every scheduled scan lets the state
@@ -809,6 +922,7 @@ async function runScheduledScan(
   notify: boolean,
   sendBrief: boolean,
   fallbackNotificationWindowStart: Date | null,
+  shadowAcquisitionDue: boolean,
   bootstrapActivityImmediately = false,
   provider: HyperliquidAccess = directHyperliquidAccess(),
 ): Promise<void> {
@@ -848,6 +962,7 @@ async function runScheduledScan(
       sendBrief,
       notificationWindowStart,
       true,
+      shadowAcquisitionDue,
       bootstrapActivityImmediately,
       provider,
     );

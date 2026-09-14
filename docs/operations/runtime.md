@@ -204,6 +204,8 @@ own gate:
 
 - normal scans every 15 minutes;
 - scans every five minutes from 15:00–16:00 New York time;
+- opt-in price-only shadow acquisition every five minutes from the first
+  completed RTH candle at 09:35 through 16:00 New York time;
 - standard-session briefs every 30 minutes; and
 - non-standard-session briefs no more frequently than hourly.
 
@@ -213,8 +215,10 @@ and a reservation write before every attempted Hyperliquid request. This does
 not change the existing KV operation budget. Duplicate and obsolete tick
 deliveries do not make provider requests.
 
-Each scheduled scan uses one Hyperliquid candle request and evaluates every new
-five-minute candle since the previous allowed scan. A due brief adds one
+Each live scheduled scan uses one Hyperliquid candle request and evaluates every
+new five-minute candle since the previous allowed scan. Stage B adds 44 RTH
+candle requests to the 104-call daily baseline because its other 34 boundaries
+already run live. A due brief adds one
 `metaAndAssetCtxs` request for fragility context. `perpCategories` is cached for
 24 hours in coordinated storage. A failed refresh backs off for one hour and
 may use a labelled stale value for at most 72 hours; after that, expanded
@@ -245,9 +249,18 @@ context remains fail-open without amplifying the same rate-limit window.
 The prospective diagnostics reuse those responses:
 
 - fragility shadow: at most about 13 KV reads and writes per full RTH day;
-- five-minute resilience shadow: about 35 KV reads and writes under the mixed
-  production cadence, with a conservative 78-operation ceiling; and
-- no extra Hyperliquid request for either shadow collector.
+- five-minute resilience shadow: up to 78 KV reads and writes with stage B;
+- five-minute price-only acquisition: up to 78 KV reads and writes; and
+- after stage B acquires the candle, neither shadow collector adds another
+  Hyperliquid request.
+
+The stage B store is `rth-shadow-acquisition-5m:v1:<market>`. It is independent
+of the 16-row half-hour fragility schema and live notification watermarks. Each
+row records its actual acquisition timestamp and explicitly marks context as
+`not_collected`; delayed price-only catch-up never receives newly fetched
+cross-market context retroactively. State retains at most 78 rows per session,
+60 sessions, and eight MiB. Oldest observations are removed before the byte
+ceiling can be exceeded.
 
 All durable collections are bounded. Provider, metadata, or KV failures fail
 open and leave the core read-only monitor available. Current quota references
@@ -264,11 +277,20 @@ LANGUAGE = "zh"
 MARKET_ACTIVITY_MODE = "display"
 FRAGILITY_PERSISTENCE_MODE = "shadow"
 RESILIENCE_DECAY_SHADOW_MODE = "shadow"
+FIVE_MINUTE_RTH_ACQUISITION_MODE = "shadow"
 ```
 
 - `MARKET_ACTIVITY_MODE`: `off`, `shadow`, or `display`;
 - `FRAGILITY_PERSISTENCE_MODE`: `off`, `shadow`, or `display`;
 - `RESILIENCE_DECAY_SHADOW_MODE`: `off` or `shadow`.
+- `FIVE_MINUTE_RTH_ACQUISITION_MODE`: `off` or `shadow`.
+
+The acquisition parser defaults to `off`. Setting it to `shadow` changes only
+the price-only collection grid. It does not change live reversal evaluation,
+brief cadence, mentions, or context polling. Set it back to `off` to restore
+the stage A request schedule while retaining M1 correctness and M3 provider
+guards. Stage C context sampling remains unimplemented until the stage B pilot
+passes its operational review.
 
 Parser defaults remain conservative even where this repository explicitly opts
 into bounded collection or display. Conflicting legacy
