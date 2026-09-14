@@ -93,6 +93,9 @@ export interface MarketAssetContext {
   markPrice: number;
   oraclePrice: number;
   previousDayPrice: number;
+  referencePriceType: "hyperliquid_prev_day_px";
+  fetchedAt: number;
+  providerTimestamp: number | null;
   fundingRate: number;
   premium: number | null;
   dayNotionalVolume: number;
@@ -132,13 +135,30 @@ export type MarketFragilityUnavailableReason =
   | "insufficient_asset_context"
   | "missing_cross_asset_context";
 
+export type MarketFragilityReferenceType =
+  | "analysis_session_open"
+  | "latest_session_vwap"
+  | "observed_session_range"
+  | "prior_candle_close"
+  | "hyperliquid_prev_day_px";
+
 export interface MarketFragilityIndicator {
   id: MarketFragilityIndicatorId;
   state: MarketFragilityIndicatorState;
   value: number | null;
   displayValue: string;
   threshold: string;
+  referenceType: MarketFragilityReferenceType;
   unavailableReason: MarketFragilityUnavailableReason | null;
+}
+
+export interface MarketFragilityObservationWindow {
+  candleEndTime: number | null;
+  contextFetchedAt: number | null;
+  evaluatedAt: number;
+  sessionScope: MarketDataSessionScope;
+  contextReferencePriceType: "hyperliquid_prev_day_px" | null;
+  contextProviderTimestamp: number | null;
 }
 
 export interface MarketFragilitySnapshot {
@@ -149,6 +169,7 @@ export interface MarketFragilitySnapshot {
   totalIndicatorCount: number;
   dataQuality: MarketFragilityDataQuality;
   indicators: MarketFragilityIndicator[];
+  observationWindow: MarketFragilityObservationWindow;
   expandedEquityBreadth?: ExpandedEquityBreadthSnapshot;
 }
 

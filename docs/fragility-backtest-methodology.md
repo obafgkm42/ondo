@@ -63,6 +63,50 @@ indicators. The ordinal mapping remains frozen:
 Scores remain `0, 15, 35, 60, 80, 90, 100` for zero through six stressed
 mechanisms. A score is not a calibrated probability.
 
+## Live Observation And Reference Contract
+
+Every live snapshot records the latest completed candle end, context fetch
+completion, evaluation time, analysis-session scope, context reference-price
+type, and provider timestamp when the response supplies one. Receipt time is
+not represented as provider time.
+
+The six live indicators use these explicit references:
+
+| indicator | reference |
+| --- | --- |
+| session loss | first open in the selected RTH or overnight analysis session |
+| VWAP repair | latest session VWAP calculated over the selected candles |
+| close location | high-low range observed in the selected session |
+| downside tails | prior completed candle closes |
+| mega-cap breadth | each contract's Hyperliquid `prevDayPx` field |
+| SP500 / XYZ100 confirmation | each contract's Hyperliquid `prevDayPx` field |
+
+Hyperliquid's official `metaAndAssetCtxs` documentation publishes
+`prevDayPx` in the response shape but does not define its time window or attach
+a timestamp to the context object. Market Ondo therefore labels this basis
+literally as `hyperliquid_prev_day_px`; it does not call it an official cash
+close, a cash-session open, or a rolling 24-hour return. The live parser records
+the context fetch completion and `null` for the unavailable provider timestamp.
+
+Partial coverage is displayed as observed and unavailable mechanism counts.
+`RESILIENT` means that few **observed** pressure conditions are stressed; it is
+not a statement that missing inputs recovered or that the market is safe.
+Expanded stock-perp breadth remains a venue-specific context proxy and does not
+enter the six-item score.
+
+The separately versioned same-RTH-anchor candidate is reserved as
+`fragility-rth-anchor-shadow-v1`. Its future collector may use only a context
+mark observed at the predeclared opening opportunity and must label it as a
+sampled RTH anchor. If that opportunity is missed, the anchor stays missing;
+the collector may not reconstruct it from a later quote or add per-market
+candle fan-out. This candidate is not computed, displayed, or persisted by the
+current classifier. Collection belongs to the later shadow-acquisition and
+prospective-evidence milestones.
+
+See the official
+[Hyperliquid perpetual info endpoint][hyperliquid-perpetuals-info] for the
+documented response shape.
+
 ## Replay Contract
 
 The canonical first run uses five-minute candles and the New York cash session:
@@ -204,3 +248,6 @@ The classifier is not promoted into a live trading gate until:
 - no single crisis dominates the conclusion; and
 - a separately specified trade or option policy passes its own execution and
   cost study.
+
+[hyperliquid-perpetuals-info]:
+  <https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint/perpetuals>

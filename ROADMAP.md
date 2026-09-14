@@ -145,23 +145,23 @@ escalation claims, and unrelated healthy-data classifications remain unchanged.
 Primary files: `src/market-fragility.ts`, `src/hyperliquid.ts`, formatters,
 `src/types.ts`, and `docs/fragility-backtest-methodology.md`.
 
-- [ ] Record candle end, context fetch completion, evaluation time, session
+- [x] Record candle end, context fetch completion, evaluation time, session
   scope, reference-price type, and any provider timestamp actually available.
   A local fetch timestamp does not establish the age of an underlying oracle.
-- [ ] Label current context returns with their actual provider reference.
+- [x] Label current context returns with their actual provider reference.
   Verify `prevDayPx` semantics from authoritative documentation or provider
   confirmation before calling them cash-day or rolling-24-hour returns.
-- [ ] Keep same-RTH-anchor returns as a separately versioned shadow candidate.
+- [x] Keep same-RTH-anchor returns as a separately versioned shadow candidate.
   An observed post-open mark may be labelled a sampled anchor, never an exact
   09:30 open. Missed anchors remain missing; do not reconstruct them from a
   later quote. Avoid adding nine per-market candle requests to solve anchoring.
-- [ ] Make partial coverage and cached-context age prominent. Describe
+- [x] Make partial coverage and cached-context age prominent. Describe
   `RESILIENT` as few observed pressure conditions, not proven recovery or safety.
   Treat the six-item score as ordinal and expanded stock-perp breadth as a
   venue-specific proxy. Keep activity/RVOL separate from downside pressure.
-- [ ] Show existing mechanism families as explanatory context only. Do not
+- [x] Show existing mechanism families as explanatory context only. Do not
   change level weights, thresholds, colors, mentions, or reversal eligibility.
-- [ ] Test gap-down/rebound, gap-up/selloff, tiny-range quiet trading, missing
+- [x] Test gap-down/rebound, gap-up/selloff, tiny-range quiet trading, missing
   anchors, changing VWAP, stale context, DST, holidays, and early closes.
 
 Done when every displayed return has an unambiguous window and unavailable
@@ -387,6 +387,27 @@ collector, report generator, or test suite has been delivered.
 - Rollback: reverting the code restores v3 behavior; a v3 Worker cannot consume
   already-written v4 shadow rows and would rebuild this bounded diagnostic
   history. The read-only monitor and frozen classifier remain available.
+
+### M2 completion record
+
+- Scope: explicit indicator reference types; candle, context-receipt,
+  evaluation, session-scope, and provider-time metadata; source-labelled
+  `prevDayPx` returns; prominent context age and unavailable coverage; and
+  neutral observed-pressure wording for `RESILIENT`.
+- Provider contract: official documentation exposes `prevDayPx` but does not
+  define its window or a context timestamp. The runtime records the literal
+  field basis and `null` provider time rather than inferring either property.
+- Shadow boundary: `fragility-rth-anchor-shadow-v1` is reserved as a separate
+  future protocol. M2 does not compute, persist, display, or promote it.
+- Runtime contract: classifier constants, level mapping, colors, mentions,
+  reversal eligibility, scheduling, and request count are unchanged.
+- Validation: focused fragility, Hyperliquid, Discord, interaction, and shadow
+  tests plus TypeScript typecheck passed locally. Existing market-hours tests
+  retain DST, holiday, and early-close coverage.
+- Request-budget delta: zero; the existing context response is timestamped
+  after parsing and no new provider or storage operation is added.
+- Rollback: reverting M2 restores the earlier unlabeled presentation without
+  changing stored shadow schema v4 or the frozen classifier.
 
 [hl-limits]: https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/rate-limits-and-user-limits
 [cf-pricing]: https://developers.cloudflare.com/workers/platform/pricing/

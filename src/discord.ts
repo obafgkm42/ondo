@@ -2,9 +2,11 @@ import type { ChartAttachment } from "./chart";
 import { localizeDiagnostic } from "./i18n";
 import {
   formatExpandedEquityBreadth,
-  formatMarketFragilityDataQuality,
+  formatMarketFragilityCoverage,
   formatMarketFragilityIndicatorLabel,
+  formatMarketFragilityIndicatorValue,
   formatMarketFragilityLevel,
+  formatMarketFragilityObservationWindow,
   formatMarketFragilityStressScore,
   formatMarketFragilitySummary,
   marketFragilityColor,
@@ -614,7 +616,7 @@ function buildMarketBriefNotificationSummary(
     return [
       fragility === undefined
         ? "SP500 30-minute brief"
-        : `SP500 ${formatMarketFragilityLevel(fragility)} · ${formatMarketFragilityStressScore(fragility, language)} · ${fragility.stressedIndicatorCount}/${fragility.availableIndicatorCount} repair mechanisms stressed`,
+        : `SP500 ${formatMarketFragilitySummary(fragility, language)}`,
       ...(activity === undefined
         ? []
         : [formatMarketActivityNotificationSummary(activity, language)]),
@@ -635,7 +637,7 @@ function buildMarketBriefNotificationSummary(
   return [
     fragility === undefined
       ? "SP500 半小時簡報"
-      : `SP500 市場狀態 ${formatMarketFragilityLevel(fragility)} · ${formatMarketFragilityStressScore(fragility, language)} · ${fragility.stressedIndicatorCount}/${fragility.availableIndicatorCount} 修復機制受壓`,
+      : `SP500 市場狀態 ${formatMarketFragilitySummary(fragility, language)}`,
     ...(activity === undefined
       ? []
       : [formatMarketActivityNotificationSummary(activity, language)]),
@@ -664,29 +666,42 @@ function marketFragilityFields(
   const failureSummary =
     stressedIndicators.length === 0
       ? english
-        ? "No repair mechanism is currently stressed"
-        : "目前沒有修復機制受壓"
+        ? "No observed pressure condition is currently stressed"
+        : "目前沒有已觀察壓力條件受壓"
       : stressedIndicators
-          .map(
-            (indicator) =>
-              `• ${formatMarketFragilityIndicatorLabel(indicator.id, language)}: ${indicator.displayValue}`,
-          )
+          .map((indicator) => {
+            const label = formatMarketFragilityIndicatorLabel(
+              indicator.id,
+              language,
+            );
+            const value = formatMarketFragilityIndicatorValue(
+              indicator,
+              fragility,
+              language,
+            );
+            return `• ${label}: ${value}`;
+          })
           .join("\n");
   return [
     {
-      name: english ? "Market resilience" : "市場韌性",
+      name: english ? "Market pressure" : "市場壓力",
       value: formatMarketFragilitySummary(fragility, language),
       inline: false,
     },
     {
-      name: english ? "Repair failures" : "受壓修復機制",
+      name: english ? "Observed pressure" : "已觀察壓力",
       value: failureSummary,
       inline: false,
     },
     {
       name: english ? "Data coverage" : "資料覆蓋",
-      value: `${fragility.availableIndicatorCount}/${fragility.totalIndicatorCount} · ${formatMarketFragilityDataQuality(fragility, language)}`,
+      value: formatMarketFragilityCoverage(fragility, language),
       inline: true,
+    },
+    {
+      name: english ? "Observation window" : "觀察窗口",
+      value: formatMarketFragilityObservationWindow(fragility, language),
+      inline: false,
     },
     ...(fragility.expandedEquityBreadth === undefined
       ? []

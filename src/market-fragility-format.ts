@@ -1,6 +1,7 @@
 import type {
   ExpandedEquityBreadthSnapshot,
   Language,
+  MarketFragilityIndicator,
   MarketFragilityIndicatorId,
   MarketFragilitySnapshot,
 } from "./types";
@@ -14,10 +15,21 @@ export function formatExpandedEquityBreadth(
 ): string {
   const ratio = `${(breadth.declinerRatio * 100).toFixed(0)}%`;
   const threshold = `${Math.abs(breadth.declineThreshold * 100).toFixed(1)}%`;
+  const count = `${breadth.declinerCount}/${breadth.assetCount}`;
   if (language === "en") {
-    return `${ratio} down at least ${threshold} (${breadth.declinerCount}/${breadth.assetCount}) · Hyperliquid xyz stock-perp proxy · context only`;
+    return [
+      `${ratio} down at least ${threshold} (${count})`,
+      "vs Hyperliquid prevDayPx",
+      "xyz stock-perp proxy",
+      "context only",
+    ].join(" · ");
   }
-  return `${ratio} 跌幅至少 ${threshold}（${breadth.declinerCount}/${breadth.assetCount}）· Hyperliquid xyz 股票永續合約代理 · 僅供背景參考`;
+  return [
+    `${ratio} 跌幅至少 ${threshold}（${count}）`,
+    "相對 Hyperliquid prevDayPx",
+    "xyz 股票永續合約代理",
+    "僅供背景參考",
+  ].join(" · ");
 }
 
 /**
@@ -49,10 +61,106 @@ export function formatMarketFragilitySummary(
 ): string {
   const level = formatMarketFragilityLevel(fragility);
   const stressScore = formatMarketFragilityStressScore(fragility, language);
+  const observed = [
+    fragility.stressedIndicatorCount,
+    fragility.availableIndicatorCount,
+  ].join("/");
   if (language === "en") {
-    return `${level} · ${stressScore} · ${fragility.stressedIndicatorCount}/${fragility.availableIndicatorCount} repair mechanisms stressed`;
+    return `${level} · ${stressScore} · ${observed} observed pressure conditions`;
   }
-  return `${level} · ${stressScore} · ${fragility.stressedIndicatorCount}/${fragility.availableIndicatorCount} 個修復機制受壓`;
+  return `${level} · ${stressScore} · 已觀察壓力條件 ${observed}`;
+}
+
+/** Format a value together with the measurement reference it actually uses. */
+export function formatMarketFragilityIndicatorValue(
+  indicator: MarketFragilityIndicator,
+  fragility: MarketFragilitySnapshot,
+  language: Language,
+): string {
+  const english = language === "en";
+  const scope = fragility.observationWindow.sessionScope.toUpperCase();
+  const labels = {
+    analysis_session_open: english
+      ? `vs ${scope} analysis-session open`
+      : `相對 ${scope} 分析時段開盤`,
+    latest_session_vwap: english
+      ? "vs latest session VWAP"
+      : "相對最新時段 VWAP",
+    observed_session_range: english
+      ? "within observed session range"
+      : "位於已觀察時段區間",
+    prior_candle_close: english
+      ? "vs prior completed candle closes"
+      : "相對先前已完成 K 線收盤",
+    hyperliquid_prev_day_px: english
+      ? "vs Hyperliquid prevDayPx"
+      : "相對 Hyperliquid prevDayPx",
+  } satisfies Record<MarketFragilityIndicator["referenceType"], string>;
+  return `${indicator.displayValue} · ${labels[indicator.referenceType]}`;
+}
+
+/** Format observation timing without treating receipt time as provider time. */
+export function formatMarketFragilityObservationWindow(
+  fragility: MarketFragilitySnapshot,
+  language: Language,
+): string {
+  const window = fragility.observationWindow;
+  const scope = window.sessionScope.toUpperCase();
+  const candleEnd = formatTimestamp(window.candleEndTime);
+  const evaluatedAt = formatTimestamp(window.evaluatedAt);
+  const firstLine = language === "en"
+    ? `${scope} · candle end ${candleEnd} · evaluated ${evaluatedAt}`
+    : `${scope} · K 線結束 ${candleEnd} · 評估 ${evaluatedAt}`;
+  if (
+    window.contextFetchedAt === null ||
+    window.contextReferencePriceType === null
+  ) {
+    const unavailable = language === "en"
+      ? "Context unavailable · price-only coverage"
+      : "背景資料不可用 · 僅價格覆蓋";
+    return `${firstLine}\n${unavailable}`;
+  }
+  const age = formatAge(
+    Math.max(0, window.evaluatedAt - window.contextFetchedAt),
+    language,
+  );
+  const providerTime = window.contextProviderTimestamp === null
+    ? language === "en"
+      ? "provider timestamp unavailable"
+      : "供應商時間戳不可用"
+    : language === "en"
+      ? `provider timestamp ${formatTimestamp(window.contextProviderTimestamp)}`
+      : `供應商時間戳 ${formatTimestamp(window.contextProviderTimestamp)}`;
+  const contextLine = language === "en"
+    ? [
+        "Context: Hyperliquid prevDayPx",
+        `fetched ${age} before evaluation`,
+        providerTime,
+      ].join(" · ")
+    : [
+        "背景：Hyperliquid prevDayPx",
+        `評估前 ${age}取得`,
+        providerTime,
+      ].join(" · ");
+  return `${firstLine}\n${contextLine}`;
+}
+
+/** Make unavailable mechanisms explicit instead of implying complete safety. */
+export function formatMarketFragilityCoverage(
+  fragility: MarketFragilitySnapshot,
+  language: Language,
+): string {
+  const unavailable =
+    fragility.totalIndicatorCount - fragility.availableIndicatorCount;
+  const quality = formatMarketFragilityDataQuality(fragility, language);
+  const observed = [
+    fragility.availableIndicatorCount,
+    fragility.totalIndicatorCount,
+  ].join("/");
+  if (language === "en") {
+    return `${observed} observed · ${quality} · ${unavailable} unavailable`;
+  }
+  return `${observed} 已觀察 · ${quality} · ${unavailable} 不可用`;
 }
 
 /**
@@ -122,4 +230,17 @@ export function marketFragilityColor(
     return 0x2ecc71;
   }
   return 0x95a5a6;
+}
+
+function formatTimestamp(value: number | null): string {
+  return value === null ? "n/a" : new Date(value).toISOString();
+}
+
+function formatAge(milliseconds: number, language: Language): string {
+  const seconds = Math.floor(milliseconds / 1_000);
+  if (seconds < 60) {
+    return language === "en" ? `${seconds}s` : `${seconds} 秒`;
+  }
+  const minutes = Math.floor(seconds / 60);
+  return language === "en" ? `${minutes}m` : `${minutes} 分鐘`;
 }

@@ -3,9 +3,11 @@ import { localizeDiagnostic } from "./i18n";
 import { formatIneligibleMarketDataStatus } from "./market-data-health";
 import {
   formatExpandedEquityBreadth,
-  formatMarketFragilityDataQuality,
+  formatMarketFragilityCoverage,
   formatMarketFragilityIndicatorLabel,
+  formatMarketFragilityIndicatorValue,
   formatMarketFragilityLevel,
+  formatMarketFragilityObservationWindow,
   formatMarketFragilitySummary,
   marketFragilityColor,
 } from "./market-fragility-format";
@@ -79,7 +81,11 @@ export function buildDiscordStatusMessage(
       [
         indicatorStateIcon(indicator.state),
         formatMarketFragilityIndicatorLabel(indicator.id, language),
-        indicator.displayValue,
+        formatMarketFragilityIndicatorValue(
+          indicator,
+          fragility,
+          language,
+        ),
       ].join(" ")
     ).join("\n");
   const titleLevel = fragility === null
@@ -130,8 +136,15 @@ export function buildDiscordStatusMessage(
             : [
                 {
                   name: english ? "Data coverage" : "資料覆蓋",
-                  value: `${fragility.availableIndicatorCount}/${fragility.totalIndicatorCount} · ${formatMarketFragilityDataQuality(fragility, language)}`,
+                  value: formatMarketFragilityCoverage(fragility, language),
                   inline: true,
+                },
+                {
+                  name: english ? "Observation window" : "觀察窗口",
+                  value: formatMarketFragilityObservationWindow(
+                    fragility,
+                    language,
+                  ),
                 },
               ]),
           ...(fragility?.expandedEquityBreadth === undefined

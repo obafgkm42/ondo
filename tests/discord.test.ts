@@ -239,18 +239,22 @@ describe("sendMarketBrief", () => {
     const englishPayload = JSON.parse(String(requests[1]?.body));
     expect(payload.content).toMatch(/^@everyone /);
     expect(payload.content).toContain("市場狀態 BREAKING · 壓力 60/100");
-    expect(payload.content).toContain("3/6 修復機制受壓");
+    expect(payload.content).toContain("已觀察壓力條件 3/6");
     expect(payload.allowed_mentions).toEqual({ parse: ["everyone"] });
     expect(payload.embeds[0].title).toBe("SP500 市場狀態 · BREAKING");
     expect(payload.embeds[0].fields).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          name: "受壓修復機制",
+          name: "已觀察壓力",
           value: expect.stringContaining("VWAP 修復失敗"),
         }),
         expect.objectContaining({
           name: "資料覆蓋",
-          value: "6/6 · 完整",
+          value: "6/6 已觀察 · 完整 · 0 不可用",
+        }),
+        expect.objectContaining({
+          name: "觀察窗口",
+          value: expect.stringContaining("供應商時間戳不可用"),
         }),
         expect.objectContaining({
           name: "擴展股票廣度",
@@ -261,14 +265,14 @@ describe("sendMarketBrief", () => {
       ]),
     );
     expect(englishPayload.content).toContain(
-      "BREAKING · stress 60/100 · 3/6 repair mechanisms stressed",
+      "BREAKING · stress 60/100 · 3/6 observed pressure conditions",
     );
     expect(englishPayload.embeds[0].fields).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           name: "Expanded equity breadth",
           value: expect.stringContaining(
-            "Hyperliquid xyz stock-perp proxy · context only",
+            "vs Hyperliquid prevDayPx · xyz stock-perp proxy · context only",
           ),
         }),
       ]),
@@ -310,16 +314,16 @@ describe("sendMarketBrief", () => {
 
     const payload = JSON.parse(String(requests[0]?.body));
     expect(payload.content).toContain(
-      "市場狀態 RESILIENT · 壓力 0/100 · 0/6 修復機制受壓",
+      "市場狀態 RESILIENT · 壓力 0/100 · 已觀察壓力條件 0/6",
     );
     expect(payload.embeds[0].description).toContain(
-      "RESILIENT · 壓力 0/100 · 0/6 個修復機制受壓",
+      "RESILIENT · 壓力 0/100 · 已觀察壓力條件 0/6",
     );
     expect(payload.embeds[0].fields).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          name: "市場韌性",
-          value: "RESILIENT · 壓力 0/100 · 0/6 個修復機制受壓",
+          name: "市場壓力",
+          value: "RESILIENT · 壓力 0/100 · 已觀察壓力條件 0/6",
         }),
       ]),
     );
@@ -882,6 +886,14 @@ function fragilitySnapshot(): MarketFragilitySnapshot {
     availableIndicatorCount: 6,
     totalIndicatorCount: 6,
     dataQuality: "full",
+    observationWindow: {
+      candleEndTime: Date.parse("2026-06-24T00:29:59.999Z"),
+      contextFetchedAt: Date.parse("2026-06-24T00:30:00.000Z"),
+      evaluatedAt: Date.parse("2026-06-24T00:30:01.000Z"),
+      sessionScope: "rth",
+      contextReferencePriceType: "hyperliquid_prev_day_px",
+      contextProviderTimestamp: null,
+    },
     indicators: [
       {
         id: "session_loss",
@@ -889,6 +901,7 @@ function fragilitySnapshot(): MarketFragilitySnapshot {
         value: -0.012,
         displayValue: "-1.20%",
         threshold: "<= -1.0%",
+        referenceType: "analysis_session_open",
         unavailableReason: null,
       },
       {
@@ -897,6 +910,7 @@ function fragilitySnapshot(): MarketFragilitySnapshot {
         value: -0.5,
         displayValue: "-0.50 ATR",
         threshold: "<= -0.35 ATR and 3 closes below VWAP",
+        referenceType: "latest_session_vwap",
         unavailableReason: null,
       },
       {
@@ -905,6 +919,7 @@ function fragilitySnapshot(): MarketFragilitySnapshot {
         value: 0.1,
         displayValue: "10%",
         threshold: "<= 25% of range",
+        referenceType: "observed_session_range",
         unavailableReason: null,
       },
       {
@@ -913,6 +928,7 @@ function fragilitySnapshot(): MarketFragilitySnapshot {
         value: 1,
         displayValue: "1/11 <= -0.25%",
         threshold: ">= 2 volatility-adjusted large down returns",
+        referenceType: "prior_candle_close",
         unavailableReason: null,
       },
       {
@@ -921,6 +937,7 @@ function fragilitySnapshot(): MarketFragilitySnapshot {
         value: 0.3,
         displayValue: "30% (7 assets)",
         threshold: ">= 70% down at least 0.5%",
+        referenceType: "hyperliquid_prev_day_px",
         unavailableReason: null,
       },
       {
@@ -929,6 +946,7 @@ function fragilitySnapshot(): MarketFragilitySnapshot {
         value: -0.004,
         displayValue: "SP500 -0.40% / XYZ100 -0.40%",
         threshold: "SP500 and XYZ100 both <= -0.75%",
+        referenceType: "hyperliquid_prev_day_px",
         unavailableReason: null,
       },
     ],

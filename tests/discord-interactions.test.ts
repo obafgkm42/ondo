@@ -162,7 +162,7 @@ describe("handleDiscordInteraction", () => {
     expect(payload.data.embeds[0]?.title).toContain("修復機制說明書");
     expect(payload.data.embeds[0]?.fields).toHaveLength(8);
     expect(payload.data.embeds[0]?.fields[1]?.value).toContain(
-      "<= -0.35 ATR and 3 closes below VWAP",
+      "latest close <= -0.35 ATR from current session VWAP",
     );
     expect(getStatus).not.toHaveBeenCalled();
   });
@@ -481,6 +481,14 @@ function fragilitySnapshot(): MarketFragilitySnapshot {
     availableIndicatorCount: 6,
     totalIndicatorCount: 6,
     dataQuality: "full",
+    observationWindow: {
+      candleEndTime: Date.parse("2026-06-23T15:29:59.999Z"),
+      contextFetchedAt: Date.parse("2026-06-23T15:30:00.000Z"),
+      evaluatedAt: Date.parse("2026-06-23T15:30:01.000Z"),
+      sessionScope: "rth",
+      contextReferencePriceType: "hyperliquid_prev_day_px",
+      contextProviderTimestamp: null,
+    },
     expandedEquityBreadth: {
       source: "hyperliquid_xyz_stock_perps",
       assetCount: 40,
@@ -514,8 +522,27 @@ function indicator(
     value: state === "unavailable" ? null : 1,
     displayValue,
     threshold: "test threshold",
+    referenceType: indicatorReferenceType(id),
     unavailableReason: state === "unavailable"
       ? "insufficient_price_candles"
       : null,
   };
+}
+
+function indicatorReferenceType(
+  id: MarketFragilitySnapshot["indicators"][number]["id"],
+): MarketFragilitySnapshot["indicators"][number]["referenceType"] {
+  if (id === "session_loss") {
+    return "analysis_session_open";
+  }
+  if (id === "vwap_repair_failure") {
+    return "latest_session_vwap";
+  }
+  if (id === "poor_close_location") {
+    return "observed_session_range";
+  }
+  if (id === "downside_tail_cluster") {
+    return "prior_candle_close";
+  }
+  return "hyperliquid_prev_day_px";
 }

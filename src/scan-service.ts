@@ -57,6 +57,7 @@ import type {
   Candle,
   MarketActivitySnapshot,
   MarketDataHealth,
+  MarketDataSessionScope,
   MarketFragilitySnapshot,
   ResiliencePriceSnapshot,
   ScanResult,
@@ -225,7 +226,10 @@ async function runScan(
         )
       : [];
   let fragility = !notify
-    ? await calculateMarketFragility(sessionCandles)
+    ? await calculateMarketFragility(
+        sessionCandles,
+        analysisSession.kind,
+      )
     : null;
   console.log(
     JSON.stringify({
@@ -311,7 +315,10 @@ async function runScan(
   );
   if (sendBrief && fragility === null) {
     // Optional cross-market work runs after time-sensitive signal delivery.
-    fragility = await calculateMarketFragility(sessionCandles);
+    fragility = await calculateMarketFragility(
+      sessionCandles,
+      analysisSession.kind,
+    );
   }
   let fragilityPersistenceBrief: MarketFragilityPersistenceBrief | undefined;
   if (fragility !== null) {
@@ -323,6 +330,28 @@ async function runScan(
         stressedIndicatorCount: fragility.stressedIndicatorCount,
         availableIndicatorCount: fragility.availableIndicatorCount,
         dataQuality: fragility.dataQuality,
+        observationWindow: {
+          candleEndTime:
+            fragility.observationWindow.candleEndTime === null
+              ? null
+              : new Date(
+                  fragility.observationWindow.candleEndTime,
+                ).toISOString(),
+          contextFetchedAt:
+            fragility.observationWindow.contextFetchedAt === null
+              ? null
+              : new Date(
+                  fragility.observationWindow.contextFetchedAt,
+                ).toISOString(),
+          evaluatedAt: new Date(
+            fragility.observationWindow.evaluatedAt,
+          ).toISOString(),
+          sessionScope: fragility.observationWindow.sessionScope,
+          contextReferencePriceType:
+            fragility.observationWindow.contextReferencePriceType,
+          contextProviderTimestamp:
+            fragility.observationWindow.contextProviderTimestamp,
+        },
         expandedEquityBreadth:
           fragility.expandedEquityBreadth === undefined
             ? null
@@ -690,6 +719,7 @@ function buildResilienceSnapshots(
 
 async function calculateMarketFragility(
   candles: readonly Candle[],
+  sessionScope: MarketDataSessionScope,
 ): Promise<MarketFragilitySnapshot> {
   let expandedEquityCoins: string[] = [];
   try {
@@ -703,7 +733,10 @@ async function calculateMarketFragility(
       }),
     );
     if (error instanceof HyperliquidRateLimitError) {
-      return analyzeMarketFragility(candles, []);
+      return analyzeMarketFragility(candles, [], {
+        evaluatedAt: Date.now(),
+        sessionScope,
+      });
     }
   }
   try {
@@ -714,7 +747,11 @@ async function calculateMarketFragility(
     return analyzeMarketFragility(
       candles,
       contexts,
-      expandedEquityCoins,
+      {
+        evaluatedAt: Date.now(),
+        sessionScope,
+        expandedEquityCoins,
+      },
     );
   } catch (error) {
     console.warn(
@@ -724,7 +761,10 @@ async function calculateMarketFragility(
         effect: "market fragility uses price-only indicators",
       }),
     );
-    return analyzeMarketFragility(candles, []);
+    return analyzeMarketFragility(candles, [], {
+      evaluatedAt: Date.now(),
+      sessionScope,
+    });
   }
 }
 

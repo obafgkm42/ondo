@@ -8,6 +8,7 @@ import {
 } from "../src/market-fragility-shadow";
 import type {
   MarketFragilityIndicatorId,
+  MarketFragilityReferenceType,
   MarketFragilitySnapshot,
 } from "../src/types";
 
@@ -598,12 +599,14 @@ function snapshot(
     availableIndicatorCount: 6,
     totalIndicatorCount: 6,
     dataQuality: "full",
+    observationWindow: observationWindow(),
     indicators: INDICATOR_IDS.map((id, index) => ({
       id,
       state: index < stressedIndicatorCount ? "stressed" : "healthy",
       value: values[index] ?? 0,
       displayValue: String(values[index] ?? 0),
       threshold: "test",
+      referenceType: referenceType(id),
       unavailableReason: null,
     })),
   };
@@ -631,6 +634,7 @@ function snapshotWithStressedIds(
       value: stressed.has(id) ? -1 : 0,
       displayValue: stressed.has(id) ? "stressed" : "healthy",
       threshold: "test",
+      referenceType: referenceType(id),
       unavailableReason: null,
     })),
   };
@@ -652,6 +656,7 @@ function snapshotWithStates(
       value: state === "unavailable" ? null : state === "stressed" ? -1 : 0,
       displayValue: state,
       threshold: "test",
+      referenceType: referenceType(id),
       unavailableReason: state === "unavailable"
         ? "insufficient_asset_context" as const
         : null,
@@ -684,6 +689,35 @@ function snapshotWithStates(
         : "insufficient",
     indicators,
   };
+}
+
+function observationWindow(): MarketFragilitySnapshot["observationWindow"] {
+  return {
+    candleEndTime: 1,
+    contextFetchedAt: 1,
+    evaluatedAt: 1,
+    sessionScope: "rth",
+    contextReferencePriceType: "hyperliquid_prev_day_px",
+    contextProviderTimestamp: null,
+  };
+}
+
+function referenceType(
+  id: MarketFragilityIndicatorId,
+): MarketFragilityReferenceType {
+  if (id === "session_loss") {
+    return "analysis_session_open";
+  }
+  if (id === "vwap_repair_failure") {
+    return "latest_session_vwap";
+  }
+  if (id === "poor_close_location") {
+    return "observed_session_range";
+  }
+  if (id === "downside_tail_cluster") {
+    return "prior_candle_close";
+  }
+  return "hyperliquid_prev_day_px";
 }
 
 function memoryKv(initial: Record<string, string> = {}): KVNamespace {
