@@ -123,6 +123,7 @@ async function fetchCandles(
 export async function fetchXyzMarketContexts(
   coins: readonly string[],
   fetcher: typeof fetch = fetch,
+  clock: () => number = Date.now,
 ): Promise<MarketAssetContext[]> {
   const response = await fetchInfoWithRetry(
     {
@@ -144,12 +145,17 @@ export async function fetchXyzMarketContexts(
   ) {
     throw new Error("Hyperliquid market context arrays are misaligned");
   }
+  const fetchedAt = clock();
   const requestedCoins = new Set(coins);
   return metadata.universe.flatMap((asset, index) => {
     if (asset.isDelisted === true || !requestedCoins.has(asset.name)) {
       return [];
     }
-    const context = parseAssetContext(asset.name, contexts[index]);
+    const context = parseAssetContext(
+      asset.name,
+      contexts[index],
+      fetchedAt,
+    );
     return context === null ? [] : [context];
   });
 }
@@ -354,6 +360,7 @@ function parsePerpMetadata(value: unknown): HyperliquidPerpMetadata {
 function parseAssetContext(
   coin: string,
   value: unknown,
+  fetchedAt: number,
 ): MarketAssetContext | null {
   if (!isAssetContext(value)) {
     return null;
@@ -364,6 +371,10 @@ function parseAssetContext(
     markPrice: Number(value.markPx),
     oraclePrice: Number(value.oraclePx),
     previousDayPrice: Number(value.prevDayPx),
+    referencePriceType: "hyperliquid_prev_day_px",
+    fetchedAt,
+    // metaAndAssetCtxs does not expose a timestamp for the context values.
+    providerTimestamp: null,
     fundingRate: Number(value.funding),
     premium,
     dayNotionalVolume: Number(value.dayNtlVlm),
@@ -372,6 +383,7 @@ function parseAssetContext(
     context.markPrice,
     context.oraclePrice,
     context.previousDayPrice,
+    context.fetchedAt,
     context.fundingRate,
     context.dayNotionalVolume,
     ...(context.premium === null ? [] : [context.premium]),

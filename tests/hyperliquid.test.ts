@@ -310,6 +310,7 @@ describe("fetchXyzMarketContexts", () => {
     const contexts = await fetchXyzMarketContexts(
       ["xyz:SP500", "xyz:XYZ100", "xyz:OLD"],
       fetcher as typeof fetch,
+      () => Date.parse("2026-09-14T12:00:00.000Z"),
     );
 
     expect(contexts).toHaveLength(2);
@@ -317,6 +318,9 @@ describe("fetchXyzMarketContexts", () => {
       coin: "xyz:SP500",
       markPrice: 99,
       previousDayPrice: 100,
+      referencePriceType: "hyperliquid_prev_day_px",
+      fetchedAt: Date.parse("2026-09-14T12:00:00.000Z"),
+      providerTimestamp: null,
     });
     expect(contexts[1]?.coin).toBe("xyz:XYZ100");
   });

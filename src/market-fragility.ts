@@ -11,8 +11,11 @@ import type {
   MarketFragilityIndicator,
   MarketFragilityIndicatorId,
   MarketFragilityLevel,
+  MarketFragilityObservationWindow,
+  MarketFragilityReferenceType,
   MarketFragilitySnapshot,
   MarketFragilityUnavailableReason,
+  MarketDataSessionScope,
 } from "./types";
 
 const MINIMUM_PRICE_CANDLES = 6;
@@ -60,13 +63,22 @@ export const FRAGILITY_CONTEXT_COINS = [
 export const marketFragilityThresholds: Readonly<
   Record<MarketFragilityIndicatorId, string>
 > = {
-  session_loss: "<= -1.0%",
-  vwap_repair_failure: "<= -0.35 ATR and 3 closes below VWAP",
-  poor_close_location: "<= 25% of range",
+  session_loss: "<= -1.0% vs analysis-session open",
+  vwap_repair_failure:
+    "latest close <= -0.35 ATR from current session VWAP and 3 closes below it",
+  poor_close_location: "latest close <= 25% of observed session range",
   downside_tail_cluster: ">= 2 volatility-adjusted large down returns",
-  mega_cap_breadth: ">= 70% down at least 0.5%",
-  equity_cross_confirmation: "SP500 and XYZ100 both <= -0.75%",
+  mega_cap_breadth:
+    ">= 70% down at least 0.5% vs Hyperliquid prevDayPx",
+  equity_cross_confirmation:
+    "SP500 and XYZ100 both <= -0.75% vs Hyperliquid prevDayPx",
 };
+
+export interface MarketFragilityAnalysisOptions {
+  evaluatedAt: number;
+  sessionScope: MarketDataSessionScope;
+  expandedEquityCoins?: readonly string[];
+}
 
 /**
  * Count independently observable repair failures without changing the frozen
@@ -75,7 +87,7 @@ export const marketFragilityThresholds: Readonly<
 export function analyzeMarketFragility(
   candles: readonly Candle[],
   assetContexts: readonly MarketAssetContext[],
-  expandedEquityCoins: readonly string[] = [],
+  options: MarketFragilityAnalysisOptions,
 ): MarketFragilitySnapshot {
   const indicators = [
     sessionLossIndicator(candles),
@@ -96,7 +108,7 @@ export function analyzeMarketFragility(
 
   const expandedEquityBreadth = expandedBreadthContext(
     assetContexts,
-    expandedEquityCoins,
+    options.expandedEquityCoins ?? [],
   );
   return {
     level: enoughData
@@ -110,9 +122,41 @@ export function analyzeMarketFragility(
     totalIndicatorCount: TOTAL_INDICATOR_COUNT,
     dataQuality,
     indicators,
+    observationWindow: buildObservationWindow(
+      candles,
+      assetContexts,
+      options,
+    ),
     ...(expandedEquityBreadth === null
       ? {}
       : { expandedEquityBreadth }),
+  };
+}
+
+function buildObservationWindow(
+  candles: readonly Candle[],
+  assetContexts: readonly MarketAssetContext[],
+  options: MarketFragilityAnalysisOptions,
+): MarketFragilityObservationWindow {
+  const contextFetchedAt = minimumOrNull(
+    assetContexts.map((context) => context.fetchedAt),
+  );
+  const providerTimestamps = assetContexts.map(
+    (context) => context.providerTimestamp,
+  );
+  const providerTimestamp = providerTimestamps.every(
+    (timestamp): timestamp is number => timestamp !== null,
+  )
+    ? minimumOrNull(providerTimestamps)
+    : null;
+  return {
+    candleEndTime: candles.at(-1)?.endTime ?? null,
+    contextFetchedAt,
+    evaluatedAt: options.evaluatedAt,
+    sessionScope: options.sessionScope,
+    contextReferencePriceType:
+      assetContexts.length === 0 ? null : "hyperliquid_prev_day_px",
+    contextProviderTimestamp: providerTimestamp,
   };
 }
 
@@ -357,6 +401,7 @@ function indicator(
     value,
     displayValue,
     threshold,
+    referenceType: indicatorReferenceType(id),
     unavailableReason: null,
   };
 }
@@ -372,8 +417,26 @@ function unavailableIndicator(
     value: null,
     displayValue: "n/a",
     threshold,
+    referenceType: indicatorReferenceType(id),
     unavailableReason,
   };
+}
+
+function indicatorReferenceType(
+  id: MarketFragilityIndicatorId,
+): MarketFragilityReferenceType {
+  const references: Record<
+    MarketFragilityIndicatorId,
+    MarketFragilityReferenceType
+  > = {
+    session_loss: "analysis_session_open",
+    vwap_repair_failure: "latest_session_vwap",
+    poor_close_location: "observed_session_range",
+    downside_tail_cluster: "prior_candle_close",
+    mega_cap_breadth: "hyperliquid_prev_day_px",
+    equity_cross_confirmation: "hyperliquid_prev_day_px",
+  };
+  return references[id];
 }
 
 function fragilityDataQuality(
@@ -420,4 +483,8 @@ function median(values: readonly number[]): number {
 
 function formatPercent(value: number, digits = 2): string {
   return `${(value * 100).toFixed(digits)}%`;
+}
+
+function minimumOrNull(values: readonly number[]): number | null {
+  return values.length === 0 ? null : Math.min(...values);
 }
