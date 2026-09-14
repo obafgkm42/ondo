@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from reversal_scanner_backtest.fragility_shadow_report import (
     parse_fragility_shadow_state,
     render_fragility_shadow_markdown,
@@ -114,9 +113,7 @@ def test_v3_summary_separates_observations_from_session_prevalence() -> None:
             "CONFIRMED": 1,
         },
     }
-    indicators = {
-        row["id"]: row for row in summary["mechanisms"]["indicators"]
-    }
+    indicators = {row["id"]: row for row in summary["mechanisms"]["indicators"]}
     assert indicators["session_loss"] == {
         "id": "session_loss",
         "breakingObservationOccurrences": 2,
@@ -183,12 +180,72 @@ def test_v2_state_is_normalized_without_inventing_mechanisms() -> None:
     }
 
 
+def test_v4_parser_preserves_indicator_availability_and_reason() -> None:
+    row = _observation(1_755_700_200_000, stressed_ids=["session_loss"])
+    indicator_states = row["indicatorStates"]
+    assert isinstance(indicator_states, list)
+    indicator_states[4] = {
+        "id": "mega_cap_breadth",
+        "state": "unavailable",
+        "unavailableReason": "insufficient_asset_context",
+    }
+    row["availableIndicatorCount"] = 5
+
+    state = parse_fragility_shadow_state(
+        _state([{"sessionKey": "2026-08-20", "observations": [row]}])
+    )
+
+    breadth = state.sessions[0].observations[0].indicator_states[4]
+    assert breadth.indicator_id == "mega_cap_breadth"
+    assert breadth.state == "unavailable"
+    assert breadth.unavailable_reason == "insufficient_asset_context"
+
+
+def test_v3_state_migrates_identity_level_availability_to_unknown() -> None:
+    row = _observation(1_755_700_200_000)
+    for key in (
+        "breakingElapsedMinutes",
+        "breakingObservedDurationMinutes",
+        "measurementVersion",
+        "indicatorStates",
+        "coverageComparable",
+        "continuousFromPrevious",
+        "continuityBreakReason",
+        "lostCoverageIndicatorIds",
+        "gainedCoverageIndicatorIds",
+    ):
+        row.pop(key)
+
+    state = parse_fragility_shadow_state(
+        _state(
+            [{"sessionKey": "2026-08-20", "observations": [row]}],
+            version=3,
+        )
+    )
+    observation = state.sessions[0].observations[0]
+
+    assert observation.measurement_version == "legacy_unknown"
+    assert observation.coverage_comparable is False
+    assert observation.continuity_break_reason == "legacy_unknown"
+    assert observation.indicator_states[2].state == "unknown"
+
+
+def test_v4_parser_rejects_counts_that_disagree_with_indicator_states() -> None:
+    row = _observation(1_755_700_200_000)
+    row["availableIndicatorCount"] = 5
+
+    with pytest.raises(ValueError, match="availableIndicatorCount"):
+        parse_fragility_shadow_state(
+            _state([{"sessionKey": "2026-08-20", "observations": [row]}])
+        )
+
+
 @pytest.mark.parametrize(
     ("mutation", "message"),
     [
         (
-            lambda raw: raw.update(version=4),
-            "state.version must be 2 or 3",
+            lambda raw: raw.update(version=5),
+            "state.version must be 2, 3, or 4",
         ),
         (
             lambda raw: raw["sessions"].append(raw["sessions"][0]),
@@ -229,9 +286,7 @@ def test_cli_writes_json_and_markdown_artifacts(tmp_path: Path) -> None:
                 [
                     {
                         "sessionKey": "2026-08-20",
-                        "observations": [
-                            _observation(1_755_700_200_000)
-                        ],
+                        "observations": [_observation(1_755_700_200_000)],
                     }
                 ]
             )
@@ -249,13 +304,9 @@ def test_cli_writes_json_and_markdown_artifacts(tmp_path: Path) -> None:
     )
 
     payload = json.loads(
-        (output_dir / "fragility_shadow_report.json").read_text(
-            encoding="utf-8"
-        )
+        (output_dir / "fragility_shadow_report.json").read_text(encoding="utf-8")
     )
-    markdown = (output_dir / "fragility_shadow_report.md").read_text(
-        encoding="utf-8"
-    )
+    markdown = (output_dir / "fragility_shadow_report.md").read_text(encoding="utf-8")
     assert payload["schemaVersion"] == 1
     assert payload["runId"].startswith("fragility-shadow-")
     assert payload["summary"]["market"] == "xyz:SP500"
@@ -306,7 +357,7 @@ def test_markdown_handles_no_breaking_observations() -> None:
     assert "evaluable sessions: 0" in markdown
 
 
-def _state(sessions: list[dict[str, object]], version: int = 3) -> dict[str, object]:
+def _state(sessions: list[dict[str, object]], version: int = 4) -> dict[str, object]:
     return {
         "version": version,
         "market": "xyz:SP500",
@@ -331,9 +382,7 @@ def _observation(
         else stressed_ids
     )
     resolved_families = (
-        ["price_damage", "repair_failure"]
-        if family_ids is None
-        else family_ids
+        ["price_damage", "repair_failure"] if family_ids is None else family_ids
     )
     return {
         "timestamp": timestamp,
@@ -345,15 +394,36 @@ def _observation(
         "breakingStatus": (
             status if level in {"breaking", "panic"} else "BELOW_THRESHOLD"
         ),
-        "breakingStartedAt": (
-            timestamp if level in {"breaking", "panic"} else None
-        ),
+        "breakingStartedAt": (timestamp if level in {"breaking", "panic"} else None),
+        "breakingElapsedMinutes": duration,
+        "breakingObservedDurationMinutes": duration,
         "breakingDurationMinutes": duration,
         "transition": transition,
+        "measurementVersion": "market-fragility/v1",
+        "indicatorStates": [
+            {
+                "id": indicator_id,
+                "state": ("stressed" if indicator_id in resolved_ids else "healthy"),
+                "unavailableReason": None,
+            }
+            for indicator_id in (
+                "session_loss",
+                "vwap_repair_failure",
+                "poor_close_location",
+                "downside_tail_cluster",
+                "mega_cap_breadth",
+                "equity_cross_confirmation",
+            )
+        ],
+        "coverageComparable": duration > 0,
+        "continuousFromPrevious": duration > 0,
+        "continuityBreakReason": None if duration > 0 else "first_observation",
         "stressedIndicatorIds": resolved_ids,
         "persistentIndicatorIds": resolved_ids if duration else [],
         "addedIndicatorIds": resolved_ids if duration == 0 else [],
         "recoveredIndicatorIds": [],
+        "lostCoverageIndicatorIds": [],
+        "gainedCoverageIndicatorIds": [],
         "stressedFamilyIds": resolved_families,
         "mechanismHistoryAvailable": True,
     }

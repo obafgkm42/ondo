@@ -487,7 +487,7 @@ describe("sendMarketBrief", () => {
         expect.objectContaining({
           name: "BREAKING 持續性",
           value: expect.stringContaining(
-            "已確認 CONFIRMED · V1 BREAKING · 擴散惡化 ESCALATING\n持續：30 分鐘 · 2 次觀測",
+            "已確認 CONFIRMED · V1 BREAKING · 擴散惡化 ESCALATING\n連續觀測 / 經過時間：30 / 30 分鐘 · 2 次連續觀測",
           ),
         }),
       ]),
@@ -889,6 +889,7 @@ function fragilitySnapshot(): MarketFragilitySnapshot {
         value: -0.012,
         displayValue: "-1.20%",
         threshold: "<= -1.0%",
+        unavailableReason: null,
       },
       {
         id: "vwap_repair_failure",
@@ -896,6 +897,7 @@ function fragilitySnapshot(): MarketFragilitySnapshot {
         value: -0.5,
         displayValue: "-0.50 ATR",
         threshold: "<= -0.35 ATR and 3 closes below VWAP",
+        unavailableReason: null,
       },
       {
         id: "poor_close_location",
@@ -903,6 +905,7 @@ function fragilitySnapshot(): MarketFragilitySnapshot {
         value: 0.1,
         displayValue: "10%",
         threshold: "<= 25% of range",
+        unavailableReason: null,
       },
       {
         id: "downside_tail_cluster",
@@ -910,6 +913,7 @@ function fragilitySnapshot(): MarketFragilitySnapshot {
         value: 1,
         displayValue: "1/11 <= -0.25%",
         threshold: ">= 2 volatility-adjusted large down returns",
+        unavailableReason: null,
       },
       {
         id: "mega_cap_breadth",
@@ -917,6 +921,7 @@ function fragilitySnapshot(): MarketFragilitySnapshot {
         value: 0.3,
         displayValue: "30% (7 assets)",
         threshold: ">= 70% down at least 0.5%",
+        unavailableReason: null,
       },
       {
         id: "equity_cross_confirmation",
@@ -924,6 +929,7 @@ function fragilitySnapshot(): MarketFragilitySnapshot {
         value: -0.004,
         displayValue: "SP500 -0.40% / XYZ100 -0.40%",
         threshold: "SP500 and XYZ100 both <= -0.75%",
+        unavailableReason: null,
       },
     ],
   };
@@ -954,8 +960,19 @@ function confirmedFragilityPersistenceBrief(): MarketFragilityPersistenceBrief {
       breakingStreak: 2,
       breakingStatus: "CONFIRMED",
       breakingStartedAt: Date.parse("2026-06-24T00:59:59.999Z"),
+      breakingElapsedMinutes: 30,
+      breakingObservedDurationMinutes: 30,
       breakingDurationMinutes: 30,
       transition: "ESCALATING",
+      measurementVersion: "market-fragility/v1",
+      indicatorStates: fragilitySnapshot().indicators.map((indicator) => ({
+        id: indicator.id,
+        state: indicator.state,
+        unavailableReason: indicator.unavailableReason,
+      })),
+      coverageComparable: true,
+      continuousFromPrevious: true,
+      continuityBreakReason: null,
       stressedIndicatorIds: [
         "session_loss",
         "vwap_repair_failure",
@@ -967,6 +984,8 @@ function confirmedFragilityPersistenceBrief(): MarketFragilityPersistenceBrief {
       ],
       addedIndicatorIds: ["poor_close_location"],
       recoveredIndicatorIds: [],
+      lostCoverageIndicatorIds: [],
+      gainedCoverageIndicatorIds: [],
       stressedFamilyIds: ["price_damage", "repair_failure"],
       mechanismHistoryAvailable: true,
     },

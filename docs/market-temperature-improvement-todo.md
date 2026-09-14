@@ -121,19 +121,19 @@ WebSocket ingestion are deferred until a specific evidence gap justifies them.
 Primary files: `src/market-fragility-shadow.ts`, `src/types.ts`, relevant
 formatters, Python shadow-report parser, and their tests.
 
-- [ ] Store per-indicator availability and reason, alongside stressed/healthy
+- [x] Store per-indicator availability and reason, alongside stressed/healthy
   state. Version the persisted schema; migrate older rows as unknown where
   identity-level availability cannot be reconstructed.
-- [ ] Mark recovery only for an observed `stressed -> healthy` transition.
+- [x] Mark recovery only for an observed `stressed -> healthy` transition.
   Treat `stressed -> unavailable` as lost coverage. Compare transitions only
   over jointly observable indicators and compatible measurement definitions.
-- [ ] Break confirmation chains across missing expected briefs or incompatible
+- [x] Break confirmation chains across missing expected briefs or incompatible
   coverage; distinguish elapsed wall time from continuously observed duration.
   A timestamp gap must not silently become continuous confirmation.
-- [ ] Keep the frozen count/level mapping, but label cross-coverage level changes
+- [x] Keep the frozen count/level mapping, but label cross-coverage level changes
   as non-comparable. Never display a data-loss transition as improving/recovered.
   Do not normalize four-item counts onto a six-item scale or invent values.
-- [ ] Cover unchanged prices with `3/6 -> 1/4 -> 3/6`, partial-to-full recovery,
+- [x] Cover unchanged prices with `3/6 -> 1/4 -> 3/6`, partial-to-full recovery,
   genuine stressed-to-healthy recovery, insufficient data, skipped briefs,
   duplicate ticks, restart, and legacy schemas. Verify TypeScript/Python parity
   where both consume the new contract.
@@ -371,6 +371,23 @@ M4 stage B, then M6 evaluation after the frozen collection window.
 An agent should take one bounded milestone at a time and commit its tested unit
 before proceeding. Do not mark a research task complete merely because the
 collector, report generator, or test suite has been delivered.
+
+### M1 completion record
+
+- Scope: availability-aware fragility shadow schema v4, continuity-safe
+  confirmation and transition semantics, Discord/log labelling, legacy v2/v3
+  migration, and matching offline Python parsing/reporting.
+- Validation: `npm test`, `npm run typecheck`, `uv run pytest`, focused schema
+  migration tests, and Ruff formatting/checks passed locally.
+- Runtime contract: no classifier threshold, level mapping, mention, color,
+  reversal-eligibility, schedule, or provider-request change.
+- Request-budget delta: zero; the existing brief uses the same fetched candles,
+  contexts, and one bounded KV read/write pair.
+- Remaining uncertainty: local tests do not prove deployed KV migration or
+  Discord presentation. Deployment and runtime observation remain separate.
+- Rollback: reverting the code restores v3 behavior; a v3 Worker cannot consume
+  already-written v4 shadow rows and would rebuild this bounded diagnostic
+  history. The read-only monitor and frozen classifier remain available.
 
 [hl-limits]: https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/rate-limits-and-user-limits
 [cf-pricing]: https://developers.cloudflare.com/workers/platform/pricing/

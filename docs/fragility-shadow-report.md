@@ -54,7 +54,8 @@ report therefore keeps the following denominators separate:
   retained observation counts;
 - mechanism and family prevalence count each affected `BREAKING/PANIC` session
   once;
-- duration uses one maximum `BREAKING/PANIC` duration per evaluable session;
+- duration uses one maximum continuously observed `BREAKING/PANIC` duration
+  per evaluable session; wall-clock elapsed time is reported separately;
 - P90 duration uses the deterministic nearest-rank definition;
 - the confirmation rate is confirmed sessions divided by sessions that contain
   a `PENDING` or `CONFIRMED` candidate in the retained window.
@@ -65,11 +66,17 @@ trading rule.
 
 ## Schema and bounds
 
-The parser accepts current schema v3 and legacy schema v2. V2 rows are
-normalized exactly as the Worker migration does: transition is `UNAVAILABLE`,
-mechanism and family arrays are empty, elapsed duration is zero, and
-`mechanismHistoryAvailable` is false. The report never invents missing
-mechanisms from a legacy stressed-indicator count.
+The parser accepts current schema v4 and legacy schemas v2/v3. V4 stores every
+indicator's `healthy`, `stressed`, or `unavailable` state and an explicit
+reason for unavailable inputs. It also records coverage comparability,
+continuity breaks, and separate continuously observed and wall-clock duration.
+
+Older rows are normalized exactly as the Worker migration does. Known v3
+stressed identities are retained, but identities whose availability cannot be
+reconstructed are `unknown`; v2 has no mechanism identities. Legacy rows use
+transition `UNAVAILABLE`, do not participate in a confirmation chain, and set
+`mechanismHistoryAvailable` false. The report never invents missing mechanisms
+or availability from a legacy count.
 
 Input is rejected when its structure, enums, finite numeric fields, chronology,
 unique session keys, or storage bounds are invalid. The accepted production
@@ -83,8 +90,8 @@ strategy, or trading inference. In particular:
 - the rolling KV state is not a complete historical archive;
 - multiple observations within a session remain dependent even when raw counts
   are useful for path description;
-- schema-v2 observations do not contain mechanism identities or usable elapsed
-  duration;
+- schema-v2 observations do not contain mechanism identities; schema-v2/v3
+  observations lack identity-level availability and continuous duration;
 - the state does not retain data-health exclusions, so it cannot estimate
   stale, gap, holiday, early-close, or overnight exclusion frequency;
 - auditing those exclusions requires a separate export of Cloudflare Worker

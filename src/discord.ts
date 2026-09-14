@@ -729,30 +729,75 @@ function marketFragilityPersistenceFields(
     : `${(metrics.confirmationRate * 100).toFixed(1)}%`;
   const liveWindow = metrics.stateAvailable
     ? english
-      ? `${metrics.pendingSessions} pending / ${metrics.confirmedSessions} confirmed · confirmation ${confirmationRate} · ${metrics.retainedObservations} briefs in ${metrics.retainedSessions} sessions`
-      : `${metrics.pendingSessions} 次 pending / ${metrics.confirmedSessions} 次 confirmed · 確認率 ${confirmationRate} · ${metrics.retainedSessions} 個交易日、${metrics.retainedObservations} 份簡報`
+      ? [
+          `${metrics.pendingSessions} pending /`,
+          `${metrics.confirmedSessions} confirmed ·`,
+          `confirmation ${confirmationRate} ·`,
+          `${metrics.retainedObservations} briefs in`,
+          `${metrics.retainedSessions} sessions`,
+        ].join(" ")
+      : [
+          `${metrics.pendingSessions} 次 pending /`,
+          `${metrics.confirmedSessions} 次 confirmed ·`,
+          `確認率 ${confirmationRate} ·`,
+          `${metrics.retainedSessions} 個交易日、`,
+          `${metrics.retainedObservations} 份簡報`,
+        ].join(" ")
     : english
       ? "Live evaluation window unavailable because state storage is not configured"
       : "未設定狀態儲存，暫無即時評估窗口";
+  const transition = [
+    formatFragilityPersistenceStatus(observation.breakingStatus, language),
+    `V1 ${observation.v1Level.toUpperCase()}`,
+    formatFragilityTransition(observation.transition, language),
+  ].join(" · ");
+  const observedDuration = observation.breakingObservedDurationMinutes;
+  const elapsedDuration = observation.breakingElapsedMinutes;
+  const persistent = formatIndicatorList(
+    observation.persistentIndicatorIds,
+    language,
+  );
+  const added = formatIndicatorList(observation.addedIndicatorIds, language);
+  const recovered = formatIndicatorList(
+    observation.recoveredIndicatorIds,
+    language,
+  );
+  const coverageLost = formatIndicatorList(
+    observation.lostCoverageIndicatorIds,
+    language,
+  );
+  const coverageGained = formatIndicatorList(
+    observation.gainedCoverageIndicatorIds,
+    language,
+  );
+  const families = formatFamilyList(observation.stressedFamilyIds, language);
   return [
     {
       name: english ? "BREAKING persistence" : "BREAKING 持續性",
       value: english
         ? [
-            `${formatFragilityPersistenceStatus(observation.breakingStatus, language)} · V1 ${observation.v1Level.toUpperCase()} · ${formatFragilityTransition(observation.transition, language)}`,
-            `Duration: ${observation.breakingDurationMinutes}m · ${observation.breakingStreak} observations`,
-            `Persistent: ${formatIndicatorList(observation.persistentIndicatorIds, language)}`,
-            `New / repaired: ${formatIndicatorList(observation.addedIndicatorIds, language)} / ${formatIndicatorList(observation.recoveredIndicatorIds, language)}`,
-            `Families stressed: ${formatFamilyList(observation.stressedFamilyIds, language)} (${observation.stressedFamilyIds.length}/4)`,
+            transition,
+            `Observed / elapsed: ${observedDuration}m / ${elapsedDuration}m · ` +
+              `${observation.breakingStreak} consecutive observations`,
+            `Persistent: ${persistent}`,
+            `New / repaired: ${added} / ${recovered}`,
+            `Coverage lost / gained: ${coverageLost} / ${coverageGained}`,
+            `Unavailable: ${formatUnavailableIndicatorList(observation, language)}`,
+            `Families stressed: ${families} ` +
+              `(${observation.stressedFamilyIds.length}/4)`,
             `Live window: ${liveWindow}`,
             `Diagnostic only; does not change mentions, color, or trade signals.`,
           ].join("\n")
         : [
-            `${formatFragilityPersistenceStatus(observation.breakingStatus, language)} · V1 ${observation.v1Level.toUpperCase()} · ${formatFragilityTransition(observation.transition, language)}`,
-            `持續：${observation.breakingDurationMinutes} 分鐘 · ${observation.breakingStreak} 次觀測`,
-            `持續失效：${formatIndicatorList(observation.persistentIndicatorIds, language)}`,
-            `新增 / 修復：${formatIndicatorList(observation.addedIndicatorIds, language)} / ${formatIndicatorList(observation.recoveredIndicatorIds, language)}`,
-            `受壓家族：${formatFamilyList(observation.stressedFamilyIds, language)}（${observation.stressedFamilyIds.length}/4）`,
+            transition,
+            `連續觀測 / 經過時間：${observedDuration} / ${elapsedDuration} 分鐘 · ` +
+              `${observation.breakingStreak} 次連續觀測`,
+            `持續失效：${persistent}`,
+            `新增 / 修復：${added} / ${recovered}`,
+            `覆蓋遺失 / 恢復：${coverageLost} / ${coverageGained}`,
+            `不可用：${formatUnavailableIndicatorList(observation, language)}`,
+            `受壓家族：${families}` +
+              `（${observation.stressedFamilyIds.length}/4）`,
             `即時窗口：${liveWindow}`,
             `僅供診斷；不改變 mentions、顏色或交易訊號。`,
           ].join("\n"),
@@ -795,6 +840,7 @@ function formatFragilityTransition(
     IMPROVING: "正在修復",
     RECOVERED: "已修復",
     RELAPSE: "再次惡化",
+    NON_COMPARABLE: "覆蓋或觀測不連續，無法比較",
   };
   return `${labels[transition]} ${transition}`;
 }
@@ -808,6 +854,23 @@ function formatIndicatorList(
     : indicatorIds.map((id) =>
         formatMarketFragilityIndicatorLabel(id, language)
       ).join("、");
+}
+
+function formatUnavailableIndicatorList(
+  observation: MarketFragilityPersistenceBrief["observation"],
+  language: Language,
+): string {
+  const unavailable = observation.indicatorStates.filter(
+    (indicator) => indicator.state === "unavailable" ||
+      indicator.state === "unknown",
+  );
+  if (unavailable.length === 0) {
+    return language === "en" ? "none" : "無";
+  }
+  return unavailable.map((indicator) => {
+    const label = formatMarketFragilityIndicatorLabel(indicator.id, language);
+    return `${label} (${indicator.unavailableReason ?? "unknown"})`;
+  }).join("、");
 }
 
 function formatFamilyList(

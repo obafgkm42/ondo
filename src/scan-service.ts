@@ -414,6 +414,7 @@ async function maybeRecordMarketFragilityShadow(
       latestCandle.endTime,
       latestCandle.close,
       fragility,
+      config.briefIntervalMinutes,
     );
     console.log(
       JSON.stringify({
@@ -425,9 +426,23 @@ async function maybeRecordMarketFragilityShadow(
         breakingStreak: update.observation.breakingStreak,
         breakingStatus: update.observation.breakingStatus,
         transition: update.observation.transition,
-        breakingDurationMinutes:
-          update.observation.breakingDurationMinutes,
+        breakingElapsedMinutes: update.observation.breakingElapsedMinutes,
+        breakingObservedDurationMinutes:
+          update.observation.breakingObservedDurationMinutes,
+        coverageComparable: update.observation.coverageComparable,
+        continuousFromPrevious: update.observation.continuousFromPrevious,
+        continuityBreakReason: update.observation.continuityBreakReason,
         stressedIndicatorIds: update.observation.stressedIndicatorIds,
+        lostCoverageIndicatorIds:
+          update.observation.lostCoverageIndicatorIds,
+        gainedCoverageIndicatorIds:
+          update.observation.gainedCoverageIndicatorIds,
+        unavailableIndicators: update.observation.indicatorStates
+          .filter((indicator) => indicator.state === "unavailable")
+          .map((indicator) => ({
+            id: indicator.id,
+            reason: indicator.unavailableReason,
+          })),
         stressedFamilyIds: update.observation.stressedFamilyIds,
         stressedIndicatorCount:
           update.observation.stressedIndicatorCount,

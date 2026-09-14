@@ -12,6 +12,7 @@ import type {
   MarketFragilityIndicatorId,
   MarketFragilityLevel,
   MarketFragilitySnapshot,
+  MarketFragilityUnavailableReason,
 } from "./types";
 
 const MINIMUM_PRICE_CANDLES = 6;
@@ -150,12 +151,19 @@ function sessionLossIndicator(
   if (
     candles.length < MINIMUM_PRICE_CANDLES ||
     first === undefined ||
-    latest === undefined ||
-    first.open <= 0
+    latest === undefined
   ) {
     return unavailableIndicator(
       "session_loss",
       marketFragilityThresholds.session_loss,
+      "insufficient_price_candles",
+    );
+  }
+  if (first.open <= 0) {
+    return unavailableIndicator(
+      "session_loss",
+      marketFragilityThresholds.session_loss,
+      "invalid_session_open",
     );
   }
   const sessionReturn = latest.close / first.open - 1;
@@ -173,14 +181,18 @@ function vwapRepairIndicator(
 ): MarketFragilityIndicator {
   const latest = candles.at(-1);
   const atr = calculateAverageTrueRange(candles, FRAGILITY_ATR_WINDOW);
-  if (
-    candles.length < MINIMUM_PRICE_CANDLES ||
-    latest === undefined ||
-    atr <= 0
-  ) {
+  if (candles.length < MINIMUM_PRICE_CANDLES || latest === undefined) {
     return unavailableIndicator(
       "vwap_repair_failure",
       marketFragilityThresholds.vwap_repair_failure,
+      "insufficient_price_candles",
+    );
+  }
+  if (atr <= 0) {
+    return unavailableIndicator(
+      "vwap_repair_failure",
+      marketFragilityThresholds.vwap_repair_failure,
+      "invalid_atr",
     );
   }
   const vwap = calculateVwap(candles);
@@ -206,6 +218,7 @@ function closeLocationIndicator(
     return unavailableIndicator(
       "poor_close_location",
       marketFragilityThresholds.poor_close_location,
+      "insufficient_price_candles",
     );
   }
   const sessionHigh = Math.max(...candles.map((candle) => candle.high));
@@ -215,6 +228,7 @@ function closeLocationIndicator(
     return unavailableIndicator(
       "poor_close_location",
       marketFragilityThresholds.poor_close_location,
+      "zero_session_range",
     );
   }
   const closeLocation = (latest.close - sessionLow) / sessionRange;
@@ -234,6 +248,7 @@ function downsideTailIndicator(
     return unavailableIndicator(
       "downside_tail_cluster",
       marketFragilityThresholds.downside_tail_cluster,
+      "insufficient_price_candles",
     );
   }
   const sample = candles.slice(-(TAIL_LOOKBACK_RETURNS + 1));
@@ -247,6 +262,7 @@ function downsideTailIndicator(
     return unavailableIndicator(
       "downside_tail_cluster",
       marketFragilityThresholds.downside_tail_cluster,
+      "insufficient_return_history",
     );
   }
   const medianAbsoluteReturn = median(
@@ -280,6 +296,7 @@ function breadthIndicator(
     return unavailableIndicator(
       "mega_cap_breadth",
       marketFragilityThresholds.mega_cap_breadth,
+      "insufficient_asset_context",
     );
   }
   const declinerRatio =
@@ -307,6 +324,7 @@ function crossAssetIndicator(
     return unavailableIndicator(
       "equity_cross_confirmation",
       marketFragilityThresholds.equity_cross_confirmation,
+      "missing_cross_asset_context",
     );
   }
   return indicator(
@@ -339,12 +357,14 @@ function indicator(
     value,
     displayValue,
     threshold,
+    unavailableReason: null,
   };
 }
 
 function unavailableIndicator(
   id: MarketFragilityIndicatorId,
   threshold: string,
+  unavailableReason: MarketFragilityUnavailableReason,
 ): MarketFragilityIndicator {
   return {
     id,
@@ -352,6 +372,7 @@ function unavailableIndicator(
     value: null,
     displayValue: "n/a",
     threshold,
+    unavailableReason,
   };
 }
 
