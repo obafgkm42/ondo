@@ -286,15 +286,43 @@ describe("handleDiscordInteraction", () => {
   });
 
   it("returns 401 for an invalid request signature", async () => {
+    const getStatus = vi.fn<() => Promise<DiscordScannerStatus>>();
     const request = await signedRequest(commandInteraction("help"));
     request.headers.set("X-Signature-Ed25519", "00".repeat(64));
 
     const response = await handleDiscordInteraction(
       request,
-      baseOptions(),
+      baseOptions({ getStatus }),
     );
 
     expect(response.status).toBe(401);
+    expect(getStatus).not.toHaveBeenCalled();
+  });
+
+  it("rejects a declared oversized body before reading it", async () => {
+    const request = new Request(
+      "https://scanner.example/discord/interactions",
+      {
+        method: "POST",
+        headers: { "Content-Length": "65537" },
+        body: "not read",
+      },
+    );
+
+    const response = await handleDiscordInteraction(request, baseOptions());
+
+    expect(response.status).toBe(413);
+  });
+
+  it("rejects an oversized streamed body without trusting Content-Length", async () => {
+    const request = new Request(
+      "https://scanner.example/discord/interactions",
+      { method: "POST", body: "x".repeat(65_537) },
+    );
+
+    const response = await handleDiscordInteraction(request, baseOptions());
+
+    expect(response.status).toBe(413);
   });
 
   it("returns 503 until the interaction key and guild are configured", async () => {

@@ -364,7 +364,7 @@ function candlePayload(startTime: number, intervalMinutes: number): object {
 function requestFailureLogs(
   warning: ReturnType<typeof vi.spyOn>,
 ): Array<Record<string, unknown>> {
-  return warning.mock.calls.map(([message]) =>
-    JSON.parse(String(message)) as Record<string, unknown>
+  return warning.mock.calls.map((call: unknown[]) =>
+    JSON.parse(String(call[0])) as Record<string, unknown>
   );
 }
