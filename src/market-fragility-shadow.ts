@@ -4,6 +4,7 @@ import type {
   MarketFragilitySnapshot,
   MarketFragilityUnavailableReason,
 } from "./types";
+import { isFiniteNumber, isNonNegativeInteger } from "./runtime-validation";
 
 // Keep the physical key stable so newer schemas migrate in place with the same
 // one-read/one-write budget as earlier versions.
@@ -837,12 +838,4 @@ function isMechanismFamilyArray(
     family === "price_damage" || family === "repair_failure" ||
     family === "breadth" || family === "cross_market_confirmation"
   );
-}
-
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
-}
-
-function isNonNegativeInteger(value: unknown): value is number {
-  return isFiniteNumber(value) && Number.isInteger(value) && value >= 0;
 }
