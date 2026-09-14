@@ -33,7 +33,7 @@ Results, and the decisions taken because of them.
 | --- | --- |
 | [Current evidence](current-evidence.md) | Full-sample and rolling results for the frozen reversal rule and the fragility classifier. |
 | [Fragility v2 evaluation report](fragility-v2-evaluation-report.md) | Why the v2 probability model was rejected — `SHADOW_ONLY`, negative Brier Skill Score. |
-| [Fragility shadow report](fragility-shadow-report.md) | What does one exported KV snapshot say about mechanism clustering? |
+| [Offline research commands](research-commands.md#prospective-fragility-snapshot) | How is one exported KV snapshot summarized without treating repeated briefs as independent sessions? |
 
 ## Operations
 
@@ -48,7 +48,6 @@ Results, and the decisions taken because of them.
 | --- | --- |
 | [AGENTS.md](../AGENTS.md) | What must a coding agent never break in this repository? |
 | [Contributing](../CONTRIBUTING.md) | How should a change be scoped, verified, and described in a pull request? |
-| [Historical work records](work/) | What was recorded under the retired artifact-chain process? |
 
 ## Legal and policy
 
