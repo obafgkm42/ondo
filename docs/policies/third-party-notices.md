@@ -1,5 +1,7 @@
 # Third-Party Notices
 
+Back to the [documentation map](../README.md).
+
 This file summarizes direct dependencies for convenience. It is not a
 substitute for the license shipped with each exact package version. Transitive
 dependencies may add further notices.

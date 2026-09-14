@@ -1,5 +1,7 @@
 # Current Evidence and Limitations
 
+Back to the [documentation map](../README.md).
+
 This document records the schema-v3 delivery-aware validation of the frozen
 SP500 reversal-zone rule. It remains a historical proxy study, not actual
 trading performance or proof of a durable edge.
@@ -129,7 +131,7 @@ VWAP validation. Its score remains an ordinal diagnostic, not a calibrated
 crash probability, strategy return, or approved live trading gate. The
 canonical artifacts are under
 `backtest/fragility-price-only-v1-2008-2026/`; the frozen methodology is in
-`docs/fragility-backtest-methodology.md`.
+`docs/methodology/fragility-backtest-methodology.md`.
 
 The v2 rolling-origin candidate has lower Brier loss and log loss than
 count-only at both 120-minute and five-session horizons, but its Brier Skill
@@ -146,7 +148,8 @@ outcome after that next brief, confirmed cases had a 6.84% 120-minute event
 rate versus 12.92% for transient cases: -6.08 percentage points, with a
 five-session moving-block 95% interval of -12.13 to -0.06 points. Persistence
 is retained only as an opt-in diagnostic label and prospective collection
-field, not a stronger alert. See `docs/fragility-v2-evaluation-report.md`.
+field, not a stronger alert. See
+`docs/evidence/fragility-v2-evaluation-report.md`.
 
 ## Permitted conclusion
 

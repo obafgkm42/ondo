@@ -1,8 +1,10 @@
 # Offline research commands
 
+Back to the [documentation map](../README.md).
+
 Reproducible local event studies and backtests. These run entirely outside the
 Worker runtime and never touch the live deployment. For deployment and runtime
-configuration, see [Operating Market Ondo](operations.md).
+configuration, see [Operating Market Ondo](../operations/runtime.md).
 
 The repository contains only synthetic fixtures. Bring lawfully obtained data
 and review its licence before use.
@@ -88,4 +90,4 @@ uv run resilience-decay-backtest \
 Generated `backtest/` and `reports/generated/` outputs are ignored by Git. The
 TypeScript live path pins the shared `market-data-pipeline` revision in
 `package.json`; canonical input contracts are documented in
-[Market-data sources](market-data-sources.md).
+[Market-data sources](../reference/market-data-sources.md).

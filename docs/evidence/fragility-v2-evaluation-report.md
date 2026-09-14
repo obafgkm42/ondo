@@ -1,5 +1,7 @@
 # Fragility v2 Evaluation Report
 
+Back to the [documentation map](../README.md).
+
 Evaluation date: 2026-08-12
 Decision: `SHADOW_ONLY`
 

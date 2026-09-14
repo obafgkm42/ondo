@@ -1,5 +1,7 @@
 # Market temperature improvement roadmap
 
+Back to the [documentation map](../README.md).
+
 Status: canonical development backlog. Prepared: 2026-09-13. The coverage-aware
 M1 work landed on `main` in `c00b8fa`; later milestones remain open.
 
@@ -14,7 +16,8 @@ The operator reports an upgrade to Cloudflare Workers Standard. Account
 entitlements and deployed settings have not been inspected. This handoff
 defines local implementation and validation tasks; deployment, notification
 policy changes, and research promotion remain separate decisions under
-[`AGENTS.md`](AGENTS.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
+[`AGENTS.md`](../../AGENTS.md) and
+[`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 
 Keep venue access read-only. Do not change frozen reversal thresholds, revive
 the rejected probability-v2 model, add trading routes, or introduce a live
@@ -52,9 +55,9 @@ zero-volume fallback. `FRAGILE` was weakly separated. The v2 probability
 candidate failed its base-rate comparison; two-brief confirmation did not
 identify a riskier post-confirmation cohort. These are constraints on claims,
 not reasons to tune the inspected sample again. See
-[current evidence](docs/current-evidence.md),
-[fragility methodology](docs/fragility-backtest-methodology.md), and
-[v2 evaluation](docs/fragility-v2-evaluation-report.md).
+[current evidence](../evidence/current-evidence.md),
+[fragility methodology](../methodology/fragility-backtest-methodology.md), and
+[v2 evaluation](../evidence/fragility-v2-evaluation-report.md).
 
 ## Request and platform budget
 
@@ -143,7 +146,7 @@ escalation claims, and unrelated healthy-data classifications remain unchanged.
 ### M2 - Make observation windows and presentation explicit
 
 Primary files: `src/market-fragility.ts`, `src/hyperliquid.ts`, formatters,
-`src/types.ts`, and `docs/fragility-backtest-methodology.md`.
+`src/types.ts`, and `docs/methodology/fragility-backtest-methodology.md`.
 
 - [x] Record candle end, context fetch completion, evaluation time, session
   scope, reference-price type, and any provider timestamp actually available.
@@ -171,7 +174,7 @@ shadow until M6; wording improvements alone do not establish predictive skill.
 ### M3 - Bound provider traffic before increasing cadence
 
 Primary files: `src/scan-coordinator.ts`, `src/hyperliquid.ts`,
-`src/scan-service.ts`, configuration/types, and `docs/operations.md`.
+`src/scan-service.ts`, configuration/types, and `docs/operations/runtime.md`.
 
 - [ ] Add a versioned 24-hour category cache in existing coordinated storage.
   A failed refresh must not fan out into repeated category calls. Bound stale
@@ -335,7 +338,7 @@ Risk-filter usefulness needs its own fixed policy comparison, including avoided
 losses, missed profitable opportunities, time excluded, turnover, drawdown,
 slippage, and costs. Predictive separation alone does not authorize a trading
 gate. Profitability claims still require the existing
-[promotion gate](docs/backtest-evaluation-plan.md).
+[promotion gate](../methodology/backtest-evaluation-plan.md).
 
 ## Validation, rollout, and agent completion record
 
