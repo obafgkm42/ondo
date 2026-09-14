@@ -65,18 +65,18 @@ the Worker depend on anything under `python/`.
 5. **The rejected probability-v2 model stays out of the Worker.** Its
    out-of-sample Brier Skill Score was negative. Do not reintroduce its
    coefficients or wire the v2 research layer into runtime output. See
-   [`docs/fragility-v2-evaluation-report.md`](docs/fragility-v2-evaluation-report.md).
+   [`docs/evidence/fragility-v2-evaluation-report.md`][fragility-v2-report].
 
 6. **No behavior change ships on in-sample tuning.** Every threshold or
    classification change needs chronological, out-of-sample evidence that
    clears the promotion gate in
-   [`docs/backtest-evaluation-plan.md`](docs/backtest-evaluation-plan.md).
+   [`docs/methodology/backtest-evaluation-plan.md`][backtest-plan].
    Do not tune parameters against a sample that has already been inspected and
    then describe the result as out of sample.
 
 7. **Stay inside the resource budget.** The Worker's cadence, KV operation
    ceilings, and one-request-per-scan discipline are documented in
-   [`docs/operations.md`](docs/operations.md). A new diagnostic should reuse
+   [`docs/operations/runtime.md`][operations]. A new diagnostic should reuse
    candles already fetched rather than adding a Hyperliquid request.
 
 8. **Labels are diagnostics, not predictions.** `BREAKING`, `PANIC`, `FADING`,
@@ -212,3 +212,7 @@ snapshot, read the diff yourself.
 
 `.gitignore` already covers most of these. If you find yourself adding an
 exception to it, that is a signal to stop and ask.
+
+[backtest-plan]: docs/methodology/backtest-evaluation-plan.md
+[fragility-v2-report]: docs/evidence/fragility-v2-evaluation-report.md
+[operations]: docs/operations/runtime.md

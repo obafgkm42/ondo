@@ -62,9 +62,9 @@ Additional requirements:
 | Frozen threshold, shadow-to-live promotion, or evidence-backed claim | Obtain explicit human approval, satisfy the existing promotion gate, version all affected contracts together, and record the evidence in the relevant methodology or evaluation document. |
 
 Prefer updating an existing canonical document over adding a new process file.
-Use `ROADMAP.md` as the only backlog; completed change records belong in pull
-requests and durable evidence belongs in the relevant methodology or evaluation
-document.
+Use `docs/planning/roadmap.md` as the only backlog; completed change records
+belong in pull requests and durable evidence belongs in the relevant
+methodology or evaluation document.
 
 ## Commit messages
 

@@ -1,5 +1,7 @@
 # Market Fragility Backtest Methodology
 
+Back to the [documentation map](../README.md).
+
 This document defines the reproducible research contract for the periodic
 `RESILIENT` / `FRAGILE` / `BREAKING` / `PANIC` classifier. It is separate from
 the reversal trade-policy study because market-state classification and

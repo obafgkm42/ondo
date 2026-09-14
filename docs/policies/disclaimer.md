@@ -1,5 +1,7 @@
 # Disclaimer
 
+Back to the [documentation map](../README.md).
+
 ## NFA — Not Financial Advice
 
 This repository provides experimental, impersonal software for education,

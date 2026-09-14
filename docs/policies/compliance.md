@@ -1,5 +1,7 @@
 # Compliance and Third-Party Services
 
+Back to the [documentation map](../README.md).
+
 This document is a technical risk review, not legal advice. Terms and laws can
 change. Operators must review the current versions before deployment.
 
@@ -82,7 +84,7 @@ not its dependencies. Review the exact licenses installed with the Node.js and
 Python dependency trees before redistributing binaries or offering a commercial
 service.
 
-See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for direct dependencies.
+See [third-party notices](third-party-notices.md) for direct dependencies.
 
 ## Financial regulation and public communications
 

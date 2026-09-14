@@ -1,5 +1,7 @@
 # Resilience Decay Methodology
 
+Back to the [documentation map](../README.md).
+
 Resilience decay is an event-level diagnostic for the Hyperliquid
 `xyz:SP500` proxy. It asks whether comparable intraday drawdowns are repairing
 less effectively than earlier drawdowns. It is not a crash probability, trade

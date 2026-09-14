@@ -1,5 +1,7 @@
 # Market-data sources and usage boundaries
 
+Back to the [documentation map](../README.md).
+
 This document records the project's runtime data sources and the design
 choices used to avoid silently redistributing third-party market data. It is
 not legal advice. Terms can change, and each operator is responsible for the

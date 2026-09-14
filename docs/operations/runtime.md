@@ -1,8 +1,10 @@
 # Operating Market Ondo
 
+Back to the [documentation map](../README.md).
+
 How to configure, deploy, and run the Worker. For what the Worker measures and
-why, see the [README](../README.md). For the offline Python studies, see
-[Research commands](research-commands.md).
+why, see the [README](../../README.md). For the offline Python studies, see
+[Research commands](../research/commands.md).
 
 ## Primary interface: Discord
 

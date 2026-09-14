@@ -1,5 +1,7 @@
 # Market Fragility v2 Methodology
 
+Back to the [documentation map](../README.md).
+
 Fragility v2 is a research and prospective-shadow layer for the periodic
 market-repair classifier. It replaces equal-weight failure counting in the
 research model with calibrated downside probabilities and separates risk level
@@ -178,7 +180,7 @@ uv run fragility-v2-evaluate \
 
 The ignored output directory contains the complete JSON payload and a rendered
 Markdown report. The current frozen result is summarized in
-[Fragility v2 evaluation report](fragility-v2-evaluation-report.md).
+[Fragility v2 evaluation report](../evidence/fragility-v2-evaluation-report.md).
 
 ## Resilience curvature decision
 

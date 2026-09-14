@@ -1,5 +1,7 @@
 # Backtest Evaluation Plan
 
+Back to the [documentation map](../README.md).
+
 This project evaluates the frozen SP500 reversal-zone signal in two separate
 layers:
 
@@ -196,7 +198,7 @@ existing-v1 two-brief confirmation rule is evaluated with its outcome anchored
 after the confirmation brief. Historical results can
 authorize only opt-in diagnostic collection. See
 [Market fragility v2 methodology](fragility-v2-methodology.md) and the frozen
-[evaluation report](fragility-v2-evaluation-report.md).
+[evaluation report](../evidence/fragility-v2-evaluation-report.md).
 
 ## Separate Resilience-Decay Study
 

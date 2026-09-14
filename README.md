@@ -24,7 +24,7 @@ frozen research feature. The Worker never places, modifies, or cancels orders.
 > investment or commodity-trading advice. `BREAKING`, `PANIC`, a bullish
 > rejection candle, or any other label is not an instruction to short, buy the
 > dip, or call a bottom. Backtests are hypothetical and do not establish a
-> profitable strategy. Read [DISCLAIMER.md](DISCLAIMER.md).
+> profitable strategy. Read the [disclaimer](docs/policies/disclaimer.md).
 
 The project is not affiliated with Hyperliquid, Discord, Cloudflare, any index
 provider, the NFA, CFTC, or SEC.
@@ -78,7 +78,7 @@ same-slot history exists; missing candles never become fake low volume.
 Only complete standard US equity sessions enter the durable baseline. NYSE
 holidays and recurring early closes are excluded even if the 24/7 perpetual
 continues trading. See
-[Market activity and RVOL-at-time](docs/market-activity-methodology.md).
+[Market activity and RVOL-at-time](docs/methodology/market-activity-methodology.md).
 
 ## 2. Fragility and repair mechanisms
 
@@ -113,8 +113,8 @@ or relapsing. It never replaces the frozen classifier.
 
 The rejected probability-v2 model is deliberately absent from the Worker: its
 out-of-sample Brier Skill Score was negative. See
-[Fragility v2 methodology](docs/fragility-v2-methodology.md) and the
-[evaluation report](docs/fragility-v2-evaluation-report.md).
+[Fragility v2 methodology](docs/methodology/fragility-v2-methodology.md) and
+the [evaluation report](docs/evidence/fragility-v2-evaluation-report.md).
 
 ## 3. Resilience
 
@@ -134,7 +134,7 @@ The shadow path:
 Historical evaluation found the current `FADING` cohort too sparse for a
 reliable strategy claim, so resilience remains presentation and research
 telemetry. See
-[Resilience decay methodology](docs/resilience-decay-methodology.md).
+[Resilience decay methodology](docs/methodology/resilience-decay-methodology.md).
 
 ## 4. Retained reversal scanner
 
@@ -143,7 +143,7 @@ candle, bounded invalidation, sufficient underlying-price reward, and frozen
 price-R and heuristic-score thresholds. `WATCH` is the earlier state; `ALERT`
 keeps the stricter filter.
 
-![Synthetic examples of qualifying and non-qualifying rejection candles](docs/reversal-signal-candle-examples.svg)
+![Synthetic reversal-candle examples][candle-examples]
 
 This remains an experimental feature rather than the product’s main purpose.
 The current delivery-aware 2008–2026 study reports a full-sample profit factor
@@ -152,8 +152,8 @@ of `0.83`, rolling profit factor of `0.86`, and single-position profit factor of
 edge. In particular, a convex-looking rejection during a free-fall session is
 not evidence that bottom-fishing is safe.
 
-See [Current evidence](docs/current-evidence.md) and
-[Backtest evaluation plan](docs/backtest-evaluation-plan.md).
+See [Current evidence](docs/evidence/current-evidence.md) and
+[Backtest evaluation plan](docs/methodology/backtest-evaluation-plan.md).
 
 ## Data-health gate
 
@@ -189,11 +189,11 @@ uv run pytest
 Discord application setup, Cloudflare secrets and custom-domain configuration,
 the scan/brief schedule and free-tier budget, the `off`/`shadow`/`display`
 configuration modes, and local development are documented in
-[Operating Market Ondo](docs/operations.md).
+[Operating Market Ondo](docs/operations/runtime.md).
 
 The offline event studies — reversal, fragility, the rejected v2 candidate,
 the prospective KV snapshot report, and resilience decay — are documented in
-[Offline research commands](docs/research-commands.md). The repository ships
+[Offline research commands](docs/research/commands.md). The repository ships
 only synthetic fixtures; bring lawfully obtained data and review its licence
 before use.
 
@@ -216,20 +216,26 @@ separate intent, spec, plan, and review files are not required. Higher-risk
 changes still need explicit evidence and approval where the research contract
 requires it. See [Contributing](CONTRIBUTING.md) for the workflow,
 [AGENTS.md](AGENTS.md) for the invariants an agent must not break, and the
-[backtest evaluation plan](docs/backtest-evaluation-plan.md) for promotion
-gates.
+[backtest evaluation plan](docs/methodology/backtest-evaluation-plan.md) for
+promotion gates.
 
 ## Documentation
 
 [docs/README.md](docs/README.md) is the full documentation map. The usual
 starting points:
 
-- [Roadmap](ROADMAP.md) — milestones, evidence boundary, and open queue
-- [Current evidence](docs/current-evidence.md) — what the studies actually show
+- [Roadmap](docs/planning/roadmap.md) — milestones, evidence boundary, and open
+  queue
+- [Current evidence](docs/evidence/current-evidence.md) — what the studies
+  actually show
 - [Contributing](CONTRIBUTING.md) — lightweight workflow and review checklist
-- [Operating Market Ondo](docs/operations.md) — setup, deployment, and schedule
-- [Disclaimer](DISCLAIMER.md) and [Compliance notes](COMPLIANCE.md) — limits and boundaries
+- [Operating Market Ondo](docs/operations/runtime.md) — setup, deployment, and
+  schedule
+- [Disclaimer](docs/policies/disclaimer.md) and
+  [Compliance notes](docs/policies/compliance.md) — limits and boundaries
 
 The MIT License covers this repository’s original code and documentation. It
 does not grant rights to third-party market data, service marks, APIs, or
 datasets.
+
+[candle-examples]: docs/assets/reversal-signal-candle-examples.svg
