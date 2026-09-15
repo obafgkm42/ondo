@@ -1,12 +1,13 @@
 import type { ChartAttachment } from "./chart";
 import { localizeDiagnostic } from "./i18n";
 import {
+  formatMarketFragilityMechanismLines,
   formatMarketFragilityIndicatorLabel,
   formatMarketFragilityLevel,
   marketFragilityColor,
 } from "./market-fragility-format";
 import {
-  formatMarketActivityNotificationSummary,
+  formatCompactMarketActivitySummary,
 } from "./market-activity-format";
 import { formatIneligibleMarketDataStatus } from "./market-data-health";
 import { formatResilienceDecayCardSummary } from "./resilience-decay-format";
@@ -189,7 +190,6 @@ export async function sendMarketBrief(
             },
           ],
         };
-  // Keep periodic cards glanceable; `/scanner status` retains source detail.
   const fields = [
     ...(fragility === undefined
       ? []
@@ -633,19 +633,10 @@ function marketFragilityMechanismFields(
 ): Array<{ name: string; value: string; inline: boolean }> {
   const english = language === "en";
   // Show all six mechanisms so compacting cannot hide missing coverage.
-  const mechanisms = fragility.indicators.map((indicator) => {
-    const label = formatMarketFragilityIndicatorLabel(indicator.id, language);
-    const state = indicator.state === "stressed"
-      ? indicator.displayValue
-      : indicator.state === "healthy"
-        ? english ? "healthy" : "正常"
-        : english ? "unavailable" : "不可用";
-    return `${indicatorStateIcon(indicator.state)} **${label}** · ${state}`;
-  }).join("\n");
   return [
     {
       name: english ? "Six repair mechanisms" : "六個修復機制",
-      value: mechanisms,
+      value: formatMarketFragilityMechanismLines(fragility, language),
       inline: false,
     },
   ];
@@ -846,16 +837,10 @@ function marketActivityFields(
   activity: MarketActivitySnapshot,
   language: Language,
 ): Array<{ name: string; value: string; inline: boolean }> {
-  const separator = language === "en" ? " | " : "｜";
-  const prefix = language === "en" ? "Volume " : "量能 ";
-  const [level, ...details] = formatMarketActivityNotificationSummary(
-    activity,
-    language,
-  ).replace(prefix, "").split(separator);
   return [
     {
       name: language === "en" ? "Market activity" : "市場活躍度",
-      value: [level, details.join(" · ")].filter(Boolean).join("\n"),
+      value: formatCompactMarketActivitySummary(activity, language),
       inline: true,
     },
   ];
@@ -863,18 +848,6 @@ function marketActivityFields(
 
 function formatScore(fragility: MarketFragilitySnapshot): string {
   return fragility.score === null ? "n/a" : `${fragility.score}/100`;
-}
-
-function indicatorStateIcon(
-  state: MarketFragilitySnapshot["indicators"][number]["state"],
-): string {
-  if (state === "stressed") {
-    return "🔴";
-  }
-  if (state === "healthy") {
-    return "🟢";
-  }
-  return "⚪";
 }
 
 const EASTERN_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {

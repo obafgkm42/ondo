@@ -6,6 +6,7 @@ import {
   type DiscordInteractionOptions,
   type DiscordScannerStatus,
 } from "../src/discord-interactions";
+import { buildDiscordStatusMessage } from "../src/discord-command-messages";
 import {
   HyperliquidAdmissionError,
   HyperliquidRateLimitError,
@@ -210,31 +211,84 @@ describe("handleDiscordInteraction", () => {
         title: string;
         description: string;
         fields: Array<{ name: string; value: string }>;
+        footer: { text: string };
       }>;
     };
     expect(message.allowed_mentions).toEqual({ parse: [] });
     expect(message.embeds[0]?.title).toBe("SP500 掃描器狀態 · BREAKING");
-    expect(message.embeds[0]?.description).toContain("壓力 60/100");
-    expect(message.embeds[0]?.description).not.toContain("不會下單");
-    expect(message.embeds[0]?.description).not.toContain("投資建議");
-    expect(message.embeds[0]?.fields).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          name: "修復機制",
-          value: expect.stringContaining("🔴 VWAP 修復失敗"),
-        }),
-        expect.objectContaining({
-          name: "市場活躍度",
-          value: expect.stringContaining(
-            "今日累積量：1.31x（相較過去同時刻均值）",
-          ),
-        }),
-        expect.objectContaining({
-          name: "輸入資料健康度",
-          value: expect.stringContaining("HEALTHY · RTH · 可用於決策"),
-        }),
-      ]),
+    expect(message.embeds[0]?.description).toBe(
+      "最新 6010.0 · 日內 6000.0–6100.0",
     );
+    expect(message.embeds[0]?.fields).toEqual([
+      { name: "市場壓力", value: "60/100", inline: true },
+      { name: "受壓機制", value: "3 / 6", inline: true },
+      {
+        name: "市場活躍度",
+        value: "ACTIVE（活躍）\n累積 1.31x · 15m 1.70x 明顯放量",
+        inline: true,
+      },
+      {
+        name: "六個修復機制",
+        value: [
+          "🔴 **時段跌幅** · -1.20%",
+          "🔴 **VWAP 修復失敗** · -0.45 ATR",
+          "🔴 **收盤承接偏弱** · 10%",
+          "🟢 **下跌尾部群聚** · 正常",
+          "🟢 **大型股廣度惡化** · 正常",
+          "🟢 **SP500 / XYZ100 同步走弱** · 正常",
+        ].join("\n"),
+      },
+    ]);
+    expect(message.embeds[0]?.footer.text).toBe("資料正常 · RTH");
+  });
+
+  it("renders the compact active status response in English", () => {
+    const message = buildDiscordStatusMessage(
+      scannerStatus(),
+      "en",
+      new Date("2026-06-23T15:30:00.000Z"),
+    );
+    const embed = message.embeds?.[0];
+
+    expect(embed?.title).toBe("SP500 Scanner Status · BREAKING");
+    expect(embed?.description).toBe(
+      "Latest 6010.0 · session 6000.0–6100.0",
+    );
+    expect(embed?.fields?.map((field) => field.name)).toEqual([
+      "Market pressure",
+      "Mechanisms under stress",
+      "Market activity",
+      "Six repair mechanisms",
+    ]);
+    expect(embed?.fields?.[2]?.value).toBe(
+      "ACTIVE\nCumulative 1.31x · 15m 1.70x ELEVATED",
+    );
+    expect(embed?.fields?.[3]?.value).toContain(
+      "🔴 **VWAP repair failure** · -0.45 ATR",
+    );
+    expect(embed?.footer?.text).toBe("Data healthy · RTH");
+  });
+
+  it("keeps abnormal data visible and withholds activity", () => {
+    const status = scannerStatus();
+    status.dataHealth = {
+      ...healthyDataHealth(),
+      status: "stale",
+      stateEligible: false,
+      lagIntervals: 3,
+      reasons: ["stale_latest_candle"],
+    };
+
+    const message = buildDiscordStatusMessage(status, "en", new Date());
+    const embed = message.embeds?.[0];
+    expect(embed?.fields?.map((field) => field.name)).toEqual([
+      "Market pressure",
+      "Mechanisms under stress",
+      "Six repair mechanisms",
+      "Market data",
+    ]);
+    expect(embed?.fields?.[3]?.value).toContain("STALE · RTH");
+    expect(embed?.footer?.text).toBe("Data STALE · RTH");
   });
 
   it("turns a live rate limit into a visible private status error", async () => {

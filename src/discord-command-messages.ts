@@ -2,20 +2,17 @@ import {
   HyperliquidAdmissionError,
   HyperliquidRateLimitError,
 } from "./hyperliquid";
-import { localizeDiagnostic } from "./i18n";
 import { formatIneligibleMarketDataStatus } from "./market-data-health";
 import {
-  formatExpandedEquityBreadth,
-  formatMarketFragilityCoverage,
   formatMarketFragilityIndicatorLabel,
-  formatMarketFragilityIndicatorValue,
   formatMarketFragilityLevel,
-  formatMarketFragilityObservationWindow,
-  formatMarketFragilitySummary,
+  formatMarketFragilityMechanismLines,
   marketFragilityColor,
 } from "./market-fragility-format";
 import { marketFragilityThresholds } from "./market-fragility";
-import { formatMarketActivitySummary } from "./market-activity-format";
+import {
+  formatCompactMarketActivitySummary,
+} from "./market-activity-format";
 import type {
   Language,
   MarketDataHealth,
@@ -47,6 +44,7 @@ interface DiscordEmbed {
   description?: string;
   color?: number;
   fields?: DiscordEmbedField[];
+  footer?: { text: string };
   timestamp?: string;
 }
 
@@ -78,29 +76,26 @@ export function buildDiscordStatusMessage(
   const fragility = status.fragility;
   const scan = status.scan;
   const stateEligible = status.dataHealth?.stateEligible ?? true;
+  const opportunity = stateEligible ? scan.signal ?? scan.watch : null;
   const indicatorLines = fragility === null
     ? english
       ? "Repair status unavailable"
       : "修復機制狀態不可用"
-    : fragility.indicators.map((indicator) =>
-      [
-        indicatorStateIcon(indicator.state),
-        formatMarketFragilityIndicatorLabel(indicator.id, language),
-        formatMarketFragilityIndicatorValue(
-          indicator,
-          fragility,
-          language,
-        ),
-      ].join(" ")
-    ).join("\n");
+    : formatMarketFragilityMechanismLines(fragility, language);
   const titleLevel = fragility === null
     ? "UNKNOWN"
     : formatMarketFragilityLevel(fragility);
+  const latestPrice = formatNullableNumber(scan.latestPrice);
+  const sessionLow = formatNullableNumber(scan.sessionLow);
+  const sessionHigh = formatNullableNumber(scan.sessionHigh);
+  const priceSummary = english
+    ? `Latest ${latestPrice} · session ${sessionLow}–${sessionHigh}`
+    : `最新 ${latestPrice} · 日內 ${sessionLow}–${sessionHigh}`;
   const description = fragility === null
     ? english
-      ? "The live scan completed, but market-fragility diagnostics were unavailable."
-      : "即時掃描已完成，但市場修復狀態無法取得。"
-    : formatMarketFragilitySummary(fragility, language);
+      ? `${priceSummary} · repair status unavailable`
+      : `${priceSummary} · 修復機制狀態不可用`
+    : priceSummary;
 
   return {
     embeds: [
@@ -111,28 +106,68 @@ export function buildDiscordStatusMessage(
         description,
         color: fragility === null ? 0x95a5a6 : marketFragilityColor(fragility),
         fields: [
-          {
-            name: english ? "Market" : "行情",
-            value: `${scan.market} · ${english ? "latest" : "最新"} ${formatNullableNumber(scan.latestPrice)}\n${english ? "session" : "時段"} ${formatNullableNumber(scan.sessionLow)}–${formatNullableNumber(scan.sessionHigh)}`,
-            inline: true,
-          },
-          {
-            name: english ? "Signal" : "訊號",
-            value: formatOpportunity(
-              stateEligible ? scan.signal ?? scan.watch : null,
-              language,
-            ),
-            inline: true,
-          },
-          ...(status.dataHealth === undefined
+          ...(fragility === null
             ? []
             : [
                 {
-                  name: english ? "Input health" : "輸入資料健康度",
-                  value: formatStatusDataHealth(status.dataHealth, language),
+                  name: english ? "Market pressure" : "市場壓力",
+                  value: fragility.score === null
+                    ? "n/a"
+                    : `${fragility.score}/100`,
+                  inline: true,
+                },
+                {
+                  name: english
+                    ? "Mechanisms under stress"
+                    : "受壓機制",
+                  value: [
+                    fragility.stressedIndicatorCount,
+                    fragility.totalIndicatorCount,
+                  ].join(" / "),
+                  inline: true,
                 },
               ]),
-          ...(status.providerAccess === undefined
+          ...(!stateEligible || status.activity == null
+            ? []
+            : [
+                {
+                  name: english ? "Market activity" : "市場活躍度",
+                  value: formatCompactMarketActivitySummary(
+                    status.activity,
+                    language,
+                  ),
+                  inline: true,
+                },
+              ]),
+          ...(opportunity === null
+            ? []
+            : [
+                {
+                  name: english ? "Qualified signal" : "合格訊號",
+                  value: formatOpportunity(opportunity, language),
+                  inline: false,
+                },
+              ]),
+          {
+            name: english ? "Six repair mechanisms" : "六個修復機制",
+            value: indicatorLines,
+          },
+          ...(status.dataHealth === undefined ||
+              (status.dataHealth.status === "healthy" && stateEligible)
+            ? []
+            : [
+                {
+                  name: english ? "Market data" : "市場資料",
+                  value: stateEligible
+                    ? formatStatusDataHealth(status.dataHealth, language)
+                    : formatIneligibleMarketDataStatus(
+                      status.dataHealth,
+                      language,
+                    ),
+                },
+              ]),
+          ...(status.providerAccess === undefined ||
+              status.providerAccess.status === "fresh"
             ? []
             : [
                 {
@@ -144,67 +179,33 @@ export function buildDiscordStatusMessage(
                   ),
                 },
               ]),
-          {
-            name: english ? "Repair mechanisms" : "修復機制",
-            value: indicatorLines,
-          },
-          ...(fragility === null
-            ? []
-            : [
-                {
-                  name: english ? "Data coverage" : "資料覆蓋",
-                  value: formatMarketFragilityCoverage(fragility, language),
-                  inline: true,
-                },
-                {
-                  name: english ? "Observation window" : "觀察窗口",
-                  value: formatMarketFragilityObservationWindow(
-                    fragility,
-                    language,
-                  ),
-                },
-              ]),
-          ...(fragility?.expandedEquityBreadth === undefined
-            ? []
-            : [
-                {
-                  name: english
-                    ? "Expanded equity breadth"
-                    : "擴展股票廣度",
-                  value: formatExpandedEquityBreadth(
-                    fragility.expandedEquityBreadth,
-                    language,
-                  ),
-                },
-              ]),
-          ...(!stateEligible ||
-              status.activity === undefined ||
-              status.activity === null
-            ? []
-            : [
-                {
-                  name: english ? "Market activity" : "市場活躍度",
-                  value: formatMarketActivitySummary(
-                    status.activity,
-                    language,
-                  ),
-                },
-              ]),
-          {
-            name: english ? "Scanner diagnostic" : "掃描診斷",
-            value: status.dataHealth?.stateEligible === false
-              ? formatIneligibleMarketDataStatus(
+        ],
+        ...(status.dataHealth === undefined
+          ? {}
+          : {
+              footer: {
+                text: formatCompactDataHealth(
                   status.dataHealth,
                   language,
-                )
-              : localizeDiagnostic(scan.status, language),
-          },
-        ],
+                ),
+              },
+            }),
         timestamp: queriedAt.toISOString(),
       },
     ],
     allowed_mentions: { parse: [] },
   };
+}
+
+function formatCompactDataHealth(
+  health: MarketDataHealth,
+  language: Language,
+): string {
+  const dataLabel = language === "en" ? "Data" : "資料";
+  const status = health.status === "healthy"
+    ? language === "en" ? "Data healthy" : "資料正常"
+    : `${dataLabel} ${health.status.toUpperCase()}`;
+  return `${status} · ${health.sessionScope.toUpperCase()}`;
 }
 
 function formatProviderAccess(
@@ -450,18 +451,6 @@ function formatOpportunity(
     `${language === "en" ? "entry" : "觀察區"} ${opportunity.entryLow.toFixed(1)}–${opportunity.entryHigh.toFixed(1)}`,
     `${language === "en" ? "invalidation" : "失效"} ${opportunity.invalidation.toFixed(1)} · ${language === "en" ? "target" : "目標"} ${opportunity.target.toFixed(1)}`,
   ].join("\n");
-}
-
-function indicatorStateIcon(
-  state: MarketFragilitySnapshot["indicators"][number]["state"],
-): string {
-  if (state === "stressed") {
-    return "🔴";
-  }
-  if (state === "healthy") {
-    return "🟢";
-  }
-  return "⚪";
 }
 
 function formatNullableNumber(value: number | null): string {

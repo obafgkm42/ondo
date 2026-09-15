@@ -103,6 +103,20 @@ export function formatMarketActivityNotificationSummary(
       ].join("｜");
 }
 
+/** Format the compact two-line activity block shared by Discord cards. */
+export function formatCompactMarketActivitySummary(
+  activity: MarketActivitySnapshot,
+  language: Language,
+): string {
+  const separator = language === "en" ? " | " : "｜";
+  const prefix = language === "en" ? "Volume " : "量能 ";
+  const [level, ...details] = formatMarketActivityNotificationSummary(
+    activity,
+    language,
+  ).replace(prefix, "").split(separator);
+  return [level, details.join(" · ")].filter(Boolean).join("\n");
+}
+
 /** Localize the sample-depth label without changing its machine value. */
 export function formatMarketActivityDataQuality(
   quality: MarketActivityDataQuality,

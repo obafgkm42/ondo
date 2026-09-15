@@ -13,8 +13,8 @@ connection, read ordinary messages, request privileged intents, or place
 orders. Responses to slash commands are ephemeral.
 
 - `/scanner status` performs one live, read-only query and privately returns
-  price, RVOL, fragility mechanisms, resilience, data coverage, and any retained
-  reversal state.
+  a compact price, RVOL, six-mechanism, and qualified-signal summary. Healthy
+  data is reduced to a footer; abnormal data or provider access remains visible.
 - `/scanner repair` explains the six mechanisms and frozen level thresholds
   without requesting market data.
 - `/scanner help` shows the private command guide.
