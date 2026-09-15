@@ -94,6 +94,23 @@ export function formatMarketFragilitySummary(
   return `${level} · ${stressScore} · 已觀察壓力條件 ${observed}`;
 }
 
+/** Format all six mechanism states for compact Discord cards. */
+export function formatMarketFragilityMechanismLines(
+  fragility: MarketFragilitySnapshot,
+  language: Language,
+): string {
+  const english = language === "en";
+  return fragility.indicators.map((indicator) => {
+    const label = formatMarketFragilityIndicatorLabel(indicator.id, language);
+    const state = indicator.state === "stressed"
+      ? indicator.displayValue
+      : indicator.state === "healthy"
+        ? english ? "healthy" : "正常"
+        : english ? "unavailable" : "不可用";
+    return `${indicatorStateIcon(indicator.state)} **${label}** · ${state}`;
+  }).join("\n");
+}
+
 /** Format a value together with the measurement reference it actually uses. */
 export function formatMarketFragilityIndicatorValue(
   indicator: MarketFragilityIndicator,
@@ -253,6 +270,18 @@ export function marketFragilityColor(
     return 0x2ecc71;
   }
   return 0x95a5a6;
+}
+
+function indicatorStateIcon(
+  state: MarketFragilitySnapshot["indicators"][number]["state"],
+): string {
+  if (state === "stressed") {
+    return "🔴";
+  }
+  if (state === "healthy") {
+    return "🟢";
+  }
+  return "⚪";
 }
 
 function formatTimestamp(value: number | null): string {
