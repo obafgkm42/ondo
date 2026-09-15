@@ -8,6 +8,7 @@ import type {
   MarketActivitySession,
   MarketActivitySnapshot,
 } from "./types";
+import { isFiniteNumber, isNonNegativeFiniteNumber } from "./runtime-validation";
 import { isStandardUsEquityRthSession } from "./us-market-calendar";
 
 export const MARKET_ACTIVITY_INTERVAL_MINUTES = 15 as const;
@@ -580,12 +581,4 @@ function getEasternTimeParts(timestamp: Date): EasternTimeParts {
     weekday: values.weekday ?? "",
     minuteOfDay: Number(values.hour) * 60 + Number(values.minute),
   };
-}
-
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
-}
-
-function isNonNegativeFiniteNumber(value: unknown): value is number {
-  return isFiniteNumber(value) && value >= 0;
 }
