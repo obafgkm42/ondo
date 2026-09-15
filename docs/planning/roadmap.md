@@ -2,8 +2,9 @@
 
 Back to the [documentation map](../README.md).
 
-Status: canonical development backlog. Prepared: 2026-09-13. The coverage-aware
-M1 work landed on `main` in `c00b8fa`; later milestones remain open.
+Status: canonical development backlog. Prepared: 2026-09-13. M1-M3 and M4
+stage B have landed on `main`. M4 stage C, M5, M6, and deployed operational
+validation remain open.
 
 ## Objective and scope
 
@@ -117,6 +118,18 @@ review. Full five-minute context polling, per-constituent candle fan-out, and
 WebSocket ingestion are deferred until a specific evidence gap justifies them.
 
 ## Implementation checklist
+
+### Branch sizing discipline
+
+- Deliver one independently testable acceptance unit per branch. Target 100-300
+  changed lines across source, tests, and documentation; split the work before
+  400 changed lines unless an unavoidable generated artifact is isolated.
+- Keep behavior-preserving extraction separate from new behavior. When work
+  touches a large module, extract only the seam required by the next milestone;
+  do not bundle broad cleanup with feature development.
+- Do not use a large test diff to justify a large production diff. If either
+  side obscures review, divide the contract, implementation, and integration
+  work into separate branches.
 
 ### M1 - Correct missing-data and transition semantics
 
@@ -411,6 +424,39 @@ collector, report generator, or test suite has been delivered.
   after parsing and no new provider or storage operation is added.
 - Rollback: reverting M2 restores the earlier unlabeled presentation without
   changing stored shadow schema v4 or the frozen classifier.
+
+### M3 completion record
+
+- Scope: one coordinated provider budget, bounded category caching, persisted
+  cooldown, conservative request reservations, retry limits, and manual/cron
+  coalescing. The work landed through PR #15.
+- Validation: required GitHub hygiene, TypeScript, and Python checks passed,
+  including deterministic budget, cooldown, retry, eviction, and scheduling
+  coverage.
+- Runtime contract: no signal threshold, classifier level, mention, or trading
+  behavior changed. Category caching reduces the planned healthy daily request
+  count before any faster acquisition is considered.
+- Remaining uncertainty: local and CI tests do not prove provider egress,
+  deployed rolling-weight behavior, or production 429 recovery.
+- Rollback: revert the M3 commits only with an explicit decision to give up the
+  shared admission and cooldown safeguards; do not bypass them ad hoc.
+
+### M4 stage B completion record
+
+- Scope: opt-in five-minute RTH price-only shadow acquisition on a separate
+  schedule and storage key, bounded to 78 rows per session, 60 sessions, and
+  8 MiB. The work landed through PR #16.
+- Validation: required GitHub checks passed with differential live-output,
+  retention/export, request-count, boundary, DST, holiday, and catch-up tests.
+- Runtime contract: the existing live evaluation, Discord cadence, mentions,
+  eligibility, and half-hour diagnostics remain unchanged. Stage C is not
+  implemented.
+- Request-budget delta: planned healthy daily calls rise from stage A's 153 to
+  stage B's 197, still below the uncached baseline estimate of 200.
+- Remaining uncertainty: deployed configuration and the required ten-full-
+  session operational pilot have not been verified in this record.
+- Rollback: set `FIVE_MINUTE_RTH_ACQUISITION_MODE=off`; retained shadow rows do
+  not affect live state.
 
 [hl-limits]: https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/rate-limits-and-user-limits
 [cf-pricing]: https://developers.cloudflare.com/workers/platform/pricing/
