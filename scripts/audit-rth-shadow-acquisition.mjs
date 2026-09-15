@@ -11,11 +11,9 @@ export function summarizeRthShadowAcquisition(value, expectedSessionKeys = []) {
   assertSnapshot(value);
   assertExpectedSessionKeys(expectedSessionKeys);
   const seenTimestamps = new Set();
-  const delays = [];
   let duplicateTimestampCount = 0;
   let outOfOrderCount = 0;
   let unexpectedIntervalCount = 0;
-  let negativeDelayCount = 0;
 
   const sessions = value.sessions.map((session) => {
     let previousTimestamp = null;
@@ -42,13 +40,6 @@ export function summarizeRthShadowAcquisition(value, expectedSessionKeys = []) {
         sessionUnexpectedIntervalCount += 1;
       }
       previousTimestamp = timestamp;
-
-      const delay = observation.acquiredAt - timestamp;
-      if (delay < 0) {
-        negativeDelayCount += 1;
-      } else {
-        delays.push(delay);
-      }
     }
 
     const observed = session.observations.length;
@@ -91,19 +82,19 @@ export function summarizeRthShadowAcquisition(value, expectedSessionKeys = []) {
     duplicateTimestampCount,
     outOfOrderCount,
     unexpectedIntervalCount,
-    acquisitionDelayMs: {
-      validSampleCount: delays.length,
-      negativeCount: negativeDelayCount,
-      p50: percentile(delays, 0.5),
-      p95: percentile(delays, 0.95),
-      max: delays.length === 0 ? null : Math.max(...delays),
-    },
-    pilotWindow: buildPilotWindow(sessions, expectedSessionKeys),
+    acquisitionDelayMs: summarizeAcquisitionDelays(
+      value.sessions.flatMap((session) => session.observations),
+    ),
+    pilotWindow: buildPilotWindow(
+      value.sessions,
+      sessions,
+      expectedSessionKeys,
+    ),
     sessions,
   };
 }
 
-function buildPilotWindow(sessions, expectedSessionKeys) {
+function buildPilotWindow(storedSessions, sessions, expectedSessionKeys) {
   if (expectedSessionKeys.length === 0) {
     return null;
   }
@@ -121,20 +112,69 @@ function buildPilotWindow(sessions, expectedSessionKeys) {
   const expectedObservationCount =
     expectedSessionKeys.length * EXPECTED_OBSERVATIONS_PER_FULL_SESSION;
   const expectedKeySet = new Set(expectedSessionKeys);
+  const expectedSessions = sessions.filter((session) =>
+    expectedKeySet.has(session.sessionKey)
+  );
+  const acquisitionDelayMs = summarizeAcquisitionDelays(
+    storedSessions
+      .filter((session) => expectedKeySet.has(session.sessionKey))
+      .flatMap((session) => session.observations),
+  );
+  const timestampAnomalyCount = expectedSessions.reduce(
+    (total, session) =>
+      total + session.duplicateTimestampCount + session.outOfOrderCount +
+        session.unexpectedIntervalCount,
+    0,
+  );
+  const capturePercent = roundPercent(
+    observedUniqueObservationCount / expectedObservationCount,
+  );
+  const criteria = {
+    hasTenSessionWindow: expectedSessionKeys.length >= 10,
+    captureAtLeast99Percent: capturePercent >= 99,
+    p95DelayAtMost60Seconds:
+      acquisitionDelayMs.p95 !== null && acquisitionDelayMs.p95 <= 60_000,
+    hasNoTimestampAnomalies:
+      timestampAnomalyCount === 0 && acquisitionDelayMs.negativeCount === 0,
+  };
   return {
     expectedSessionCount: expectedSessionKeys.length,
     expectedObservationCount,
     observedUniqueObservationCount,
-    capturePercent: roundPercent(
-      observedUniqueObservationCount / expectedObservationCount,
-    ),
+    capturePercent,
     missingSessionKeys: expectedSessionKeys.filter(
       (sessionKey) => !sessionsByKey.has(sessionKey),
     ),
     unexpectedSessionKeys: sessions
       .map((session) => session.sessionKey)
       .filter((sessionKey) => !expectedKeySet.has(sessionKey)),
-    hasTenSessionWindow: expectedSessionKeys.length >= 10,
+    acquisitionDelayMs,
+    timestampAnomalyCount,
+    acquisitionGate: {
+      status: !criteria.hasTenSessionWindow
+        ? "pending"
+        : Object.values(criteria).every(Boolean) ? "pass" : "fail",
+      criteria,
+      notAssessed: [
+        "provider_request_budget",
+        "provider_429s",
+        "duplicate_notifications",
+        "worker_resource_usage",
+      ],
+    },
+  };
+}
+
+function summarizeAcquisitionDelays(observations) {
+  const delays = observations
+    .map((observation) => observation.acquiredAt - observation.candleEndTime)
+    .filter((delay) => delay >= 0);
+  return {
+    validSampleCount: delays.length,
+    negativeCount: observations.length - delays.length,
+    p50: percentile(delays, 0.5),
+    p95: percentile(delays, 0.95),
+    max: delays.length === 0 ? null : Math.max(...delays),
   };
 }
 

@@ -75,14 +75,75 @@ describe("stage B acquisition audit", () => {
       ["2026-09-15", "2026-09-16"],
     );
 
-    expect(result.pilotWindow).toEqual({
+    expect(result.pilotWindow).toMatchObject({
       expectedSessionCount: 2,
       expectedObservationCount: 156,
       observedUniqueObservationCount: 78,
       capturePercent: 50,
       missingSessionKeys: ["2026-09-16"],
       unexpectedSessionKeys: ["2026-09-14"],
-      hasTenSessionWindow: false,
+      acquisitionGate: {
+        status: "pending",
+        criteria: { hasTenSessionWindow: false },
+      },
+    });
+  });
+
+  it("passes only the acquisition evidence covered by the snapshot", () => {
+    const sessionKeys = Array.from(
+      { length: 10 },
+      (_, index) => `2026-09-${String(index + 1).padStart(2, "0")}`,
+    );
+    const sessions = sessionKeys.map((sessionKey, sessionIndex) => ({
+      sessionKey,
+      observations: Array.from({ length: 78 }, (_, index) => {
+        const timestamp = sessionIndex * 100_000_000 + index * 300_000;
+        return observation(timestamp, timestamp + 30_000);
+      }),
+    }));
+    const result = summarizeRthShadowAcquisition(
+      snapshot(sessions),
+      sessionKeys,
+    );
+
+    expect(result.pilotWindow?.acquisitionGate).toEqual({
+      status: "pass",
+      criteria: {
+        hasTenSessionWindow: true,
+        captureAtLeast99Percent: true,
+        p95DelayAtMost60Seconds: true,
+        hasNoTimestampAnomalies: true,
+      },
+      notAssessed: [
+        "provider_request_budget",
+        "provider_429s",
+        "duplicate_notifications",
+        "worker_resource_usage",
+      ],
+    });
+  });
+
+  it("fails an assessable window when capture and delay miss their gates", () => {
+    const sessionKeys = Array.from(
+      { length: 10 },
+      (_, index) => `2026-09-${String(index + 1).padStart(2, "0")}`,
+    );
+    const observations = Array.from({ length: 78 }, (_, index) => {
+      const timestamp = 1_000 + index * 300_000;
+      return observation(timestamp, timestamp + 120_000);
+    });
+    const result = summarizeRthShadowAcquisition(
+      snapshot([{ sessionKey: sessionKeys[0], observations }]),
+      sessionKeys,
+    );
+
+    expect(result.pilotWindow?.acquisitionGate).toMatchObject({
+      status: "fail",
+      criteria: {
+        hasTenSessionWindow: true,
+        captureAtLeast99Percent: false,
+        p95DelayAtMost60Seconds: false,
+      },
     });
   });
 
