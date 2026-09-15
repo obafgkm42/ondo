@@ -215,6 +215,8 @@ describe("handleDiscordInteraction", () => {
     expect(message.allowed_mentions).toEqual({ parse: [] });
     expect(message.embeds[0]?.title).toBe("SP500 掃描器狀態 · BREAKING");
     expect(message.embeds[0]?.description).toContain("壓力 60/100");
+    expect(message.embeds[0]?.description).not.toContain("不會下單");
+    expect(message.embeds[0]?.description).not.toContain("投資建議");
     expect(message.embeds[0]?.fields).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
