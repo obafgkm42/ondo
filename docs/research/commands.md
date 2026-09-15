@@ -71,11 +71,19 @@ npx wrangler kv key get \
   --binding SCANNER_STATE \
   --remote \
   --text > reports/generated/rth-shadow-acquisition-5m.json
+
+npm run audit:rth-shadow -- \
+  reports/generated/rth-shadow-acquisition-5m.json
 ```
 
 Keep this licensed research snapshot private. Its rows include `acquiredAt`
 and `context.status=not_collected`, so delayed catch-up is distinguishable and
 cannot be mistaken for contemporaneous six-mechanism coverage.
+
+The audit command prints summary metadata, retained rows per session, complete
+78-row five-minute grid counts, timestamp anomalies, and acquisition delay
+percentiles. It does not emit prices or indicator values. A partial first or
+latest session remains below 100%; do not treat that alone as a failed pilot.
 
 Interpret the output using these denominators:
 
