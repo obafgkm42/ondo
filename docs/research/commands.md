@@ -86,13 +86,19 @@ percentiles. It does not emit prices or indicator values. A partial first or
 latest session remains below 100%; do not treat that alone as a failed pilot.
 
 For a fixed pilot window, pass a second local JSON file containing the expected
-session dates, for example `["2026-09-15", "2026-09-16"]`. The audit then
-reports entirely missing sessions and calculates capture against the explicit
-`78 * expected sessions` denominator:
+completed standard-session dates, for example `["2026-09-15", "2026-09-16"]`.
+The audit then reports entirely missing sessions and calculates capture against
+the explicit `78 * expected sessions` denominator:
 
 ```bash
 npm run audit:rth-shadow -- snapshot.json expected-sessions.json
 ```
+
+With ten expected sessions, the summary evaluates only the acquisition evidence:
+at least 99% capture, p95 delay no greater than 60 seconds, and no timestamp
+anomalies. A `pass` is not a full operational pass; provider request budgets,
+429s, duplicate notifications, and Worker resource use remain explicitly
+unassessed and require separate traces.
 
 Interpret the output using these denominators:
 
