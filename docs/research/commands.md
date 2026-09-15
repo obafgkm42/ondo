@@ -85,6 +85,15 @@ The audit command prints summary metadata, retained rows per session, complete
 percentiles. It does not emit prices or indicator values. A partial first or
 latest session remains below 100%; do not treat that alone as a failed pilot.
 
+For a fixed pilot window, pass a second local JSON file containing the expected
+session dates, for example `["2026-09-15", "2026-09-16"]`. The audit then
+reports entirely missing sessions and calculates capture against the explicit
+`78 * expected sessions` denominator:
+
+```bash
+npm run audit:rth-shadow -- snapshot.json expected-sessions.json
+```
+
 Interpret the output using these denominators:
 
 - level, transition, family, and mechanism counts use retained observations;

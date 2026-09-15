@@ -7,8 +7,9 @@ const EXPECTED_OBSERVATIONS_PER_FULL_SESSION = 78;
 const EXPECTED_MEASUREMENT_VERSION = "market-fragility-price-only/v1";
 
 /** Build a data-minimizing operational summary from one local KV snapshot. */
-export function summarizeRthShadowAcquisition(value) {
+export function summarizeRthShadowAcquisition(value, expectedSessionKeys = []) {
   assertSnapshot(value);
+  assertExpectedSessionKeys(expectedSessionKeys);
   const seenTimestamps = new Set();
   const delays = [];
   let duplicateTimestampCount = 0;
@@ -51,9 +52,13 @@ export function summarizeRthShadowAcquisition(value) {
     }
 
     const observed = session.observations.length;
+    const uniqueObserved = new Set(
+      session.observations.map((observation) => observation.candleEndTime),
+    ).size;
     return {
       sessionKey: session.sessionKey,
       observed,
+      uniqueObserved,
       retainedCoveragePercent: roundPercent(
         observed / EXPECTED_OBSERVATIONS_PER_FULL_SESSION,
       ),
@@ -93,7 +98,43 @@ export function summarizeRthShadowAcquisition(value) {
       p95: percentile(delays, 0.95),
       max: delays.length === 0 ? null : Math.max(...delays),
     },
+    pilotWindow: buildPilotWindow(sessions, expectedSessionKeys),
     sessions,
+  };
+}
+
+function buildPilotWindow(sessions, expectedSessionKeys) {
+  if (expectedSessionKeys.length === 0) {
+    return null;
+  }
+  const sessionsByKey = new Map(
+    sessions.map((session) => [session.sessionKey, session]),
+  );
+  const observedUniqueObservationCount = expectedSessionKeys.reduce(
+    (total, sessionKey) =>
+      total + Math.min(
+        sessionsByKey.get(sessionKey)?.uniqueObserved ?? 0,
+        EXPECTED_OBSERVATIONS_PER_FULL_SESSION,
+      ),
+    0,
+  );
+  const expectedObservationCount =
+    expectedSessionKeys.length * EXPECTED_OBSERVATIONS_PER_FULL_SESSION;
+  const expectedKeySet = new Set(expectedSessionKeys);
+  return {
+    expectedSessionCount: expectedSessionKeys.length,
+    expectedObservationCount,
+    observedUniqueObservationCount,
+    capturePercent: roundPercent(
+      observedUniqueObservationCount / expectedObservationCount,
+    ),
+    missingSessionKeys: expectedSessionKeys.filter(
+      (sessionKey) => !sessionsByKey.has(sessionKey),
+    ),
+    unexpectedSessionKeys: sessions
+      .map((session) => session.sessionKey)
+      .filter((sessionKey) => !expectedKeySet.has(sessionKey)),
+    hasTenSessionWindow: expectedSessionKeys.length >= 10,
   };
 }
 
@@ -115,7 +156,7 @@ function assertSnapshot(value) {
   for (const session of value.sessions) {
     if (
       !isRecord(session) ||
-      typeof session.sessionKey !== "string" ||
+      !isIsoDateKey(session.sessionKey) ||
       !Array.isArray(session.observations)
     ) {
       throw new Error("snapshot contains an invalid session");
@@ -130,6 +171,27 @@ function assertSnapshot(value) {
       }
     }
   }
+}
+
+function assertExpectedSessionKeys(value) {
+  if (
+    !Array.isArray(value) ||
+    value.some((sessionKey) => !isIsoDateKey(sessionKey)) ||
+    new Set(value).size !== value.length
+  ) {
+    throw new Error("expected sessions must be unique YYYY-MM-DD strings");
+  }
+}
+
+function isIsoDateKey(value) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return (
+    !Number.isNaN(parsed.getTime()) &&
+    parsed.toISOString().slice(0, 10) === value
+  );
 }
 
 function isRecord(value) {
@@ -153,14 +215,25 @@ function isoTime(value) {
 }
 
 async function main() {
-  const [inputPath, ...extraArguments] = process.argv.slice(2);
+  const [inputPath, expectedSessionsPath, ...extraArguments] =
+    process.argv.slice(2);
   if (inputPath === undefined || extraArguments.length > 0) {
     throw new Error(
-      "Usage: npm run audit:rth-shadow -- <local-stage-b-snapshot.json>",
+      "Usage: npm run audit:rth-shadow -- <snapshot.json> " +
+        "[expected-sessions.json]",
     );
   }
   const snapshot = JSON.parse(await readFile(inputPath, "utf8"));
-  console.log(JSON.stringify(summarizeRthShadowAcquisition(snapshot), null, 2));
+  const expectedSessionKeys = expectedSessionsPath === undefined
+    ? []
+    : JSON.parse(await readFile(expectedSessionsPath, "utf8"));
+  console.log(
+    JSON.stringify(
+      summarizeRthShadowAcquisition(snapshot, expectedSessionKeys),
+      null,
+      2,
+    ),
+  );
 }
 
 if (

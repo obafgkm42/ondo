@@ -54,11 +54,35 @@ describe("stage B acquisition audit", () => {
       },
     });
     expect(result.sessions[0].retainedCoveragePercent).toBe(100);
+    expect(result.pilotWindow).toBeNull();
     expect(result.sessions[1]).toMatchObject({
       retainedCoveragePercent: 3.85,
       duplicateTimestampCount: 1,
       outOfOrderCount: 1,
       unexpectedIntervalCount: 2,
+    });
+  });
+
+  it("uses an explicit session manifest for the pilot denominator", () => {
+    const fullSession = Array.from({ length: 78 }, (_, index) =>
+      observation(1_000 + index * 300_000, 2_000 + index * 300_000),
+    );
+    const result = summarizeRthShadowAcquisition(
+      snapshot([
+        { sessionKey: "2026-09-15", observations: fullSession },
+        { sessionKey: "2026-09-14", observations: [] },
+      ]),
+      ["2026-09-15", "2026-09-16"],
+    );
+
+    expect(result.pilotWindow).toEqual({
+      expectedSessionCount: 2,
+      expectedObservationCount: 156,
+      observedUniqueObservationCount: 78,
+      capturePercent: 50,
+      missingSessionKeys: ["2026-09-16"],
+      unexpectedSessionKeys: ["2026-09-14"],
+      hasTenSessionWindow: false,
     });
   });
 
@@ -81,5 +105,17 @@ describe("stage B acquisition audit", () => {
         measurementVersion: "unknown",
       }),
     ).toThrow("snapshot metadata does not match the stage B v1 contract");
+  });
+
+  it("rejects duplicate or malformed expected session keys", () => {
+    expect(() =>
+      summarizeRthShadowAcquisition(snapshot([]), [
+        "2026-09-15",
+        "2026-09-15",
+      ]),
+    ).toThrow("expected sessions must be unique YYYY-MM-DD strings");
+    expect(() =>
+      summarizeRthShadowAcquisition(snapshot([]), ["09/15/2026"]),
+    ).toThrow("expected sessions must be unique YYYY-MM-DD strings");
   });
 });
