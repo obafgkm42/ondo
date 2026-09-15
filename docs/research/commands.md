@@ -94,6 +94,14 @@ the explicit `78 * expected sessions` denominator:
 npm run audit:rth-shadow -- snapshot.json expected-sessions.json
 ```
 
+An optional third JSON file can supply sanitized provider, notification, and
+Worker aggregate evidence for the same sessions:
+
+```bash
+npm run audit:rth-shadow -- \
+  snapshot.json expected-sessions.json operational-evidence.json
+```
+
 With ten expected sessions, the summary evaluates only the acquisition evidence:
 at least 99% capture, p95 delay no greater than 60 seconds, and no timestamp
 anomalies. A `pass` is not a full operational pass; provider request budgets,

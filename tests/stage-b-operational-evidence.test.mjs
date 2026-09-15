@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  summarizeStageBOperationalEvidence,
   validateStageBOperationalEvidence,
 } from "../scripts/stage-b-operational-evidence.mjs";
 
@@ -37,6 +38,20 @@ describe("Stage B operational evidence", () => {
     const value = evidence();
 
     expect(validateStageBOperationalEvidence(value)).toBe(value);
+  });
+
+  it("summarizes the matching window and endpoint 429 total", () => {
+    const result = summarizeStageBOperationalEvidence(
+      evidence(),
+      ["2026-09-15", "2026-09-16"],
+    );
+
+    expect(result.sessionWindow).toEqual({
+      matchesExpected: false,
+      missingSessionKeys: ["2026-09-16"],
+      unexpectedSessionKeys: [],
+    });
+    expect(result.provider.rateLimit429Total).toBe(0);
   });
 
   it("rejects missing provider operation counts", () => {

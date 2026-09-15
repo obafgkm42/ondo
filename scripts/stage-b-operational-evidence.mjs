@@ -19,6 +19,38 @@ export function validateStageBOperationalEvidence(value) {
   return value;
 }
 
+/** Summarize sanitized operations for the same explicit pilot window. */
+export function summarizeStageBOperationalEvidence(
+  value,
+  expectedSessionKeys,
+) {
+  validateStageBOperationalEvidence(value);
+  const expectedKeys = new Set(expectedSessionKeys);
+  const observedKeys = new Set(value.sessionKeys);
+  return {
+    schemaVersion: value.schemaVersion,
+    sessionWindow: {
+      matchesExpected:
+        expectedKeys.size === observedKeys.size &&
+        [...expectedKeys].every((sessionKey) => observedKeys.has(sessionKey)),
+      missingSessionKeys: expectedSessionKeys.filter(
+        (sessionKey) => !observedKeys.has(sessionKey),
+      ),
+      unexpectedSessionKeys: value.sessionKeys.filter(
+        (sessionKey) => !expectedKeys.has(sessionKey),
+      ),
+    },
+    provider: {
+      ...value.provider,
+      rateLimit429Total: Object.values(
+        value.provider.rateLimit429ByOperation,
+      ).reduce((total, count) => total + count, 0),
+    },
+    notifications: value.notifications,
+    worker: value.worker,
+  };
+}
+
 function isProviderEvidence(value) {
   return isRecord(value) &&
     isNonNegativeInteger(value.requestCount) &&

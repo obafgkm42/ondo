@@ -3,11 +3,19 @@
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
+import {
+  summarizeStageBOperationalEvidence,
+} from "./stage-b-operational-evidence.mjs";
+
 const EXPECTED_OBSERVATIONS_PER_FULL_SESSION = 78;
 const EXPECTED_MEASUREMENT_VERSION = "market-fragility-price-only/v1";
 
 /** Build a data-minimizing operational summary from one local KV snapshot. */
-export function summarizeRthShadowAcquisition(value, expectedSessionKeys = []) {
+export function summarizeRthShadowAcquisition(
+  value,
+  expectedSessionKeys = [],
+  operationalEvidence = null,
+) {
   assertSnapshot(value);
   assertExpectedSessionKeys(expectedSessionKeys);
   const seenTimestamps = new Set();
@@ -90,6 +98,12 @@ export function summarizeRthShadowAcquisition(value, expectedSessionKeys = []) {
       sessions,
       expectedSessionKeys,
     ),
+    operationalEvidence: operationalEvidence === null
+      ? null
+      : summarizeStageBOperationalEvidence(
+          operationalEvidence,
+          expectedSessionKeys,
+        ),
     sessions,
   };
 }
@@ -255,21 +269,32 @@ function isoTime(value) {
 }
 
 async function main() {
-  const [inputPath, expectedSessionsPath, ...extraArguments] =
-    process.argv.slice(2);
+  const [
+    inputPath,
+    expectedSessionsPath,
+    operationalEvidencePath,
+    ...extraArguments
+  ] = process.argv.slice(2);
   if (inputPath === undefined || extraArguments.length > 0) {
     throw new Error(
       "Usage: npm run audit:rth-shadow -- <snapshot.json> " +
-        "[expected-sessions.json]",
+        "[expected-sessions.json] [operational-evidence.json]",
     );
   }
   const snapshot = JSON.parse(await readFile(inputPath, "utf8"));
   const expectedSessionKeys = expectedSessionsPath === undefined
     ? []
     : JSON.parse(await readFile(expectedSessionsPath, "utf8"));
+  const operationalEvidence = operationalEvidencePath === undefined
+    ? null
+    : JSON.parse(await readFile(operationalEvidencePath, "utf8"));
   console.log(
     JSON.stringify(
-      summarizeRthShadowAcquisition(snapshot, expectedSessionKeys),
+      summarizeRthShadowAcquisition(
+        snapshot,
+        expectedSessionKeys,
+        operationalEvidence,
+      ),
       null,
       2,
     ),

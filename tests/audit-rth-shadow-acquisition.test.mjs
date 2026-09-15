@@ -19,6 +19,34 @@ function observation(candleEndTime, acquiredAt) {
   return { candleEndTime, acquiredAt };
 }
 
+function operationalEvidence(sessionKeys) {
+  return {
+    schemaVersion: 1,
+    sessionKeys,
+    provider: {
+      requestCount: 10,
+      estimatedPeakWeight60s: 44,
+      budgetViolationCount: 0,
+      maximumConsecutiveScheduled429s: 0,
+      rateLimit429ByOperation: {
+        candleSnapshot: 1,
+        perpCategories: 0,
+        metaAndAssetCtxs: 0,
+      },
+    },
+    notifications: { duplicateCount: 0 },
+    worker: {
+      scanLatencyMsP50: 500,
+      scanLatencyMsP95: 900,
+      kvReadCount: 10,
+      kvWriteCount: 10,
+      durableObjectRequestCount: 10,
+      cpuTimeMsTotal: null,
+      estimatedMonthlyCostUsd: null,
+    },
+  };
+}
+
 describe("stage B acquisition audit", () => {
   it("summarizes retained coverage, ordering, duplicates, and delay", () => {
     const fullSession = Array.from({ length: 78 }, (_, index) =>
@@ -178,5 +206,19 @@ describe("stage B acquisition audit", () => {
     expect(() =>
       summarizeRthShadowAcquisition(snapshot([]), ["09/15/2026"]),
     ).toThrow("expected sessions must be unique YYYY-MM-DD strings");
+  });
+
+  it("includes sanitized operational evidence when supplied", () => {
+    const result = summarizeRthShadowAcquisition(
+      snapshot([]),
+      ["2026-09-15"],
+      operationalEvidence(["2026-09-15"]),
+    );
+
+    expect(result.operationalEvidence).toMatchObject({
+      sessionWindow: { matchesExpected: true },
+      provider: { rateLimit429Total: 1 },
+      notifications: { duplicateCount: 0 },
+    });
   });
 });
