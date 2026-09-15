@@ -3,8 +3,9 @@
 Back to the [documentation map](../README.md).
 
 Status: canonical development backlog. Prepared: 2026-09-13. M1-M3 and M4
-stage B have landed on `main`. M4 stage C, M5, M6, and deployed operational
-validation remain open.
+stage B have landed on `main`. Local Stage B acquisition and operational audit
+tooling is implemented; M4 stage C, M5, M6, and the deployed ten-session pilot
+remain open.
 
 ## Objective and scope
 
@@ -457,6 +458,19 @@ collector, report generator, or test suite has been delivered.
   session operational pilot have not been verified in this record.
 - Rollback: set `FIVE_MINUTE_RTH_ACQUISITION_MODE=off`; retained shadow rows do
   not affect live state.
+
+### M4 stage B audit-tooling progress
+
+- PR #19 added the data-minimizing local acquisition audit; PR #20 added an
+  explicit expected-session denominator; PR #21 added the acquisition gate.
+- Commits `86d6e49`, `e11a3a3`, and `89ff8a0` define sanitized operational
+  evidence, integrate it with the acquisition audit, and evaluate the separate
+  operational gate.
+- Scope remains offline: no Worker runtime, provider request, storage, schedule,
+  signal, mention, or deployment configuration changed.
+- The tooling does not complete the pilot. Keep the rollout and evidence tasks
+  above unchecked until ten full deployed sessions and their sanitized traces
+  have been reviewed.
 
 [hl-limits]: https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/rate-limits-and-user-limits
 [cf-pricing]: https://developers.cloudflare.com/workers/platform/pricing/
