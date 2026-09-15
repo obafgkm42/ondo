@@ -1,19 +1,12 @@
 import type { ChartAttachment } from "./chart";
 import { localizeDiagnostic } from "./i18n";
 import {
-  formatExpandedEquityBreadth,
-  formatMarketFragilityCoverage,
   formatMarketFragilityIndicatorLabel,
-  formatMarketFragilityIndicatorValue,
   formatMarketFragilityLevel,
-  formatMarketFragilityObservationWindow,
-  formatMarketFragilityStressScore,
-  formatMarketFragilitySummary,
   marketFragilityColor,
 } from "./market-fragility-format";
 import {
   formatMarketActivityNotificationSummary,
-  formatMarketActivitySummary,
 } from "./market-activity-format";
 import { formatIneligibleMarketDataStatus } from "./market-data-health";
 import { formatResilienceDecayCardSummary } from "./resilience-decay-format";
@@ -181,9 +174,6 @@ export async function sendMarketBrief(
     ? fragilityPersistence
     : undefined;
   const effectiveResilience = stateEligible ? resilience : undefined;
-  const diagnosticStatus = dataHealth?.stateEligible === false
-    ? formatIneligibleMarketDataStatus(dataHealth, language)
-    : localizeDiagnostic(result.status, language);
   const chartMetadata =
     chart === undefined
       ? {}
@@ -199,48 +189,42 @@ export async function sendMarketBrief(
             },
           ],
         };
+  // Keep periodic cards glanceable; `/scanner status` retains source detail.
   const fields = [
     ...(fragility === undefined
       ? []
-      : marketFragilityFields(fragility, language)),
+      : marketFragilitySummaryFields(fragility, language)),
+    ...(effectiveActivity === undefined
+      ? []
+      : marketActivityFields(effectiveActivity, language)),
+    ...(fragility === undefined
+      ? []
+      : marketFragilityMechanismFields(fragility, language)),
     ...(effectivePersistence === undefined
       ? []
       : marketFragilityPersistenceFields(effectivePersistence, language)),
     ...(effectiveResilience?.status === "FADING"
       ? resilienceDecayFields(effectiveResilience, language)
       : []),
-    ...(effectiveActivity === undefined
-      ? []
-      : marketActivityFields(effectiveActivity, language)),
-    ...(dataHealth === undefined
+    ...(dataHealth === undefined ||
+        (dataHealth.status === "healthy" && dataHealth.stateEligible)
       ? []
       : marketDataHealthFields(dataHealth, language)),
-    {
-      name: english ? "Status" : "狀態",
-      value: diagnosticStatus,
-      inline: false,
-    },
-    {
-      name: english ? "Latest price" : "最新價格",
-      value: formatNullableNumber(result.latestPrice),
-      inline: true,
-    },
-    {
-      name: english ? "Observed high / low" : "觀察高 / 低",
-      value: `${formatNullableNumber(result.sessionHigh)} / ${formatNullableNumber(result.sessionLow)}`,
-      inline: true,
-    },
-    {
-      name: english ? "Completed candles" : "完成 K 線數",
-      value: String(result.candleCount),
-      inline: true,
-    },
   ];
   const opportunity = result.signal ?? result.watch;
   if (opportunity !== null && stateEligible) {
     fields.push({
       name: english ? "Opportunity detected" : "同時偵測到機會",
       value: `${opportunity.level.toUpperCase()} · ${formatDirection(opportunity.direction, language)} ${opportunity.price.toFixed(1)} · ${opportunity.confidenceScore}/100 · ${opportunity.priceRiskReward.toFixed(1)}R`,
+      inline: false,
+    });
+  }
+  if (chart !== undefined) {
+    fields.push({
+      name: english ? "Price location" : "價格位置",
+      value: english
+        ? `${result.candleCount} completed 5m candles`
+        : `${result.candleCount} 根完成 5m K`,
       inline: false,
     });
   }
@@ -251,7 +235,6 @@ export async function sendMarketBrief(
     result,
     language,
     fragility,
-    effectiveActivity,
     dataHealth,
   );
   await sendWebhook(
@@ -273,7 +256,6 @@ export async function sendMarketBrief(
           description: buildMarketBriefDescription(
             result,
             language,
-            fragility,
             dataHealth,
           ),
           color:
@@ -292,6 +274,9 @@ export async function sendMarketBrief(
                   url: `attachment://${chart.filename}`,
                 },
           timestamp: timestamp.toISOString(),
+          footer: {
+            text: buildMarketBriefFooter(timestamp, dataHealth, language),
+          },
         },
       ],
       allowed_mentions: {
@@ -545,178 +530,124 @@ function formatPolicyRole(
 function buildMarketBriefDescription(
   result: ScanResult,
   language: Language,
-  fragility?: MarketFragilitySnapshot,
   dataHealth?: MarketDataHealth,
 ): string {
   const english = language === "en";
-  const opportunity = dataHealth?.stateEligible === false
-    ? null
-    : result.signal ?? result.watch;
-  const signalSummary =
-    opportunity === null
-      ? english
-        ? "No qualified signal"
-        : "暫無合格訊號"
-      : `${opportunity.level.toUpperCase()} ${formatDirection(opportunity.direction, language)} ${opportunity.price.toFixed(1)} · ${opportunity.confidenceScore}/100 · ${opportunity.priceRiskReward.toFixed(1)}R`;
-
-  if (english) {
-    return [
-      ...(fragility === undefined
-        ? []
-        : [formatMarketFragilitySummary(fragility, language)]),
-      ...(dataHealth?.stateEligible === false
-        ? ["Live decision inputs withheld because market data is not eligible."]
-        : []),
-      `${result.market} latest ${formatNullableNumber(result.latestPrice)}; session range ${formatNullableNumber(result.sessionLow)}–${formatNullableNumber(result.sessionHigh)}.`,
-      `${signalSummary}; analyzed ${result.candleCount} completed 5m candles.`,
-      `Status: ${
-        dataHealth?.stateEligible === false
-          ? formatIneligibleMarketDataStatus(dataHealth, language)
-          : localizeDiagnostic(result.status, language)
-      }`,
-    ].join("\n");
+  const latestPrice = formatNullableNumber(result.latestPrice);
+  const sessionLow = formatNullableNumber(result.sessionLow);
+  const sessionHigh = formatNullableNumber(result.sessionHigh);
+  const priceSummary = english
+    ? `Latest ${latestPrice} · session ${sessionLow}–${sessionHigh}`
+    : `最新 ${latestPrice} · 日內 ${sessionLow}–${sessionHigh}`;
+  if (dataHealth?.stateEligible !== false) {
+    return priceSummary;
   }
-
-  return [
-    ...(fragility === undefined
-      ? []
-      : [formatMarketFragilitySummary(fragility, language)]),
-    ...(dataHealth?.stateEligible === false
-      ? ["市場資料不符合決策資格，已停用即時訊號輸入。"]
-      : []),
-    `${result.market} 最新 ${formatNullableNumber(result.latestPrice)}；日內區間 ${formatNullableNumber(result.sessionLow)}–${formatNullableNumber(result.sessionHigh)}。`,
-    `${signalSummary}；已分析 ${result.candleCount} 根完成 5m K。`,
-    `狀態：${
-      dataHealth?.stateEligible === false
-        ? formatIneligibleMarketDataStatus(dataHealth, language)
-        : localizeDiagnostic(result.status, language)
-    }`,
-  ].join("\n");
+  return english
+    ? `${priceSummary} · market data ineligible for decisions`
+    : `${priceSummary} · 市場資料不符合決策資格`;
 }
 
 function buildMarketBriefNotificationSummary(
   result: ScanResult,
   language: Language,
   fragility?: MarketFragilitySnapshot,
-  activity?: MarketActivitySnapshot,
   dataHealth?: MarketDataHealth,
 ): string {
   const english = language === "en";
   const opportunity = dataHealth?.stateEligible === false
     ? null
     : result.signal ?? result.watch;
-  const signalSummary =
-    opportunity === null
-      ? english
-        ? "No qualified signal"
-        : "暫無合格訊號"
-      : `${opportunity.level.toUpperCase()} ${formatDirection(opportunity.direction, language)} ${opportunity.price.toFixed(1)} · ${opportunity.confidenceScore}/100 · ${opportunity.priceRiskReward.toFixed(1)}R`;
-
-  if (english) {
+  const stateSummary = formatMarketBriefStateSummary(
+    result,
+    fragility,
+    language,
+  );
+  if (dataHealth?.stateEligible === false) {
+    const dataLabel = english ? "data" : "資料";
     return [
-      fragility === undefined
-        ? "SP500 30-minute brief"
-        : `SP500 ${formatMarketFragilitySummary(fragility, language)}`,
-      ...(activity === undefined
-        ? []
-        : [formatMarketActivityNotificationSummary(activity, language)]),
-      ...(dataHealth === undefined
-        ? []
-        : [`Data ${dataHealth.status.toUpperCase()} · ${dataHealth.sessionScope.toUpperCase()}`]),
-      `Latest ${formatNullableNumber(result.latestPrice)}`,
-      `Session ${formatNullableNumber(result.sessionLow)}–${formatNullableNumber(result.sessionHigh)}`,
-      signalSummary,
-      shortNotificationStatus(
-        dataHealth?.stateEligible === false
-          ? formatIneligibleMarketDataStatus(dataHealth, language)
-          : localizeDiagnostic(result.status, language),
-      ),
-    ].join(" | ");
+      stateSummary,
+      `${dataLabel} ${dataHealth.status.toUpperCase()}`,
+      dataHealth.sessionScope.toUpperCase(),
+    ].join(" · ");
   }
-
+  if (opportunity === null) {
+    return stateSummary;
+  }
   return [
-    fragility === undefined
-      ? "SP500 半小時簡報"
-      : `SP500 市場狀態 ${formatMarketFragilitySummary(fragility, language)}`,
-    ...(activity === undefined
-      ? []
-      : [formatMarketActivityNotificationSummary(activity, language)]),
-    ...(dataHealth === undefined
-      ? []
-      : [`資料 ${dataHealth.status.toUpperCase()} · ${dataHealth.sessionScope.toUpperCase()}`]),
-    `最新 ${formatNullableNumber(result.latestPrice)}`,
-    `日內 ${formatNullableNumber(result.sessionLow)}–${formatNullableNumber(result.sessionHigh)}`,
-    signalSummary,
-    shortNotificationStatus(
-      dataHealth?.stateEligible === false
-        ? formatIneligibleMarketDataStatus(dataHealth, language)
-        : localizeDiagnostic(result.status, language),
-    ),
-  ].join(" | ");
+    stateSummary,
+    `${opportunity.level.toUpperCase()} ${formatDirection(
+      opportunity.direction,
+      language,
+    )} ${opportunity.price.toFixed(1)}`,
+  ].join(" · ");
 }
 
-function marketFragilityFields(
+function formatMarketBriefStateSummary(
+  result: ScanResult,
+  fragility: MarketFragilitySnapshot | undefined,
+  language: Language,
+): string {
+  const english = language === "en";
+  if (fragility === undefined) {
+    const latest = formatNullableNumber(result.latestPrice);
+    return english
+      ? `SP500 30-minute brief · latest ${latest}`
+      : `SP500 半小時簡報 · 最新 ${latest}`;
+  }
+  const stressed = [
+    fragility.stressedIndicatorCount,
+    fragility.totalIndicatorCount,
+  ].join("/");
+  return [
+    "SP500",
+    `${formatMarketFragilityLevel(fragility)} ${formatScore(fragility)}`,
+    english ? `${stressed} mechanisms under stress` : `${stressed} 機制受壓`,
+  ].join(" · ");
+}
+
+function marketFragilitySummaryFields(
   fragility: MarketFragilitySnapshot,
   language: Language,
 ): Array<{ name: string; value: string; inline: boolean }> {
   const english = language === "en";
-  const stressedIndicators = fragility.indicators.filter(
-    (indicator) => indicator.state === "stressed",
-  );
-  const failureSummary =
-    stressedIndicators.length === 0
-      ? english
-        ? "No observed pressure condition is currently stressed"
-        : "目前沒有已觀察壓力條件受壓"
-      : stressedIndicators
-          .map((indicator) => {
-            const label = formatMarketFragilityIndicatorLabel(
-              indicator.id,
-              language,
-            );
-            const value = formatMarketFragilityIndicatorValue(
-              indicator,
-              fragility,
-              language,
-            );
-            return `• ${label}: ${value}`;
-          })
-          .join("\n");
   return [
     {
       name: english ? "Market pressure" : "市場壓力",
-      value: formatMarketFragilitySummary(fragility, language),
-      inline: false,
-    },
-    {
-      name: english ? "Observed pressure" : "已觀察壓力",
-      value: failureSummary,
-      inline: false,
-    },
-    {
-      name: english ? "Data coverage" : "資料覆蓋",
-      value: formatMarketFragilityCoverage(fragility, language),
+      value: formatScore(fragility),
       inline: true,
     },
     {
-      name: english ? "Observation window" : "觀察窗口",
-      value: formatMarketFragilityObservationWindow(fragility, language),
+      name: english ? "Mechanisms under stress" : "受壓機制",
+      value: [
+        fragility.stressedIndicatorCount,
+        fragility.totalIndicatorCount,
+      ].join(" / "),
+      inline: true,
+    },
+  ];
+}
+
+function marketFragilityMechanismFields(
+  fragility: MarketFragilitySnapshot,
+  language: Language,
+): Array<{ name: string; value: string; inline: boolean }> {
+  const english = language === "en";
+  // Show all six mechanisms so compacting cannot hide missing coverage.
+  const mechanisms = fragility.indicators.map((indicator) => {
+    const label = formatMarketFragilityIndicatorLabel(indicator.id, language);
+    const state = indicator.state === "stressed"
+      ? indicator.displayValue
+      : indicator.state === "healthy"
+        ? english ? "healthy" : "正常"
+        : english ? "unavailable" : "不可用";
+    return `${indicatorStateIcon(indicator.state)} **${label}** · ${state}`;
+  }).join("\n");
+  return [
+    {
+      name: english ? "Six repair mechanisms" : "六個修復機制",
+      value: mechanisms,
       inline: false,
     },
-    ...(fragility.expandedEquityBreadth === undefined
-      ? []
-      : [
-          {
-            name: english
-              ? "Expanded equity breadth"
-              : "擴展股票廣度",
-            value: formatExpandedEquityBreadth(
-              fragility.expandedEquityBreadth,
-              language,
-            ),
-            inline: false,
-          },
-        ]),
   ];
 }
 
@@ -915,13 +846,60 @@ function marketActivityFields(
   activity: MarketActivitySnapshot,
   language: Language,
 ): Array<{ name: string; value: string; inline: boolean }> {
+  const separator = language === "en" ? " | " : "｜";
+  const prefix = language === "en" ? "Volume " : "量能 ";
+  const [level, ...details] = formatMarketActivityNotificationSummary(
+    activity,
+    language,
+  ).replace(prefix, "").split(separator);
   return [
     {
       name: language === "en" ? "Market activity" : "市場活躍度",
-      value: formatMarketActivitySummary(activity, language),
-      inline: false,
+      value: [level, details.join(" · ")].filter(Boolean).join("\n"),
+      inline: true,
     },
   ];
+}
+
+function formatScore(fragility: MarketFragilitySnapshot): string {
+  return fragility.score === null ? "n/a" : `${fragility.score}/100`;
+}
+
+function indicatorStateIcon(
+  state: MarketFragilitySnapshot["indicators"][number]["state"],
+): string {
+  if (state === "stressed") {
+    return "🔴";
+  }
+  if (state === "healthy") {
+    return "🟢";
+  }
+  return "⚪";
+}
+
+const EASTERN_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+function buildMarketBriefFooter(
+  timestamp: Date,
+  health: MarketDataHealth | undefined,
+  language: Language,
+): string {
+  const english = language === "en";
+  const dataLabel = health === undefined
+    ? null
+    : health.status === "healthy"
+      ? english ? "Data healthy" : "資料正常"
+      : `${english ? "Data" : "資料"} ${health.status.toUpperCase()}`;
+  const sessionLabel = health?.sessionScope.toUpperCase() ?? null;
+  const timeLabel = english
+    ? `Through ${EASTERN_TIME_FORMATTER.format(timestamp)} ET`
+    : `截至 ${EASTERN_TIME_FORMATTER.format(timestamp)} ET`;
+  return [dataLabel, sessionLabel, timeLabel].filter(Boolean).join(" · ");
 }
 
 function marketDataHealthFields(
@@ -980,13 +958,6 @@ function formatMarketDataHealthReason(
     return "隔夜市場狀態政策尚未驗證";
   }
   return reason;
-}
-
-function shortNotificationStatus(status: string): string {
-  const compactStatus = status.replace(/\s+/g, " ").trim();
-  return compactStatus.length <= 120
-    ? compactStatus
-    : `${compactStatus.slice(0, 117)}...`;
 }
 
 function buildVersionNoticeDescription(

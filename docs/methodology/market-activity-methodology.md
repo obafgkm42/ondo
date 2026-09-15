@@ -114,8 +114,10 @@ and Discord delivery paths continue.
 
 `MARKET_ACTIVITY_MODE=shadow` logs the metrics and exposes them only through
 authenticated/private status paths. After real-session review, `display` adds a
-compact RVOL summary to the push preview and a detailed Discord field. Mention
-routing and signal eligibility stay unchanged.
+compact inline RVOL field to the Discord card. It stays out of the one-line push
+preview so the market-state notification remains scannable. The private status
+command retains the detailed activity diagnostic. Mention routing and signal
+eligibility stay unchanged.
 
 Calibration should inspect at least 30-60 real Hyperliquid sessions, per-slot
 percentiles, label frequencies, gaps, and threshold churn. Activity labels alone

@@ -18,12 +18,8 @@ import type {
 } from "../src/types";
 
 describe("sendMarketBrief", () => {
-  it("adds RVOL to the push preview and detailed card without changing mentions", async () => {
-    const requests: RequestInit[] = [];
-    const fetcher = async (_url: string | URL | Request, init?: RequestInit) => {
-      requests.push(init ?? {});
-      return new Response(null, { status: 204 });
-    };
+  it("adds compact RVOL to the card without bloating the push preview", async () => {
+    const { requests, fetcher } = createWebhookCapture();
     const result: ScanResult = {
       market: "xyz:SP500",
       candleCount: 24,
@@ -38,40 +34,51 @@ describe("sendMarketBrief", () => {
       "https://discord.com/api/webhooks/example/token",
       result,
       new Date("2026-06-23T15:30:00.000Z"),
-      fetcher as typeof fetch,
+      fetcher,
       undefined,
       "zh",
       undefined,
       undefined,
       activitySnapshot(),
     );
+    await sendMarketBrief(
+      "https://discord.com/api/webhooks/example/token",
+      result,
+      new Date("2026-06-23T15:30:00.000Z"),
+      fetcher,
+      undefined,
+      "en",
+      undefined,
+      undefined,
+      activitySnapshot(),
+    );
 
     const payload = JSON.parse(String(requests[0]?.body));
-    expect(payload.content).toContain(
-      "量能 ACTIVE（活躍）｜累積 1.31x｜15m 1.70x 明顯放量",
-    );
-    expect(payload.content.indexOf("量能 ACTIVE")).toBeLessThan(
-      payload.content.indexOf("最新 6090.0"),
-    );
+    const englishPayload = JSON.parse(String(requests[1]?.body));
+    expect(payload.content).toBe("SP500 半小時簡報 · 最新 6090.0");
     expect(payload.allowed_mentions).toEqual({ parse: [] });
     expect(payload.embeds[0].fields).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           name: "市場活躍度",
-          value: expect.stringContaining(
-            "今日累積量：1.31x（相較過去同時刻均值）\n歷史位置：第 82 百分位（樣本：46 日）",
-          ),
+          value: "ACTIVE（活躍）\n累積 1.31x · 15m 1.70x 明顯放量",
+          inline: true,
         }),
+      ]),
+    );
+    expect(englishPayload.embeds[0].fields).toEqual(
+      expect.arrayContaining([
+        {
+          name: "Market activity",
+          value: "ACTIVE\nCumulative 1.31x · 15m 1.70x ELEVATED",
+          inline: true,
+        },
       ]),
     );
   });
 
   it("sends a Discord heartbeat when no signal is present", async () => {
-    const requests: RequestInit[] = [];
-    const fetcher = async (_url: string | URL | Request, init?: RequestInit) => {
-      requests.push(init ?? {});
-      return new Response(null, { status: 204 });
-    };
+    const { requests, fetcher } = createWebhookCapture();
     const result: ScanResult = {
       market: "xyz:SP500",
       candleCount: 12,
@@ -87,35 +94,21 @@ describe("sendMarketBrief", () => {
       "https://discord.com/api/webhooks/example/token",
       result,
       new Date("2026-06-24T00:30:00Z"),
-      fetcher as typeof fetch,
+      fetcher,
     );
 
     const payload = JSON.parse(String(requests[0]?.body));
-    expect(payload.content).toContain("SP500 半小時簡報");
-    expect(payload.content).not.toContain("😌");
-    expect(payload.content).toContain("最新 6090.0");
-    expect(payload.content).toContain("日內 6075.0–6100.0");
-    expect(payload.content).toContain("暫無合格訊號");
+    expect(payload.content).toBe("SP500 半小時簡報 · 最新 6090.0");
     expect(payload.embeds[0].title).toContain("半小時簡報");
-    expect(payload.embeds[0].description).toContain("xyz:SP500 最新 6090.0");
-    expect(payload.embeds[0].description).toContain("日內區間 6075.0–6100.0");
-    expect(payload.embeds[0].description).toContain("暫無合格訊號");
-    expect(payload.embeds[0].description).toContain(
-      "沒有新的回看極值拒絕形態",
+    expect(payload.embeds[0].description).toBe(
+      "最新 6090.0 · 日內 6075.0–6100.0",
     );
-    expect(payload.embeds[0].fields).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ name: "最新價格", value: "6090.0" }),
-      ]),
-    );
+    expect(payload.embeds[0].fields).toEqual([]);
+    expect(payload.embeds[0].footer.text).toBe("截至 20:30 ET");
   });
 
   it("renders an English brief when configured", async () => {
-    const requests: RequestInit[] = [];
-    const fetcher = async (_url: string | URL | Request, init?: RequestInit) => {
-      requests.push(init ?? {});
-      return new Response(null, { status: 204 });
-    };
+    const { requests, fetcher } = createWebhookCapture();
     const result: ScanResult = {
       market: "xyz:SP500",
       candleCount: 12,
@@ -131,30 +124,24 @@ describe("sendMarketBrief", () => {
       "https://discord.com/api/webhooks/example/token",
       result,
       new Date("2026-06-24T00:30:00Z"),
-      fetcher as typeof fetch,
+      fetcher,
       undefined,
       "en",
     );
 
     const payload = JSON.parse(String(requests[0]?.body));
-    expect(payload.content).toContain("SP500 30-minute brief");
-    expect(payload.content).toContain("No qualified signal");
+    expect(payload.content).toBe("SP500 30-minute brief · latest 6090.0");
     expect(payload.embeds[0].title).toBe(
       "SP500 Reversal Scanner 30-Minute Brief",
     );
-    expect(payload.embeds[0].fields).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ name: "Latest price", value: "6090.0" }),
-      ]),
+    expect(payload.embeds[0].description).toBe(
+      "Latest 6090.0 · session 6075.0–6100.0",
     );
+    expect(payload.embeds[0].footer.text).toBe("Through 20:30 ET");
   });
 
   it("attaches a chart image when one is available", async () => {
-    const requests: RequestInit[] = [];
-    const fetcher = async (_url: string | URL | Request, init?: RequestInit) => {
-      requests.push(init ?? {});
-      return new Response(null, { status: 204 });
-    };
+    const { requests, fetcher } = createWebhookCapture();
     const result: ScanResult = {
       market: "xyz:SP500",
       candleCount: 12,
@@ -170,7 +157,7 @@ describe("sendMarketBrief", () => {
       "https://discord.com/api/webhooks/example/token",
       result,
       new Date("2026-06-24T00:30:00Z"),
-      fetcher as typeof fetch,
+      fetcher,
       {
         filename: "SP500-brief-chart.png",
         contentType: "image/png",
@@ -182,21 +169,21 @@ describe("sendMarketBrief", () => {
     expect(body).toBeInstanceOf(FormData);
     const form = body as FormData;
     const payload = JSON.parse(String(form.get("payload_json")));
-    expect(payload.content).toContain("最新 6090.0");
-    expect(payload.content).toContain("暫無合格訊號");
+    expect(payload.content).toBe("SP500 半小時簡報 · 最新 6090.0");
     expect(payload.attachments[0].filename).toBe("SP500-brief-chart.png");
     expect(payload.embeds[0].image.url).toBe(
       "attachment://SP500-brief-chart.png",
     );
+    expect(payload.embeds[0].fields).toContainEqual({
+      name: "價格位置",
+      value: "12 根完成 5m K",
+      inline: false,
+    });
     expect(form.get("files[0]")).toBeInstanceOf(File);
   });
 
   it("puts the market fragility state in the push preview and embed", async () => {
-    const requests: RequestInit[] = [];
-    const fetcher = async (_url: string | URL | Request, init?: RequestInit) => {
-      requests.push(init ?? {});
-      return new Response(null, { status: 204 });
-    };
+    const { requests, fetcher } = createWebhookCapture();
     const result: ScanResult = {
       market: "xyz:SP500",
       candleCount: 12,
@@ -220,71 +207,97 @@ describe("sendMarketBrief", () => {
       "https://discord.com/api/webhooks/example/token",
       result,
       new Date("2026-06-24T00:30:00Z"),
-      fetcher as typeof fetch,
+      fetcher,
       undefined,
       "zh",
       fragility,
+      undefined,
+      activitySnapshot(),
     );
     await sendMarketBrief(
       "https://discord.com/api/webhooks/example/token",
       result,
       new Date("2026-06-24T00:30:00Z"),
-      fetcher as typeof fetch,
+      fetcher,
       undefined,
       "en",
       fragility,
+      undefined,
+      activitySnapshot(),
     );
 
     const payload = JSON.parse(String(requests[0]?.body));
     const englishPayload = JSON.parse(String(requests[1]?.body));
-    expect(payload.content).toMatch(/^@everyone /);
-    expect(payload.content).toContain("市場狀態 BREAKING · 壓力 60/100");
-    expect(payload.content).toContain("已觀察壓力條件 3/6");
+    expect(payload.content).toBe(
+      "@everyone SP500 · BREAKING 60/100 · 3/6 機制受壓",
+    );
     expect(payload.allowed_mentions).toEqual({ parse: ["everyone"] });
     expect(payload.embeds[0].title).toBe("SP500 市場狀態 · BREAKING");
+    expect(payload.embeds[0].description).toBe(
+      "最新 6010.0 · 日內 6000.0–6100.0",
+    );
+    expect(payload.embeds[0].fields.slice(0, 4).map(
+      (field: { name: string }) => field.name,
+    )).toEqual([
+      "市場壓力",
+      "受壓機制",
+      "市場活躍度",
+      "六個修復機制",
+    ]);
     expect(payload.embeds[0].fields).toEqual(
       expect.arrayContaining([
+        {
+          name: "市場壓力",
+          value: "60/100",
+          inline: true,
+        },
+        {
+          name: "受壓機制",
+          value: "3 / 6",
+          inline: true,
+        },
         expect.objectContaining({
-          name: "已觀察壓力",
-          value: expect.stringContaining("VWAP 修復失敗"),
-        }),
-        expect.objectContaining({
-          name: "資料覆蓋",
-          value: "6/6 已觀察 · 完整 · 0 不可用",
-        }),
-        expect.objectContaining({
-          name: "觀察窗口",
-          value: expect.stringContaining("供應商時間戳不可用"),
-        }),
-        expect.objectContaining({
-          name: "擴展股票廣度",
-          value: expect.stringContaining(
-            "70% 跌幅至少 0.5%（28/40）",
-          ),
+          name: "六個修復機制",
+          value: [
+            "🔴 **時段跌幅** · -1.20%",
+            "🔴 **VWAP 修復失敗** · -0.50 ATR",
+            "🔴 **收盤承接偏弱** · 10%",
+            "🟢 **下跌尾部群聚** · 正常",
+            "🟢 **大型股廣度惡化** · 正常",
+            "🟢 **SP500 / XYZ100 同步走弱** · 正常",
+          ].join("\n"),
         }),
       ]),
     );
-    expect(englishPayload.content).toContain(
-      "BREAKING · stress 60/100 · 3/6 observed pressure conditions",
+    expect(payload.embeds[0].fields).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "資料覆蓋" }),
+        expect.objectContaining({ name: "觀察窗口" }),
+        expect.objectContaining({ name: "擴展股票廣度" }),
+      ]),
+    );
+    expect(englishPayload.content).toBe(
+      "@everyone SP500 · BREAKING 60/100 · 3/6 mechanisms under stress",
     );
     expect(englishPayload.embeds[0].fields).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          name: "Expanded equity breadth",
-          value: expect.stringContaining(
-            "vs Hyperliquid prevDayPx · xyz stock-perp proxy · context only",
-          ),
+          name: "Six repair mechanisms",
+          value: [
+            "🔴 **session loss** · -1.20%",
+            "🔴 **VWAP repair failure** · -0.50 ATR",
+            "🔴 **poor close location** · 10%",
+            "🟢 **downside-tail cluster** · healthy",
+            "🟢 **mega-cap breadth** · healthy",
+            "🟢 **SP500 / XYZ100 confirmation** · healthy",
+          ].join("\n"),
         }),
       ]),
     );
   });
 
   it("labels a resilient zero score as zero stress", async () => {
-    const requests: RequestInit[] = [];
-    const fetcher = async (_url: string | URL | Request, init?: RequestInit) => {
-      requests.push(init ?? {});
-      return new Response(null, { status: 204 });
-    };
+    const { requests, fetcher } = createWebhookCapture();
     const result: ScanResult = {
       market: "xyz:SP500",
       candleCount: 12,
@@ -306,24 +319,69 @@ describe("sendMarketBrief", () => {
       "https://discord.com/api/webhooks/example/token",
       result,
       new Date("2026-06-24T00:30:00Z"),
-      fetcher as typeof fetch,
+      fetcher,
       undefined,
       "zh",
       resilientSnapshot,
     );
 
     const payload = JSON.parse(String(requests[0]?.body));
-    expect(payload.content).toContain(
-      "市場狀態 RESILIENT · 壓力 0/100 · 已觀察壓力條件 0/6",
+    expect(payload.content).toBe(
+      "SP500 · RESILIENT 0/100 · 0/6 機制受壓",
     );
-    expect(payload.embeds[0].description).toContain(
-      "RESILIENT · 壓力 0/100 · 已觀察壓力條件 0/6",
+    expect(payload.embeds[0].description).toBe(
+      "最新 6090.0 · 日內 6000.0–6100.0",
     );
     expect(payload.embeds[0].fields).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({
+        {
           name: "市場壓力",
-          value: "RESILIENT · 壓力 0/100 · 已觀察壓力條件 0/6",
+          value: "0/100",
+          inline: true,
+        },
+      ]),
+    );
+  });
+
+  it("keeps unavailable repair mechanisms visible with a white light", async () => {
+    const { requests, fetcher } = createWebhookCapture();
+    const fragility = fragilitySnapshot();
+    fragility.availableIndicatorCount = 5;
+    fragility.indicators[5] = {
+      ...fragility.indicators[5],
+      state: "unavailable",
+      value: null,
+      displayValue: "n/a",
+      unavailableReason: "missing_cross_asset_context",
+    };
+
+    await sendMarketBrief(
+      "https://discord.com/api/webhooks/example/token",
+      {
+        market: "xyz:SP500",
+        candleCount: 12,
+        sessionHigh: 6100,
+        sessionLow: 6000,
+        latestPrice: 6010,
+        status: "no fresh lookback extreme rejection passed watch or alert thresholds",
+        watch: null,
+        signal: null,
+      },
+      new Date("2026-06-24T00:30:00Z"),
+      fetcher,
+      undefined,
+      "zh",
+      fragility,
+    );
+
+    const payload = JSON.parse(String(requests[0]?.body));
+    expect(payload.embeds[0].fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "六個修復機制",
+          value: expect.stringContaining(
+            "⚪ **SP500 / XYZ100 同步走弱** · 不可用",
+          ),
         }),
       ]),
     );
@@ -443,6 +501,9 @@ describe("sendMarketBrief", () => {
         expect.objectContaining({ name: "BREAKING 持續性" }),
         expect.objectContaining({ name: "韌性衰退" }),
       ]),
+    );
+    expect(payload.embeds[0].footer.text).toBe(
+      "資料 STALE · RTH · 截至 20:30 ET",
     );
   });
 
@@ -857,6 +918,18 @@ function opportunity(level: "watch" | "alert"): ReversalLocation {
     reasons: ["fresh lookback low rejected"],
     timestamp: Date.parse("2026-06-24T00:30:00Z"),
   };
+}
+
+function createWebhookCapture(): {
+  requests: RequestInit[];
+  fetcher: typeof fetch;
+} {
+  const requests: RequestInit[] = [];
+  const fetcher: typeof fetch = async (_url, init) => {
+    requests.push(init ?? {});
+    return new Response(null, { status: 204 });
+  };
+  return { requests, fetcher };
 }
 
 function activitySnapshot(): MarketActivitySnapshot {

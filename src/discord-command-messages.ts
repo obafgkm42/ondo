@@ -108,7 +108,7 @@ export function buildDiscordStatusMessage(
         title: english
           ? `SP500 Scanner Status · ${titleLevel}`
           : `SP500 掃描器狀態 · ${titleLevel}`,
-        description: `${description}\n${english ? "Private read-only query; not financial advice or an order instruction." : "私密唯讀查詢；不是投資建議，也不會下單。"}`,
+        description,
         color: fragility === null ? 0x95a5a6 : marketFragilityColor(fragility),
         fields: [
           {
