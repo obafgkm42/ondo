@@ -27,19 +27,21 @@ export function summarizeStageBOperationalEvidence(
   validateStageBOperationalEvidence(value);
   const expectedKeys = new Set(expectedSessionKeys);
   const observedKeys = new Set(value.sessionKeys);
+  const sessionWindow = {
+    matchesExpected:
+      expectedKeys.size === observedKeys.size &&
+      [...expectedKeys].every((sessionKey) => observedKeys.has(sessionKey)),
+    missingSessionKeys: expectedSessionKeys.filter(
+      (sessionKey) => !observedKeys.has(sessionKey),
+    ),
+    unexpectedSessionKeys: value.sessionKeys.filter(
+      (sessionKey) => !expectedKeys.has(sessionKey),
+    ),
+  };
+  const operationalGate = evaluateOperationalGate(value, sessionWindow);
   return {
     schemaVersion: value.schemaVersion,
-    sessionWindow: {
-      matchesExpected:
-        expectedKeys.size === observedKeys.size &&
-        [...expectedKeys].every((sessionKey) => observedKeys.has(sessionKey)),
-      missingSessionKeys: expectedSessionKeys.filter(
-        (sessionKey) => !observedKeys.has(sessionKey),
-      ),
-      unexpectedSessionKeys: value.sessionKeys.filter(
-        (sessionKey) => !expectedKeys.has(sessionKey),
-      ),
-    },
+    sessionWindow,
     provider: {
       ...value.provider,
       rateLimit429Total: Object.values(
@@ -48,6 +50,29 @@ export function summarizeStageBOperationalEvidence(
     },
     notifications: value.notifications,
     worker: value.worker,
+    operationalGate,
+  };
+}
+
+function evaluateOperationalGate(value, sessionWindow) {
+  const criteria = {
+    hasTenSessionWindow: value.sessionKeys.length >= 10,
+    sessionWindowMatches: sessionWindow.matchesExpected,
+    hasNoBudgetViolations: value.provider.budgetViolationCount === 0,
+    belowScheduled429StopThreshold:
+      value.provider.maximumConsecutiveScheduled429s < 3,
+    hasNoDuplicateNotifications: value.notifications.duplicateCount === 0,
+    hasResourceMeasurements:
+      value.worker.cpuTimeMsTotal !== null &&
+      value.worker.estimatedMonthlyCostUsd !== null,
+  };
+  const isPending =
+    !criteria.hasTenSessionWindow || !criteria.hasResourceMeasurements;
+  return {
+    status: isPending
+      ? "pending"
+      : Object.values(criteria).every(Boolean) ? "pass" : "fail",
+    criteria,
   };
 }
 

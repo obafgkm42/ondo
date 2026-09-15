@@ -102,11 +102,16 @@ npm run audit:rth-shadow -- \
   snapshot.json expected-sessions.json operational-evidence.json
 ```
 
+The separate `operationalGate` stays `pending` until ten sessions and Worker
+CPU and cost measurements are present. It fails on a session-window mismatch,
+budget violation, three consecutive scheduled 429s, or duplicate notification.
+Individual 429s remain reported by operation rather than causing an automatic
+failure.
+
 With ten expected sessions, the summary evaluates only the acquisition evidence:
 at least 99% capture, p95 delay no greater than 60 seconds, and no timestamp
-anomalies. A `pass` is not a full operational pass; provider request budgets,
-429s, duplicate notifications, and Worker resource use remain explicitly
-unassessed and require separate traces.
+anomalies. Its `pass` is not a full operational pass; use the separate
+operational evidence and gate for that decision.
 
 Interpret the output using these denominators:
 

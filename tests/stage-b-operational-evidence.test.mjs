@@ -52,6 +52,30 @@ describe("Stage B operational evidence", () => {
       unexpectedSessionKeys: [],
     });
     expect(result.provider.rateLimit429Total).toBe(0);
+    expect(result.operationalGate.status).toBe("pending");
+  });
+
+  it("passes a complete clean window and fails a stop condition", () => {
+    const sessionKeys = Array.from(
+      { length: 10 },
+      (_, index) => `2026-09-${String(index + 1).padStart(2, "0")}`,
+    );
+    const value = evidence();
+    value.sessionKeys = sessionKeys;
+    value.worker.cpuTimeMsTotal = 12;
+    value.worker.estimatedMonthlyCostUsd = 0.03;
+
+    expect(
+      summarizeStageBOperationalEvidence(value, sessionKeys).operationalGate,
+    ).toMatchObject({ status: "pass" });
+
+    value.provider.maximumConsecutiveScheduled429s = 3;
+    expect(
+      summarizeStageBOperationalEvidence(value, sessionKeys).operationalGate,
+    ).toMatchObject({
+      status: "fail",
+      criteria: { belowScheduled429StopThreshold: false },
+    });
   });
 
   it("rejects missing provider operation counts", () => {
