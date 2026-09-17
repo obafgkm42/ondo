@@ -229,7 +229,7 @@ describe("sendMarketBrief", () => {
     const payload = JSON.parse(String(requests[0]?.body));
     const englishPayload = JSON.parse(String(requests[1]?.body));
     expect(payload.content).toBe(
-      "@everyone SP500 · BREAKING 60/100 · 3/6 機制受壓",
+      "@everyone SP500 6010.0 · BREAKING 60/100 · 3/6 機制受壓",
     );
     expect(payload.allowed_mentions).toEqual({ parse: ["everyone"] });
     expect(payload.embeds[0].title).toBe("SP500 市場狀態 · BREAKING");
@@ -259,12 +259,12 @@ describe("sendMarketBrief", () => {
         expect.objectContaining({
           name: "六個修復機制",
           value: [
-            "🔴 **時段跌幅** · -1.20%",
-            "🔴 **VWAP 修復失敗** · -0.50 ATR",
-            "🔴 **收盤承接偏弱** · 10%",
-            "🟢 **下跌尾部群聚** · 正常",
-            "🟢 **大型股廣度惡化** · 正常",
-            "🟢 **SP500 / XYZ100 同步走弱** · 正常",
+            "🔴 時段跌幅 · -1.20%",
+            "🔴 VWAP 修復失敗 · -0.50 ATR",
+            "🔴 收盤承接偏弱 · 10%",
+            "🟢 下跌尾部群聚 · 正常",
+            "🟢 大型股廣度惡化 · 正常",
+            "🟢 SP500 / XYZ100 同步走弱 · 正常",
           ].join("\n"),
         }),
       ]),
@@ -277,19 +277,20 @@ describe("sendMarketBrief", () => {
       ]),
     );
     expect(englishPayload.content).toBe(
-      "@everyone SP500 · BREAKING 60/100 · 3/6 mechanisms under stress",
+      "@everyone SP500 6010.0 · BREAKING 60/100 · " +
+        "3/6 mechanisms under stress",
     );
     expect(englishPayload.embeds[0].fields).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           name: "Six repair mechanisms",
           value: [
-            "🔴 **session loss** · -1.20%",
-            "🔴 **VWAP repair failure** · -0.50 ATR",
-            "🔴 **poor close location** · 10%",
-            "🟢 **downside-tail cluster** · healthy",
-            "🟢 **mega-cap breadth** · healthy",
-            "🟢 **SP500 / XYZ100 confirmation** · healthy",
+            "🔴 session loss · -1.20%",
+            "🔴 VWAP repair failure · -0.50 ATR",
+            "🔴 poor close location · 10%",
+            "🟢 downside-tail cluster · healthy",
+            "🟢 mega-cap breadth · healthy",
+            "🟢 SP500 / XYZ100 confirmation · healthy",
           ].join("\n"),
         }),
       ]),
@@ -327,7 +328,7 @@ describe("sendMarketBrief", () => {
 
     const payload = JSON.parse(String(requests[0]?.body));
     expect(payload.content).toBe(
-      "SP500 · RESILIENT 0/100 · 0/6 機制受壓",
+      "SP500 6090.0 · RESILIENT 0/100 · 0/6 機制受壓",
     );
     expect(payload.embeds[0].description).toBe(
       "最新 6090.0 · 日內 6000.0–6100.0",
@@ -380,7 +381,7 @@ describe("sendMarketBrief", () => {
         expect.objectContaining({
           name: "六個修復機制",
           value: expect.stringContaining(
-            "⚪ **SP500 / XYZ100 同步走弱** · 不可用",
+            "⚪ SP500 / XYZ100 同步走弱 · 不可用",
           ),
         }),
       ]),
