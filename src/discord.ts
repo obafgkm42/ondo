@@ -598,8 +598,9 @@ function formatMarketBriefStateSummary(
     fragility.stressedIndicatorCount,
     fragility.totalIndicatorCount,
   ].join("/");
+  const latest = formatNullableNumber(result.latestPrice);
   return [
-    "SP500",
+    `SP500 ${latest}`,
     `${formatMarketFragilityLevel(fragility)} ${formatScore(fragility)}`,
     english ? `${stressed} mechanisms under stress` : `${stressed} 機制受壓`,
   ].join(" · ");

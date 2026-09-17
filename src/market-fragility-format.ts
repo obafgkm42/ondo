@@ -107,7 +107,7 @@ export function formatMarketFragilityMechanismLines(
       : indicator.state === "healthy"
         ? english ? "healthy" : "正常"
         : english ? "unavailable" : "不可用";
-    return `${indicatorStateIcon(indicator.state)} **${label}** · ${state}`;
+    return `${indicatorStateIcon(indicator.state)} ${label} · ${state}`;
   }).join("\n");
 }
 

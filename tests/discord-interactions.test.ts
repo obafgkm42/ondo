@@ -230,12 +230,12 @@ describe("handleDiscordInteraction", () => {
       {
         name: "六個修復機制",
         value: [
-          "🔴 **時段跌幅** · -1.20%",
-          "🔴 **VWAP 修復失敗** · -0.45 ATR",
-          "🔴 **收盤承接偏弱** · 10%",
-          "🟢 **下跌尾部群聚** · 正常",
-          "🟢 **大型股廣度惡化** · 正常",
-          "🟢 **SP500 / XYZ100 同步走弱** · 正常",
+          "🔴 時段跌幅 · -1.20%",
+          "🔴 VWAP 修復失敗 · -0.45 ATR",
+          "🔴 收盤承接偏弱 · 10%",
+          "🟢 下跌尾部群聚 · 正常",
+          "🟢 大型股廣度惡化 · 正常",
+          "🟢 SP500 / XYZ100 同步走弱 · 正常",
         ].join("\n"),
       },
     ]);
@@ -264,7 +264,7 @@ describe("handleDiscordInteraction", () => {
       "ACTIVE\nCumulative 1.31x · 15m 1.70x ELEVATED",
     );
     expect(embed?.fields?.[3]?.value).toContain(
-      "🔴 **VWAP repair failure** · -0.45 ATR",
+      "🔴 VWAP repair failure · -0.45 ATR",
     );
     expect(embed?.footer?.text).toBe("Data healthy · RTH");
   });
