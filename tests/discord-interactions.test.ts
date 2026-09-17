@@ -281,6 +281,10 @@ describe("handleDiscordInteraction", () => {
 
     const message = buildDiscordStatusMessage(status, "en", new Date());
     const embed = message.embeds?.[0];
+    expect(embed?.description).toBe(
+      "Latest 6010.0 · session 6000.0–6100.0 · " +
+        "market data ineligible for decisions",
+    );
     expect(embed?.fields?.map((field) => field.name)).toEqual([
       "Market pressure",
       "Mechanisms under stress",

@@ -2,17 +2,17 @@ import {
   HyperliquidAdmissionError,
   HyperliquidRateLimitError,
 } from "./hyperliquid";
+import {
+  buildDiscordMarketStatusDescription,
+  buildDiscordMarketStatusFields,
+} from "./discord-market-status";
 import { formatIneligibleMarketDataStatus } from "./market-data-health";
 import {
   formatMarketFragilityIndicatorLabel,
   formatMarketFragilityLevel,
-  formatMarketFragilityMechanismLines,
   marketFragilityColor,
 } from "./market-fragility-format";
 import { marketFragilityThresholds } from "./market-fragility";
-import {
-  formatCompactMarketActivitySummary,
-} from "./market-activity-format";
 import type {
   Language,
   MarketDataHealth,
@@ -77,25 +77,25 @@ export function buildDiscordStatusMessage(
   const scan = status.scan;
   const stateEligible = status.dataHealth?.stateEligible ?? true;
   const opportunity = stateEligible ? scan.signal ?? scan.watch : null;
-  const indicatorLines = fragility === null
-    ? english
-      ? "Repair status unavailable"
-      : "修復機制狀態不可用"
-    : formatMarketFragilityMechanismLines(fragility, language);
+  const opportunityFields = opportunity === null
+    ? []
+    : [
+        {
+          name: english ? "Qualified signal" : "合格訊號",
+          value: formatOpportunity(opportunity, language),
+          inline: false,
+        },
+      ];
+  const statusFields = buildDiscordMarketStatusFields(
+    fragility,
+    status.activity,
+    status.dataHealth,
+    language,
+    opportunityFields,
+  );
   const titleLevel = fragility === null
     ? "UNKNOWN"
     : formatMarketFragilityLevel(fragility);
-  const latestPrice = formatNullableNumber(scan.latestPrice);
-  const sessionLow = formatNullableNumber(scan.sessionLow);
-  const sessionHigh = formatNullableNumber(scan.sessionHigh);
-  const priceSummary = english
-    ? `Latest ${latestPrice} · session ${sessionLow}–${sessionHigh}`
-    : `最新 ${latestPrice} · 日內 ${sessionLow}–${sessionHigh}`;
-  const description = fragility === null
-    ? english
-      ? `${priceSummary} · repair status unavailable`
-      : `${priceSummary} · 修復機制狀態不可用`
-    : priceSummary;
 
   return {
     embeds: [
@@ -103,55 +103,15 @@ export function buildDiscordStatusMessage(
         title: english
           ? `SP500 Scanner Status · ${titleLevel}`
           : `SP500 掃描器狀態 · ${titleLevel}`,
-        description,
+        description: buildDiscordMarketStatusDescription(
+          scan,
+          language,
+          status.dataHealth,
+          fragility === null,
+        ),
         color: fragility === null ? 0x95a5a6 : marketFragilityColor(fragility),
         fields: [
-          ...(fragility === null
-            ? []
-            : [
-                {
-                  name: english ? "Market pressure" : "市場壓力",
-                  value: fragility.score === null
-                    ? "n/a"
-                    : `${fragility.score}/100`,
-                  inline: true,
-                },
-                {
-                  name: english
-                    ? "Mechanisms under stress"
-                    : "受壓機制",
-                  value: [
-                    fragility.stressedIndicatorCount,
-                    fragility.totalIndicatorCount,
-                  ].join(" / "),
-                  inline: true,
-                },
-              ]),
-          ...(!stateEligible || status.activity == null
-            ? []
-            : [
-                {
-                  name: english ? "Market activity" : "市場活躍度",
-                  value: formatCompactMarketActivitySummary(
-                    status.activity,
-                    language,
-                  ),
-                  inline: true,
-                },
-              ]),
-          ...(opportunity === null
-            ? []
-            : [
-                {
-                  name: english ? "Qualified signal" : "合格訊號",
-                  value: formatOpportunity(opportunity, language),
-                  inline: false,
-                },
-              ]),
-          {
-            name: english ? "Six repair mechanisms" : "六個修復機制",
-            value: indicatorLines,
-          },
+          ...statusFields,
           ...(status.dataHealth === undefined ||
               (status.dataHealth.status === "healthy" && stateEligible)
             ? []
@@ -451,8 +411,4 @@ function formatOpportunity(
     `${language === "en" ? "entry" : "觀察區"} ${opportunity.entryLow.toFixed(1)}–${opportunity.entryHigh.toFixed(1)}`,
     `${language === "en" ? "invalidation" : "失效"} ${opportunity.invalidation.toFixed(1)} · ${language === "en" ? "target" : "目標"} ${opportunity.target.toFixed(1)}`,
   ].join("\n");
-}
-
-function formatNullableNumber(value: number | null): string {
-  return value === null ? "n/a" : value.toFixed(1);
 }

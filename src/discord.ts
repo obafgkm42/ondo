@@ -1,14 +1,15 @@
 import type { ChartAttachment } from "./chart";
+import {
+  buildDiscordMarketStatusDescription,
+  buildDiscordMarketStatusFields,
+  formatMarketFragilityScore,
+} from "./discord-market-status";
 import { localizeDiagnostic } from "./i18n";
 import {
-  formatMarketFragilityMechanismLines,
   formatMarketFragilityIndicatorLabel,
   formatMarketFragilityLevel,
   marketFragilityColor,
 } from "./market-fragility-format";
-import {
-  formatCompactMarketActivitySummary,
-} from "./market-activity-format";
 import { formatIneligibleMarketDataStatus } from "./market-data-health";
 import { formatResilienceDecayCardSummary } from "./resilience-decay-format";
 import type {
@@ -175,6 +176,12 @@ export async function sendMarketBrief(
     ? fragilityPersistence
     : undefined;
   const effectiveResilience = stateEligible ? resilience : undefined;
+  const statusFields = buildDiscordMarketStatusFields(
+    fragility,
+    effectiveActivity,
+    dataHealth,
+    language,
+  );
   const chartMetadata =
     chart === undefined
       ? {}
@@ -191,15 +198,7 @@ export async function sendMarketBrief(
           ],
         };
   const fields = [
-    ...(fragility === undefined
-      ? []
-      : marketFragilitySummaryFields(fragility, language)),
-    ...(effectiveActivity === undefined
-      ? []
-      : marketActivityFields(effectiveActivity, language)),
-    ...(fragility === undefined
-      ? []
-      : marketFragilityMechanismFields(fragility, language)),
+    ...statusFields,
     ...(effectivePersistence === undefined
       ? []
       : marketFragilityPersistenceFields(effectivePersistence, language)),
@@ -253,7 +252,7 @@ export async function sendMarketBrief(
               : english
                 ? `SP500 Market Status · ${formatMarketFragilityLevel(fragility)}`
                 : `SP500 市場狀態 · ${formatMarketFragilityLevel(fragility)}`,
-          description: buildMarketBriefDescription(
+          description: buildDiscordMarketStatusDescription(
             result,
             language,
             dataHealth,
@@ -527,26 +526,6 @@ function formatPolicyRole(
     : "bearish crash monitor";
 }
 
-function buildMarketBriefDescription(
-  result: ScanResult,
-  language: Language,
-  dataHealth?: MarketDataHealth,
-): string {
-  const english = language === "en";
-  const latestPrice = formatNullableNumber(result.latestPrice);
-  const sessionLow = formatNullableNumber(result.sessionLow);
-  const sessionHigh = formatNullableNumber(result.sessionHigh);
-  const priceSummary = english
-    ? `Latest ${latestPrice} · session ${sessionLow}–${sessionHigh}`
-    : `最新 ${latestPrice} · 日內 ${sessionLow}–${sessionHigh}`;
-  if (dataHealth?.stateEligible !== false) {
-    return priceSummary;
-  }
-  return english
-    ? `${priceSummary} · market data ineligible for decisions`
-    : `${priceSummary} · 市場資料不符合決策資格`;
-}
-
 function buildMarketBriefNotificationSummary(
   result: ScanResult,
   language: Language,
@@ -601,46 +580,9 @@ function formatMarketBriefStateSummary(
   const latest = formatNullableNumber(result.latestPrice);
   return [
     `SP500 ${latest}`,
-    `${formatMarketFragilityLevel(fragility)} ${formatScore(fragility)}`,
+    `${formatMarketFragilityLevel(fragility)} ${formatMarketFragilityScore(fragility)}`,
     english ? `${stressed} mechanisms under stress` : `${stressed} 機制受壓`,
   ].join(" · ");
-}
-
-function marketFragilitySummaryFields(
-  fragility: MarketFragilitySnapshot,
-  language: Language,
-): Array<{ name: string; value: string; inline: boolean }> {
-  const english = language === "en";
-  return [
-    {
-      name: english ? "Market pressure" : "市場壓力",
-      value: formatScore(fragility),
-      inline: true,
-    },
-    {
-      name: english ? "Mechanisms under stress" : "受壓機制",
-      value: [
-        fragility.stressedIndicatorCount,
-        fragility.totalIndicatorCount,
-      ].join(" / "),
-      inline: true,
-    },
-  ];
-}
-
-function marketFragilityMechanismFields(
-  fragility: MarketFragilitySnapshot,
-  language: Language,
-): Array<{ name: string; value: string; inline: boolean }> {
-  const english = language === "en";
-  // Show all six mechanisms so compacting cannot hide missing coverage.
-  return [
-    {
-      name: english ? "Six repair mechanisms" : "六個修復機制",
-      value: formatMarketFragilityMechanismLines(fragility, language),
-      inline: false,
-    },
-  ];
 }
 
 function resilienceDecayFields(
@@ -832,23 +774,6 @@ function formatFamilyList(
   };
   const labels = language === "en" ? englishLabels : chineseLabels;
   return families.map((family) => labels[family]).join("、");
-}
-
-function marketActivityFields(
-  activity: MarketActivitySnapshot,
-  language: Language,
-): Array<{ name: string; value: string; inline: boolean }> {
-  return [
-    {
-      name: language === "en" ? "Market activity" : "市場活躍度",
-      value: formatCompactMarketActivitySummary(activity, language),
-      inline: true,
-    },
-  ];
-}
-
-function formatScore(fragility: MarketFragilitySnapshot): string {
-  return fragility.score === null ? "n/a" : `${fragility.score}/100`;
 }
 
 const EASTERN_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
