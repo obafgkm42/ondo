@@ -108,6 +108,7 @@ export function buildDiscordStatusMessage(
           language,
           status.dataHealth,
           fragility === null,
+          status.activity,
         ),
         color: fragility === null ? 0x95a5a6 : marketFragilityColor(fragility),
         fields: [

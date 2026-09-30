@@ -256,6 +256,8 @@ export async function sendMarketBrief(
             result,
             language,
             dataHealth,
+            false,
+            effectiveActivity,
           ),
           color:
             fragility === undefined

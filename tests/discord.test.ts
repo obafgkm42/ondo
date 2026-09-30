@@ -56,6 +56,12 @@ describe("sendMarketBrief", () => {
     const payload = JSON.parse(String(requests[0]?.body));
     const englishPayload = JSON.parse(String(requests[1]?.body));
     expect(payload.content).toBe("SP500 半小時簡報 · 最新 6090.0");
+    expect(payload.embeds[0].description).toBe(
+      "最新 6090.0 · 日內 6075.0–6100.0 · 量能：活躍",
+    );
+    expect(englishPayload.embeds[0].description).toBe(
+      "Latest 6090.0 · session 6075.0–6100.0 · Volume: ACTIVE",
+    );
     expect(payload.allowed_mentions).toEqual({ parse: [] });
     expect(payload.embeds[0].fields).toEqual(
       expect.arrayContaining([
@@ -234,7 +240,7 @@ describe("sendMarketBrief", () => {
     expect(payload.allowed_mentions).toEqual({ parse: ["everyone"] });
     expect(payload.embeds[0].title).toBe("SP500 市場狀態 · BREAKING");
     expect(payload.embeds[0].description).toBe(
-      "最新 6010.0 · 日內 6000.0–6100.0",
+      "最新 6010.0 · 日內 6000.0–6100.0 · 量能：活躍",
     );
     expect(payload.embeds[0].fields.slice(0, 4).map(
       (field: { name: string }) => field.name,
