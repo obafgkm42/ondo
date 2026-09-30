@@ -176,7 +176,7 @@ describe("scheduled version notices", () => {
 
     const payload = JSON.parse(String(requests[0]?.body));
     expect(payload.embeds[0].title).toBe(
-      "Hyperliquid SP500 Reversal Scanner updated",
+      "Market Ondo · SP500 Market Monitor updated",
     );
     expect(payload.embeds[0].fields[0].name).toBe("Reminder");
   });

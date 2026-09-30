@@ -4,6 +4,7 @@ import {
   buildDiscordMarketStatusFields,
   formatMarketFragilityScore,
 } from "./discord-market-status";
+import { formatMarketActivityLabel } from "./market-activity-format";
 import { localizeDiagnostic } from "./i18n";
 import {
   formatMarketFragilityIndicatorLabel,
@@ -235,6 +236,7 @@ export async function sendMarketBrief(
     language,
     fragility,
     dataHealth,
+    effectiveActivity,
   );
   await sendWebhook(
     webhookUrl,
@@ -307,8 +309,8 @@ export async function sendVersionNotice(
       embeds: [
         {
           title: english
-            ? "Hyperliquid SP500 Reversal Scanner updated"
-            : "Hyperliquid SP500 反轉掃描器已更新",
+            ? "Market Ondo · SP500 Market Monitor updated"
+            : "Market Ondo · SP500 市場監測已更新",
           description: buildVersionNoticeDescription(
             version,
             timestamp,
@@ -320,8 +322,8 @@ export async function sendVersionNotice(
               name: english ? "Reminder" : "使用提醒",
               value:
                 english
-                  ? "A version notice only confirms that new code reached the Worker execution path. Use scanner briefs and alerts to determine whether a candidate zone exists."
-                  : "版本通知只代表新程式已在 Worker 執行路徑中出現；是否有交易候選區仍以掃描簡報與 ALERT 為準。",
+                  ? "Market Ondo monitors SP500 market pressure, six repair mechanisms, and volume activity. These are diagnostics, not predictions or trade instructions. This notice confirms that the new Worker version has run."
+                  : "Market Ondo 監測 SP500 市場壓力、六個修復機制與量能活躍度。這些是狀態診斷，不是預測或交易指令；本通知代表新版 Worker 已執行。",
             },
           ],
           timestamp: timestamp.toISOString(),
@@ -533,6 +535,7 @@ function buildMarketBriefNotificationSummary(
   language: Language,
   fragility?: MarketFragilitySnapshot,
   dataHealth?: MarketDataHealth,
+  activity?: MarketActivitySnapshot,
 ): string {
   const english = language === "en";
   const opportunity = dataHealth?.stateEligible === false
@@ -551,11 +554,14 @@ function buildMarketBriefNotificationSummary(
       dataHealth.sessionScope.toUpperCase(),
     ].join(" · ");
   }
+  const notificationSummary = activity === undefined
+    ? stateSummary
+    : `${stateSummary} · ${english ? "Volume: " : "量能："}${formatMarketActivityLabel(activity, language)}`;
   if (opportunity === null) {
-    return stateSummary;
+    return notificationSummary;
   }
   return [
-    stateSummary,
+    notificationSummary,
     `${opportunity.level.toUpperCase()} ${formatDirection(
       opportunity.direction,
       language,
