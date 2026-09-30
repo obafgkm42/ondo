@@ -18,7 +18,7 @@ import type {
 } from "../src/types";
 
 describe("sendMarketBrief", () => {
-  it("adds compact RVOL to the card without bloating the push preview", async () => {
+  it("includes the existing activity label in the push preview and card", async () => {
     const { requests, fetcher } = createWebhookCapture();
     const result: ScanResult = {
       market: "xyz:SP500",
@@ -55,7 +55,7 @@ describe("sendMarketBrief", () => {
 
     const payload = JSON.parse(String(requests[0]?.body));
     const englishPayload = JSON.parse(String(requests[1]?.body));
-    expect(payload.content).toBe("SP500 半小時簡報 · 最新 6090.0");
+    expect(payload.content).toBe("SP500 半小時簡報 · 最新 6090.0 · 量能：活躍");
     expect(payload.embeds[0].description).toBe(
       "最新 6090.0 · 日內 6075.0–6100.0 · 量能：活躍",
     );
@@ -169,13 +169,17 @@ describe("sendMarketBrief", () => {
         contentType: "image/png",
         bytes: new Uint8Array([137, 80, 78, 71]),
       },
+      "zh",
+      undefined,
+      undefined,
+      activitySnapshot(),
     );
 
     const body = requests[0]?.body;
     expect(body).toBeInstanceOf(FormData);
     const form = body as FormData;
     const payload = JSON.parse(String(form.get("payload_json")));
-    expect(payload.content).toBe("SP500 半小時簡報 · 最新 6090.0");
+    expect(payload.content).toBe("SP500 半小時簡報 · 最新 6090.0 · 量能：活躍");
     expect(payload.attachments[0].filename).toBe("SP500-brief-chart.png");
     expect(payload.embeds[0].image.url).toBe(
       "attachment://SP500-brief-chart.png",
@@ -235,7 +239,7 @@ describe("sendMarketBrief", () => {
     const payload = JSON.parse(String(requests[0]?.body));
     const englishPayload = JSON.parse(String(requests[1]?.body));
     expect(payload.content).toBe(
-      "@everyone SP500 6010.0 · BREAKING 60/100 · 3/6 機制受壓",
+      "@everyone SP500 6010.0 · BREAKING 60/100 · 3/6 機制受壓 · 量能：活躍",
     );
     expect(payload.allowed_mentions).toEqual({ parse: ["everyone"] });
     expect(payload.embeds[0].title).toBe("SP500 市場狀態 · BREAKING");
@@ -284,7 +288,7 @@ describe("sendMarketBrief", () => {
     );
     expect(englishPayload.content).toBe(
       "@everyone SP500 6010.0 · BREAKING 60/100 · " +
-        "3/6 mechanisms under stress",
+        "3/6 mechanisms under stress · Volume: ACTIVE",
     );
     expect(englishPayload.embeds[0].fields).toEqual(
       expect.arrayContaining([
@@ -489,6 +493,7 @@ describe("sendMarketBrief", () => {
     const payload = JSON.parse(String(requests[0]?.body));
     expect(payload.content).not.toContain("@everyone");
     expect(payload.content).toContain("資料 STALE · RTH");
+    expect(payload.content).not.toContain("量能");
     expect(payload.allowed_mentions).toEqual({ parse: [] });
     expect(payload.embeds[0].description).toContain(
       "市場資料不符合決策資格",
@@ -744,6 +749,9 @@ describe("sendVersionNotice", () => {
     );
 
     const payload = JSON.parse(String(requests[0]?.body));
+    expect(payload.embeds[0].title).toBe("Market Ondo · SP500 市場監測已更新");
+    expect(payload.embeds[0].fields[0].value).toContain("六個修復機制與量能活躍度");
+    expect(JSON.stringify(payload)).not.toContain("反轉掃描器");
     expect(payload.embeds[0].description).toContain("2.1.0");
     expect(payload.embeds[0].description).toContain("2026-06-24T00:00:00.000Z");
   });
@@ -764,7 +772,9 @@ describe("sendVersionNotice", () => {
     );
 
     const payload = JSON.parse(String(requests[0]?.body));
-    expect(payload.embeds[0].title).toContain("updated");
+    expect(payload.embeds[0].title).toBe("Market Ondo · SP500 Market Monitor updated");
+    expect(payload.embeds[0].fields[0].value).toContain("six repair mechanisms");
+    expect(JSON.stringify(payload)).not.toContain("Reversal Scanner");
     expect(payload.embeds[0].description).toContain(
       "Worker version `2.1.0` is active.",
     );
