@@ -3,6 +3,7 @@ import {
 } from "./market-fragility-format";
 import {
   formatCompactMarketActivitySummary,
+  formatMarketActivityLabel,
 } from "./market-activity-format";
 import type {
   Language,
@@ -18,12 +19,13 @@ interface DiscordMarketStatusField {
   inline?: boolean;
 }
 
-/** Format the price description consistently for every Discord status card. */
+/** Format price and the short activity state for every Discord status card. */
 export function buildDiscordMarketStatusDescription(
   result: ScanResult,
   language: Language,
   dataHealth?: MarketDataHealth,
   fragilityUnavailable = false,
+  activity?: MarketActivitySnapshot | null,
 ): string {
   const english = language === "en";
   const latestPrice = formatNullableNumber(result.latestPrice);
@@ -32,13 +34,16 @@ export function buildDiscordMarketStatusDescription(
   const priceSummary = english
     ? `Latest ${latestPrice} · session ${sessionLow}–${sessionHigh}`
     : `最新 ${latestPrice} · 日內 ${sessionLow}–${sessionHigh}`;
+  const description = activity == null || dataHealth?.stateEligible === false
+    ? priceSummary
+    : `${priceSummary} · ${english ? "Volume: " : "量能："}${formatMarketActivityLabel(activity, language)}`;
   if (fragilityUnavailable) {
     return english
-      ? `${priceSummary} · repair status unavailable`
-      : `${priceSummary} · 修復機制狀態不可用`;
+      ? `${description} · repair status unavailable`
+      : `${description} · 修復機制狀態不可用`;
   }
   if (dataHealth?.stateEligible !== false) {
-    return priceSummary;
+    return description;
   }
   return english
     ? `${priceSummary} · market data ineligible for decisions`

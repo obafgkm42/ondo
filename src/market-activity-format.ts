@@ -152,8 +152,21 @@ function formatActivityLevel(
   activity: MarketActivitySnapshot,
   language: Language,
 ): string {
+  return language === "en"
+    ? activity.level
+    : `${activity.level}（${formatMarketActivityLabel(activity, language)}）`;
+}
+
+/** Preserve the existing activity names in a short description label. */
+export function formatMarketActivityLabel(
+  activity: MarketActivitySnapshot,
+  language: Language,
+): string {
+  const level = activity.level !== "FORMING" && activity.sessionRvol === null
+    ? "UNKNOWN"
+    : activity.level;
   if (language === "en") {
-    return activity.level;
+    return level;
   }
   const labels: Record<MarketActivitySnapshot["level"], string> = {
     DEADWATER: "死水",
@@ -164,7 +177,7 @@ function formatActivityLevel(
     FORMING: "形成中",
     UNKNOWN: "未知",
   };
-  return `${activity.level}（${labels[activity.level]}）`;
+  return labels[level];
 }
 
 function formatDetailedActivityMetrics(

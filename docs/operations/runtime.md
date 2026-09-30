@@ -19,6 +19,11 @@ orders. Responses to slash commands are ephemeral.
   without requesting market data.
 - `/scanner help` shows the private command guide.
 
+Scheduled briefs and `/scanner status` append only the existing activity name
+to the embed description (for example, `量能：活躍` or `量能：死水`).
+RVOL ratios remain in the activity field; message content stays unchanged.
+Missing or decision-ineligible activity is omitted from the description.
+
 Every interaction must have a valid Discord Ed25519 signature and match the
 configured `DISCORD_GUILD_ID`. The Worker rejects request bodies larger than
 64 KiB before signature verification and applies a loose Cloudflare-side limit

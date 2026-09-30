@@ -217,7 +217,7 @@ describe("handleDiscordInteraction", () => {
     expect(message.allowed_mentions).toEqual({ parse: [] });
     expect(message.embeds[0]?.title).toBe("SP500 掃描器狀態 · BREAKING");
     expect(message.embeds[0]?.description).toBe(
-      "最新 6010.0 · 日內 6000.0–6100.0",
+      "最新 6010.0 · 日內 6000.0–6100.0 · 量能：活躍",
     );
     expect(message.embeds[0]?.fields).toEqual([
       { name: "市場壓力", value: "60/100", inline: true },
@@ -252,7 +252,7 @@ describe("handleDiscordInteraction", () => {
 
     expect(embed?.title).toBe("SP500 Scanner Status · BREAKING");
     expect(embed?.description).toBe(
-      "Latest 6010.0 · session 6000.0–6100.0",
+      "Latest 6010.0 · session 6000.0–6100.0 · Volume: ACTIVE",
     );
     expect(embed?.fields?.map((field) => field.name)).toEqual([
       "Market pressure",
@@ -267,6 +267,30 @@ describe("handleDiscordInteraction", () => {
       "🔴 VWAP repair failure · -0.45 ATR",
     );
     expect(embed?.footer?.text).toBe("Data healthy · RTH");
+  });
+
+  it.each([
+    ["DEADWATER", "死水"],
+    ["QUIET", "清淡"],
+    ["NORMAL", "正常"],
+    ["ACTIVE", "活躍"],
+    ["SURGE", "激增"],
+    ["FORMING", "形成中"],
+    ["UNKNOWN", "未知"],
+  ] as const)("uses the existing %s name in descriptions", (level, label) => {
+    const status = scannerStatus();
+    status.activity = { ...status.activity!, level };
+    const message = buildDiscordStatusMessage(status, "zh", new Date());
+    expect(message.embeds?.[0]?.description).toBe(
+      `最新 6010.0 · 日內 6000.0–6100.0 · 量能：${label}`,
+    );
+  });
+
+  it("does not present an activity level as live when RVOL is unavailable", () => {
+    const status = scannerStatus();
+    status.activity = { ...status.activity!, sessionRvol: null };
+    const message = buildDiscordStatusMessage(status, "zh", new Date());
+    expect(message.embeds?.[0]?.description).toContain("量能：未知");
   });
 
   it("keeps abnormal data visible and withholds activity", () => {
