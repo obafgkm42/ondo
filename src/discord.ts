@@ -1,7 +1,6 @@
 import type { ChartAttachment } from "./chart";
 import {
-  buildDiscordMarketStatusDescription,
-  buildDiscordMarketStatusFields,
+  buildDiscordMarketStatus,
   formatMarketFragilityScore,
 } from "./discord-market-status";
 import { formatMarketActivityLabel } from "./market-activity-format";
@@ -171,18 +170,14 @@ export async function sendMarketBrief(
   dataHealth?: MarketDataHealth,
 ): Promise<void> {
   const english = language === "en";
-  const stateEligible = dataHealth?.stateEligible ?? true;
-  const effectiveActivity = stateEligible ? activity : undefined;
+  const status = buildDiscordMarketStatus(
+    result, language, fragility, activity, dataHealth,
+  );
+  const { stateEligible, activity: effectiveActivity } = status;
   const effectivePersistence = stateEligible
     ? fragilityPersistence
     : undefined;
   const effectiveResilience = stateEligible ? resilience : undefined;
-  const statusFields = buildDiscordMarketStatusFields(
-    fragility,
-    effectiveActivity,
-    dataHealth,
-    language,
-  );
   const chartMetadata =
     chart === undefined
       ? {}
@@ -199,7 +194,7 @@ export async function sendMarketBrief(
           ],
         };
   const fields = [
-    ...statusFields,
+    ...status.fields,
     ...(effectivePersistence === undefined
       ? []
       : marketFragilityPersistenceFields(effectivePersistence, language)),
@@ -254,13 +249,7 @@ export async function sendMarketBrief(
               : english
                 ? `SP500 Market Status · ${formatMarketFragilityLevel(fragility)}`
                 : `SP500 市場狀態 · ${formatMarketFragilityLevel(fragility)}`,
-          description: buildDiscordMarketStatusDescription(
-            result,
-            language,
-            dataHealth,
-            false,
-            effectiveActivity,
-          ),
+          description: status.description,
           color:
             fragility === undefined
               ? result.signal !== null

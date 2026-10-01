@@ -3,8 +3,7 @@ import {
   HyperliquidRateLimitError,
 } from "./hyperliquid";
 import {
-  buildDiscordMarketStatusDescription,
-  buildDiscordMarketStatusFields,
+  buildDiscordMarketStatus,
 } from "./discord-market-status";
 import { formatIneligibleMarketDataStatus } from "./market-data-health";
 import {
@@ -86,11 +85,8 @@ export function buildDiscordStatusMessage(
           inline: false,
         },
       ];
-  const statusFields = buildDiscordMarketStatusFields(
-    fragility,
-    status.activity,
-    status.dataHealth,
-    language,
+  const presentation = buildDiscordMarketStatus(
+    scan, language, fragility, status.activity, status.dataHealth,
     opportunityFields,
   );
   const titleLevel = fragility === null
@@ -103,16 +99,10 @@ export function buildDiscordStatusMessage(
         title: english
           ? `SP500 Scanner Status · ${titleLevel}`
           : `SP500 掃描器狀態 · ${titleLevel}`,
-        description: buildDiscordMarketStatusDescription(
-          scan,
-          language,
-          status.dataHealth,
-          fragility === null,
-          status.activity,
-        ),
+        description: presentation.description,
         color: fragility === null ? 0x95a5a6 : marketFragilityColor(fragility),
         fields: [
-          ...statusFields,
+          ...presentation.fields,
           ...(status.dataHealth === undefined ||
               (status.dataHealth.status === "healthy" && stateEligible)
             ? []

@@ -335,3 +335,15 @@ http://localhost:8787/cdn-cgi/handler/scheduled
 
 Copy `.env.example` to `.dev.vars` for local bindings. Never commit real
 webhook URLs, account IDs, bot tokens, or manual-scan tokens.
+
+## Code boundaries
+
+`scan-service.ts` orchestrates scans with named execution options;
+`scan-telemetry.ts` owns bounded research-state collection. Calls remain
+ordered by the scan service so shadow work follows time-sensitive signal
+delivery. `discord-market-status.ts` builds the common description and fields
+for scheduled and interactive cards in both languages.
+
+Offline entry points use `candle_io.py` for loading/session normalization and
+`provenance.py` for hashes and Git metadata. They do not import one another.
+Legacy helper imports remain available at their original entry points.

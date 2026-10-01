@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { buildDiscordStatusMessage } from "../src/discord-command-messages";
 
 import {
   publicScanResult,
@@ -18,6 +19,52 @@ import type {
 } from "../src/types";
 
 describe("sendMarketBrief", () => {
+  it.each(["zh", "en"] as const)(
+    "keeps scheduled and interactive volume presentation aligned in %s",
+    async (language) => {
+      const scan: ScanResult = {
+        market: "xyz:SP500", candleCount: 24, sessionHigh: 6100,
+        sessionLow: 6075, latestPrice: 6090, status: "no signal",
+        watch: null, signal: null,
+      };
+      const now = new Date("2026-06-23T15:30:00.000Z");
+      for (const stateEligible of [true, false]) {
+        const dataHealth: MarketDataHealth = {
+          status: stateEligible ? "healthy" : "stale", sessionScope: "rth",
+          candleCount: 24, latestEndTime: now.getTime() - 1,
+          expectedLatestEndTime: now.getTime() - 1,
+          lagIntervals: stateEligible ? 0 : 1, gapCount: 0,
+          missingIntervals: 0, stateEligible, reasons: [],
+        };
+        const activity = activitySnapshot();
+        const fragility = fragilitySnapshot();
+        const { requests, fetcher } = createWebhookCapture();
+        await sendMarketBrief(
+          "https://discord.com/api/webhooks/example/token",
+          scan, now, fetcher, undefined, language, fragility,
+          undefined, activity, undefined, dataHealth,
+        );
+        const scheduled = JSON.parse(String(requests[0]?.body));
+        const interactive = buildDiscordStatusMessage(
+          { scan, fragility, activity, dataHealth }, language, now,
+        );
+        expect(scheduled.embeds[0].description)
+          .toBe(interactive.embeds?.[0]?.description);
+        const name = language === "en" ? "Market activity" : "市場活躍度";
+        const scheduledActivity = scheduled.embeds[0].fields.filter(
+          (field: { name: string }) => field.name === name,
+        );
+        expect(scheduledActivity).toEqual(
+          interactive.embeds?.[0]?.fields?.filter((field) => field.name === name),
+        );
+        expect(scheduledActivity).toHaveLength(stateEligible ? 1 : 0);
+        expect(scheduled.embeds[0].description.includes(
+          language === "en" ? "Volume:" : "量能：",
+        )).toBe(stateEligible);
+      }
+    },
+  );
+
   it("includes the existing activity label in the push preview and card", async () => {
     const { requests, fetcher } = createWebhookCapture();
     const result: ScanResult = {

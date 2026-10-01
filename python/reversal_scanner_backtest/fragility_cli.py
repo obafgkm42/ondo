@@ -3,20 +3,25 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
-import subprocess
 import sys
-from collections.abc import Iterator, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from reversal_scanner_backtest.cli import (
+from reversal_scanner_backtest.candle_io import (
     filter_candles_for_session,
     is_rth_candle,
-    reinterpret_naive_local_candle,
+    iter_candles_streaming,
+    load_candles_streaming,
+)
+from reversal_scanner_backtest.candle_io import (
+    iter_json_array as iter_json_array,  # noqa: PLC0414 - compatibility re-export
+)
+from reversal_scanner_backtest.candle_io import (
+    reinterpret_naive_local_candle as reinterpret_naive_local_candle,  # noqa: PLC0414 - compatibility re-export
 )
 from reversal_scanner_backtest.fragility_study import (
     OUTCOME_THRESHOLDS,
@@ -28,9 +33,9 @@ from reversal_scanner_backtest.fragility_study import (
     add_session_horizon_outcomes,
     build_fragility_observations,
     build_fragility_rolling_stability,
+    build_fragility_yearly_summary,
     build_session_fragility_observations,
     build_session_path_summary,
-    build_fragility_yearly_summary,
     frozen_fragility_thresholds,
     observations_to_csv,
     render_fragility_comparison_markdown,
@@ -40,7 +45,7 @@ from reversal_scanner_backtest.fragility_study import (
     yearly_summary_to_csv,
 )
 from reversal_scanner_backtest.models import Candle
-from reversal_scanner_backtest.market_data import canonical_candle_stream
+from reversal_scanner_backtest.provenance import fingerprint, repository_state
 from reversal_scanner_backtest.validation import (
     DatasetValidationReport,
     dataset_sha256,
@@ -50,8 +55,6 @@ from reversal_scanner_backtest.validation import (
 
 FRAGILITY_BACKTEST_SCHEMA_VERSION = 1
 CLASSIFIER_VERSION = "fragility-price-only-v1"
-JSON_READ_CHUNK_SIZE = 1024 * 1024
-JSON_REFILL_THRESHOLD = 64 * 1024
 
 
 @dataclass(frozen=True)
@@ -162,9 +165,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     if volume_metadata is not None:
         coverage = float(volume_metadata["matchedPrimaryCandleRate"])
         if coverage < 0.99:
-            warnings.append(
-                f"proxy volume matched {coverage:.2%} of primary candles"
-            )
+            warnings.append(f"proxy volume matched {coverage:.2%} of primary candles")
     methodology = methodology_snapshot(settings, vwap_mode)
     methodology_fingerprint = fingerprint(methodology)
     input_sha256 = dataset_sha256(args.input)
@@ -231,9 +232,7 @@ def apply_proxy_volume(
 ) -> tuple[list[Candle], float]:
     """Apply aligned proxy volumes without replacing primary index prices."""
 
-    volume_by_start = {
-        candle.start_time: candle.volume for candle in volume_candles
-    }
+    volume_by_start = {candle.start_time: candle.volume for candle in volume_candles}
     matched = 0
     merged: list[Candle] = []
     for candle in primary_candles:
@@ -245,49 +244,6 @@ def apply_proxy_volume(
         merged.append(replace(candle, volume=proxy_volume))
     coverage = 0.0 if not primary_candles else matched / len(primary_candles)
     return merged, coverage
-
-
-def load_candles_streaming(
-    path: Path,
-    source_time_zone: str = "UTC",
-    source_timestamp_mode: str = "utc-epoch",
-) -> list[Candle]:
-    """Load a top-level JSON candle array without retaining raw dict rows."""
-
-    return list(
-        iter_candles_streaming(
-            path,
-            source_time_zone,
-            source_timestamp_mode,
-        )
-    )
-
-
-def iter_candles_streaming(
-    path: Path,
-    source_time_zone: str = "UTC",
-    source_timestamp_mode: str = "utc-epoch",
-) -> Iterator[Candle]:
-    """Yield normalized candles without retaining the source array."""
-
-    if source_timestamp_mode not in {"utc-epoch", "naive-local"}:
-        raise ValueError(
-            "source_timestamp_mode must be utc-epoch or naive-local"
-        )
-    canonical = canonical_candle_stream(path)
-    if canonical is not None:
-        if source_timestamp_mode != "utc-epoch":
-            raise ValueError("canonical market-bars/v2 timestamps are already UTC")
-        yield from canonical
-        return
-    source_zone = ZoneInfo(source_time_zone)
-    for row in iter_json_array(path):
-        candle = Candle.from_dict(row)
-        yield (
-            candle
-            if source_timestamp_mode == "utc-epoch"
-            else reinterpret_naive_local_candle(candle, source_zone)
-        )
 
 
 def build_streaming_replay(
@@ -330,9 +286,7 @@ def build_streaming_replay(
                 settings,
             )
         )
-        path_summaries.append(
-            build_session_path_summary(current_date, current_session)
-        )
+        path_summaries.append(build_session_path_summary(current_date, current_session))
 
     for candle in iter_candles_streaming(
         path,
@@ -341,10 +295,14 @@ def build_streaming_replay(
     ):
         if not is_rth_candle(candle, time_zone):
             continue
-        session_date = datetime.fromtimestamp(
-            candle.start_time / 1000,
-            tz=time_zone,
-        ).date().isoformat()
+        session_date = (
+            datetime.fromtimestamp(
+                candle.start_time / 1000,
+                tz=time_zone,
+            )
+            .date()
+            .isoformat()
+        )
         if current_date is not None and session_date != current_date:
             finalize_session()
             current_session = []
@@ -352,9 +310,7 @@ def build_streaming_replay(
         current_session.append(candle)
         candle_count += 1
         first_timestamp = (
-            candle.start_time
-            if first_timestamp is None
-            else first_timestamp
+            candle.start_time if first_timestamp is None else first_timestamp
         )
         last_timestamp = candle.end_time
     finalize_session()
@@ -371,73 +327,6 @@ def build_streaming_replay(
         first_timestamp=first_timestamp,
         last_timestamp=last_timestamp,
     )
-
-
-def iter_json_array(path: Path) -> Iterator[dict[str, object]]:
-    """Yield dict rows from one JSON array with bounded parser memory."""
-
-    decoder = json.JSONDecoder()
-    with path.open("r", encoding="utf-8") as source:
-        buffer = ""
-        cursor = 0
-        array_started = False
-        reached_eof = False
-        while True:
-            if (
-                not reached_eof
-                and len(buffer) - cursor < JSON_REFILL_THRESHOLD
-            ):
-                # Retain an index into the current chunk instead of slicing the
-                # remaining buffer after every row. On large JSON arrays those
-                # repeated slices otherwise dominate the complete replay.
-                buffer = buffer[cursor:]
-                cursor = 0
-                chunk = source.read(JSON_READ_CHUNK_SIZE)
-                if chunk:
-                    buffer += chunk
-                else:
-                    reached_eof = True
-
-            while cursor < len(buffer) and buffer[cursor].isspace():
-                cursor += 1
-            if not array_started:
-                if cursor >= len(buffer):
-                    if not reached_eof:
-                        continue
-                    raise ValueError("input JSON is empty")
-                if buffer[cursor] != "[":
-                    raise ValueError("input must be a JSON array")
-                cursor += 1
-                array_started = True
-                continue
-
-            if cursor < len(buffer) and buffer[cursor] == ",":
-                cursor += 1
-                while cursor < len(buffer) and buffer[cursor].isspace():
-                    cursor += 1
-            if cursor < len(buffer) and buffer[cursor] == "]":
-                return
-            if cursor >= len(buffer):
-                if reached_eof:
-                    raise ValueError("input JSON array is truncated")
-                continue
-            try:
-                value, end_index = decoder.raw_decode(buffer, cursor)
-            except json.JSONDecodeError:
-                if reached_eof:
-                    raise ValueError("input JSON array is truncated") from None
-                buffer = buffer[cursor:]
-                cursor = 0
-                chunk = source.read(JSON_READ_CHUNK_SIZE)
-                if not chunk:
-                    reached_eof = True
-                    continue
-                buffer += chunk
-                continue
-            if not isinstance(value, dict):
-                raise ValueError("every candle row must be a JSON object")
-            yield value
-            cursor = end_index
 
 
 def determine_vwap_mode(
@@ -515,43 +404,6 @@ def methodology_snapshot(
     }
 
 
-def fingerprint(value: object) -> str:
-    """Return a deterministic SHA-256 for a JSON-compatible object."""
-
-    encoded = json.dumps(
-        value,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
-
-
-def repository_state() -> dict[str, object]:
-    """Capture commit identity and dirtiness without requiring Git."""
-
-    project_root = Path(__file__).resolve().parents[2]
-    try:
-        commit = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=project_root,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-        dirty = bool(
-            subprocess.run(
-                ["git", "status", "--porcelain"],
-                cwd=project_root,
-                check=True,
-                capture_output=True,
-                text=True,
-            ).stdout.strip()
-        )
-        return {"commit": commit, "workingTreeDirty": dirty}
-    except (OSError, subprocess.CalledProcessError):
-        return {"commit": None, "workingTreeDirty": None}
-
-
 def write_outputs(
     output_dir: Path,
     payload: dict[str, object],
@@ -591,9 +443,7 @@ def write_outputs(
             {
                 "schemaVersion": payload["schemaVersion"],
                 "runId": payload["runId"],
-                "methodologyFingerprint": payload[
-                    "methodologyFingerprint"
-                ],
+                "methodologyFingerprint": payload["methodologyFingerprint"],
                 "methodology": payload["methodology"],
             },
             indent=2,

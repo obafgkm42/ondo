@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import json
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -18,6 +17,8 @@ from reversal_scanner_backtest.fragility_v2 import (
     build_fragility_v2_evaluation,
     normalized_severity_margins,
 )
+from reversal_scanner_backtest.provenance import dataset_sha256 as file_sha256
+from reversal_scanner_backtest.provenance import fingerprint
 
 SCHEMA_VERSION = 1
 
@@ -41,10 +42,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     assert isinstance(methodology_fingerprint, str)
     payload: dict[str, object] = {
         "schemaVersion": SCHEMA_VERSION,
-        "runId": (
-            f"fragility-v2-{input_sha256[:8]}-"
-            f"{methodology_fingerprint[:8]}"
-        ),
+        "runId": (f"fragility-v2-{input_sha256[:8]}-{methodology_fingerprint[:8]}"),
         "createdAt": datetime.now(tz=UTC).isoformat(),
         "input": {
             "path": str(args.input_observations),
@@ -115,7 +113,9 @@ def load_fragility_v2_rows(path: Path) -> list[FragilityV2Row]:
                     level=cast(CandidateLevel, level),
                     stressed_indicator_count=stressed_count,
                     indicator_flags=tuple(
-                        1.0 if source_row[f"{indicator_id}_state"] == "stressed" else 0.0
+                        1.0
+                        if source_row[f"{indicator_id}_state"] == "stressed"
+                        else 0.0
                         for indicator_id in (
                             "session_loss",
                             "vwap_repair_failure",
@@ -123,15 +123,11 @@ def load_fragility_v2_rows(path: Path) -> list[FragilityV2Row]:
                             "downside_tail_cluster",
                         )
                     ),
-                    severity_margins=normalized_severity_margins(
-                        *indicator_values
-                    ),
+                    severity_margins=normalized_severity_margins(*indicator_values),
                     prior_stressed_indicator_count=previous_count,
                     failure_streak=failure_streak,
                     outcomes={
-                        "120m": _parse_optional_bool(
-                            source_row["120m_drawdown_event"]
-                        ),
+                        "120m": _parse_optional_bool(source_row["120m_drawdown_event"]),
                         "5sessions": _parse_optional_bool(
                             source_row["5sessions_drawdown_event"]
                         ),
@@ -261,9 +257,7 @@ def render_fragility_v2_report(payload: dict[str, object]) -> str:
             f"{_format_percent(summary.get('5sessionDrawdownRate'))} |"
         )
     breaking_difference = state_evaluation.get("breakingVsFragile120m")
-    worsening_difference = state_evaluation.get(
-        "highRiskWorseningVsNonWorsening120m"
-    )
+    worsening_difference = state_evaluation.get("highRiskWorseningVsNonWorsening120m")
     unconditional_phase_difference = state_evaluation.get(
         "unconditionalWorseningVsStable120m"
     )
@@ -355,14 +349,8 @@ def render_fragility_v2_report(payload: dict[str, object]) -> str:
                     "cutpoint, regardless of whether risk is still accelerating."
                 ),
                 "",
-                (
-                    "- sustained sessions: "
-                    f"{persistence.get('sustainedSessions')}"
-                ),
-                (
-                    "- transient sessions: "
-                    f"{persistence.get('transientSessions')}"
-                ),
+                (f"- sustained sessions: {persistence.get('sustainedSessions')}"),
+                (f"- transient sessions: {persistence.get('transientSessions')}"),
                 (
                     "- 120m event-rate difference: "
                     f"{_format_percent(persistence.get('estimate'))} "
@@ -401,6 +389,8 @@ def write_outputs(output_dir: Path, payload: dict[str, object]) -> None:
         render_fragility_v2_report(payload),
         encoding="utf-8",
     )
+
+
 def print_headline(payload: dict[str, object], output_dir: Path) -> None:
     """Print the compact v2 decision and artifact path."""
 
@@ -430,16 +420,6 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def file_sha256(path: Path) -> str:
-    """Return the SHA-256 digest of one input artifact."""
-
-    digest = hashlib.sha256()
-    with path.open("rb") as source:
-        while chunk := source.read(1024 * 1024):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def _methodology_metadata(
     evaluation: dict[str, object],
 ) -> dict[str, object]:
@@ -453,13 +433,8 @@ def _methodology_metadata(
             "stateContract",
         )
     }
-    encoded = json.dumps(
-        snapshot,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
     return {
-        "fingerprint": hashlib.sha256(encoded).hexdigest(),
+        "fingerprint": fingerprint(snapshot),
         "snapshot": snapshot,
     }
 

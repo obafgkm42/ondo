@@ -107,3 +107,26 @@ export function formatMarketFragilityScore(
 function formatNullableNumber(value: number | null): string {
   return value === null ? "n/a" : value.toFixed(1);
 }
+
+/** A single presentation input for scheduled briefs and interactive replies. */
+export function buildDiscordMarketStatus(
+  result: ScanResult,
+  language: Language,
+  fragility: MarketFragilitySnapshot | null | undefined,
+  activity: MarketActivitySnapshot | null | undefined,
+  dataHealth?: MarketDataHealth,
+  extraFields: DiscordMarketStatusField[] = [],
+) {
+  const stateEligible = dataHealth?.stateEligible ?? true;
+  const effectiveActivity = stateEligible ? activity ?? undefined : undefined;
+  return {
+    stateEligible,
+    activity: effectiveActivity,
+    description: buildDiscordMarketStatusDescription(
+      result, language, dataHealth, fragility === null, effectiveActivity,
+    ),
+    fields: buildDiscordMarketStatusFields(
+      fragility, effectiveActivity, dataHealth, language, extraFields,
+    ),
+  };
+}

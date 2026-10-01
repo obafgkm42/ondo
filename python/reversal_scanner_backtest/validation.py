@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
-import hashlib
 import math
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from datetime import date, datetime
-from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from reversal_scanner_backtest.models import Candle
+from reversal_scanner_backtest.provenance import (
+    dataset_sha256 as dataset_sha256,  # noqa: PLC0414 - compatibility re-export
+)
 
 
 @dataclass(frozen=True)
@@ -42,16 +43,6 @@ class DatasetValidationReport:
         """Return a JSON-compatible report."""
 
         return {**asdict(self), "is_valid": self.is_valid}
-
-
-def dataset_sha256(path: Path) -> str:
-    """Return a stable SHA-256 digest for a historical input file."""
-
-    digest = hashlib.sha256()
-    with path.open("rb") as source:
-        for chunk in iter(lambda: source.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def validate_candles(
@@ -135,12 +126,8 @@ def validate_candle_stream(
         previous = candle
         previous_end_date = end_date
 
-    zero_volume_rate = (
-        None if candle_count == 0 else zero_volume_rows / candle_count
-    )
-    weekend_candle_rate = (
-        None if candle_count == 0 else weekend_rows / candle_count
-    )
+    zero_volume_rate = None if candle_count == 0 else zero_volume_rows / candle_count
+    weekend_candle_rate = None if candle_count == 0 else weekend_rows / candle_count
     session_open_mismatch_dates = (
         0
         if session_profile != "rth"
@@ -185,9 +172,7 @@ def validate_candle_stream(
     if (
         session_profile == "rth"
         and first_start_minute_by_date
-        and session_open_mismatch_dates
-        / len(first_start_minute_by_date)
-        >= 0.01
+        and session_open_mismatch_dates / len(first_start_minute_by_date) >= 0.01
     ):
         errors.append(
             "at least 1% of session dates do not start at 09:30; verify source timestamp conversion"

@@ -14,10 +14,12 @@ Run everything CI runs:
 
 ```bash
 npm ci
+npm audit --audit-level=high
 npm test
 npm run typecheck
-uv sync --dev
+uv sync --dev --locked
 uv run pytest
+npm run check:hygiene -- --all
 ```
 
 New business logic should include regression tests. Public APIs and signal

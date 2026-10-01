@@ -58,119 +58,36 @@ The live Worker is TypeScript under `src/`. Reproducible local event studies
 and backtests are Python under `python/reversal_scanner_backtest/`. Python
 dependencies and generated reports are not part of the Worker runtime.
 
-## 1. Market activity and RVOL
+## Reading the diagnostics
 
-Market activity compares cumulative RTH volume with the same completed
-15-minute slot in prior valid sessions:
+**Market activity** compares cumulative regular-session volume with the same
+completed 15-minute slot in prior valid sessions. The latest-slot burst is
+independent of the session label. Missing candles never become low volume;
+only complete standard US equity sessions enter the baseline. See the
+[RVOL measurement contract](docs/methodology/market-activity-methodology.md).
 
-| State | Cumulative same-time RVOL |
-| --- | ---: |
-| `DEADWATER` | `< 0.65` |
-| `QUIET` | `0.65` to `< 0.85` |
-| `NORMAL` | `0.85` to `< 1.20` |
-| `ACTIVE` | `1.20` to `< 1.60` |
-| `SURGE` | `>= 1.60` |
+**Fragility** counts six stressed repair mechanisms: session loss, VWAP repair,
+close location, downside tails, mega-cap breadth and cross-index confirmation.
+These are correlated diagnostics, not independent probabilities. The score,
+coverage and transition rules are defined in the
+[fragility contract](docs/methodology/fragility-backtest-methodology.md).
 
-The latest 15-minute slot also reports an independent burst reading. A burst
-does not override the cumulative session state. Percentiles begin after enough
-same-slot history exists; missing candles never become fake low volume.
+**Resilience** measures recovery after drawdowns using bounded prospective
+history. Half-hour live state and five-minute shadow observations remain
+separate. See the
+[resilience contract](docs/methodology/resilience-decay-methodology.md).
 
-Only complete standard US equity sessions enter the durable baseline. NYSE
-holidays and recurring early closes are excluded even if the 24/7 perpetual
-continues trading. See
-[Market activity and RVOL-at-time](docs/methodology/market-activity-methodology.md).
+**Reversal signals** retain the frozen WATCH/ALERT rules and asymmetric bullish
+reversal / bearish crash-monitor policy. They do not model option fills or
+Greeks. See the [evaluation protocol](docs/methodology/backtest-evaluation-plan.md)
+and [synthetic candle examples](docs/assets/reversal-signal-candle-examples.svg).
 
-## 2. Fragility and repair mechanisms
-
-Each due brief evaluates six explicit mechanisms:
-
-1. current-session loss;
-2. persistent displacement below VWAP;
-3. poor latest-close location inside the observed range;
-4. a volatility-adjusted cluster of large five-minute losses;
-5. mega-cap stock-perpetual breadth; and
-6. simultaneous weakness in `xyz:SP500` and `xyz:XYZ100`.
-
-The frozen classification is count-based:
-
-| Level | Stressed mechanisms |
-| --- | ---: |
-| `RESILIENT` | 0–1 |
-| `FRAGILE` | 2 |
-| `BREAKING` | 3 |
-| `PANIC` | 4 or more |
-| `UNKNOWN` | fewer than four mechanisms available |
-
-The `0–100` stress score is a readable failure-count scale, not crash
-probability. Expanded `xyz` stock breadth is context only and cannot become a
-seventh mechanism. If cross-market metadata fails, the price-only brief remains
-available and is labelled partial.
-
-Scheduled `BREAKING` and `PANIC` briefs mention `@everyone` only when the data
-is healthy and belongs to a standard RTH session. Shadow persistence records
-whether damage is new, escalating, persistent, rotating, improving, recovered,
-or relapsing. It never replaces the frozen classifier.
-
-The rejected probability-v2 model is deliberately absent from the Worker: its
-out-of-sample Brier Skill Score was negative. See
-[Fragility v2 methodology](docs/methodology/fragility-v2-methodology.md) and
-the [evaluation report](docs/evidence/fragility-v2-evaluation-report.md).
-
-## 3. Resilience
-
-Resilience tracks recovery after comparable drawdown shocks. The live path uses
-a fixed half-hour grid. A separate five-minute shadow path collects prospective
-observations under its own KV key and rejects shock starts too late to reach the
-two-hour checkpoint before the cash close.
-
-The shadow path:
-
-- reuses candles already fetched for the scheduled scan;
-- adds no Hyperliquid request;
-- retains at most 78 current-session snapshots and 12 completed shocks;
-- fails open if KV is unavailable or malformed; and
-- cannot change messages, mentions, fragility, reversal rules, or thresholds.
-
-Historical evaluation found the current `FADING` cohort too sparse for a
-reliable strategy claim, so resilience remains presentation and research
-telemetry. See
-[Resilience decay methodology](docs/methodology/resilience-decay-methodology.md).
-
-## 4. Retained reversal scanner
-
-The original scanner detects fresh session extremes followed by a rejection
-candle, bounded invalidation, sufficient underlying-price reward, and frozen
-price-R and heuristic-score thresholds. `WATCH` is the earlier state; `ALERT`
-keeps the stricter filter.
-
-![Synthetic reversal-candle examples][candle-examples]
-
-This remains an experimental feature rather than the product’s main purpose.
-The current delivery-aware 2008–2026 study reports a full-sample profit factor
-of `0.83`, rolling profit factor of `0.86`, and single-position profit factor of
-`0.84` under the frozen stop policy. Those results do not validate a tradable
-edge. In particular, a convex-looking rejection during a free-fall session is
-not evidence that bottom-fishing is safe.
-
-See [Current evidence](docs/evidence/current-evidence.md) and
-[Backtest evaluation plan](docs/methodology/backtest-evaluation-plan.md).
-
-## Data-health gate
-
-Every scan checks the already-fetched candles for freshness, five-minute
-continuity, session scope, and the supported US equity calendar. This adds no
-provider request.
-
-Stale, gapped, holiday, early-close, or overnight data may remain visible as
-explicitly ineligible context, but it cannot:
-
-- add fragility or resilience persistence;
-- present RVOL as a live RTH input;
-- route a reversal opportunity; or
-- trigger `@everyone`.
-
-Hyperliquid `xyz:SP500` is a venue-specific perpetual market, not official cash
-SPX. Basis, funding, oracle, liquidity, and volume differences are possible.
+**Data health** gates decisions and mentions. Missing, stale, gapped or
+ineligible session data must remain labelled; the monitor can still show a
+partial brief. Diagnostics do not promote themselves from shadow to live.
+The [runtime guide](docs/operations/runtime.md) defines schedules and modes;
+[current evidence](docs/evidence/current-evidence.md) records the findings,
+including negative results and the rejected probability-v2 model.
 
 ## Running and deploying
 

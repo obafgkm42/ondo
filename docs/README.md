@@ -6,7 +6,7 @@ matching folder instead of adding Markdown files to the repository root.
 ## Start here
 
 - [README](../README.md) — product scope and claim boundaries.
-- [Roadmap](planning/roadmap.md) — completed milestones, open work, and the
+- [Roadmap](planning/roadmap.md) — open work, acceptance conditions, and the
   evidence boundary.
 - [Current evidence](evidence/current-evidence.md) — study results, including
   negative findings.

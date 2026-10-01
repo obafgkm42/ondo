@@ -84,46 +84,13 @@ the Worker depend on anything under `python/`.
    heuristics. Do not describe them in code, comments, docs, or Discord output
    as probabilities, confidence intervals, or trade instructions.
 
-## Before you open a PR
+## Change workflow
 
-Run everything CI runs. These five commands are exactly `.github/workflows/ci.yml`:
-
-```bash
-npm ci
-npm test
-npm run typecheck
-uv sync --dev
-uv run pytest
-```
-
-New business logic needs regression tests. Changes that touch both the live
-TypeScript path and the Python research port need tests on both sides, and
-must keep `python/tests/test_contract_parity.py` green.
-
-## How work is structured
-
-[`CONTRIBUTING.md`](CONTRIBUTING.md) is the single workflow entry point. Most
-changes are one reviewable diff with tests and any necessary documentation.
-Record purpose, scope, validation, and risk in the pull request; do not create
-separate process files or stop at document-approval gates.
-
-A frozen-threshold change, shadow-to-live promotion, or evidence-claim change
-still needs an explicit human decision and durable evidence in the relevant
-existing methodology or evaluation document.
-
-## Commit and PR conventions
-
-Lowercase Conventional Commits, matching the existing history:
-
-```text
-fix: handle empty candle responses
-test: add rejection-candle regression
-docs: clarify hypothetical performance limits
-```
-
-Keep public APIs and signal thresholds from changing silently. If a change
-affects research validity, say so in the commit body and update the relevant
-document in `docs/` in the same change.
+Follow [CONTRIBUTING.md](CONTRIBUTING.md) for validation, commits and PRs.
+New business logic needs regression tests; cross-language changes need tests
+on both sides and must preserve contract parity. Frozen-threshold changes,
+shadow-to-live promotion and evidence-claim changes require the explicit
+human decision and durable evidence specified there.
 
 ## Pre-commit hygiene
 

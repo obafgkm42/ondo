@@ -6,8 +6,8 @@ import json
 from pathlib import Path
 
 import pytest
-
-import reversal_scanner_backtest.fragility_cli as fragility_cli
+from factories import session_candles
+from reversal_scanner_backtest import candle_io
 from reversal_scanner_backtest.fragility_cli import (
     apply_proxy_volume,
     build_streaming_replay,
@@ -18,8 +18,6 @@ from reversal_scanner_backtest.fragility_study import (
     build_fragility_observations,
 )
 from reversal_scanner_backtest.models import Candle
-
-from factories import session_candles
 
 
 def test_aligned_proxy_volume_preserves_primary_prices() -> None:
@@ -71,8 +69,8 @@ def test_streaming_loader_preserves_rows_across_small_chunks(
         ),
         encoding="utf-8",
     )
-    monkeypatch.setattr(fragility_cli, "JSON_READ_CHUNK_SIZE", 97)
-    monkeypatch.setattr(fragility_cli, "JSON_REFILL_THRESHOLD", 23)
+    monkeypatch.setattr(candle_io, "JSON_READ_CHUNK_SIZE", 97)
+    monkeypatch.setattr(candle_io, "JSON_REFILL_THRESHOLD", 23)
 
     loaded = load_candles_streaming(source)
 

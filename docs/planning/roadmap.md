@@ -2,263 +2,34 @@
 
 Back to the [documentation map](../README.md).
 
-Status: canonical development backlog. Prepared: 2026-09-13. M1-M3 and M4
-stage B have landed on `main`. Local Stage B acquisition and operational audit
-tooling is implemented; M4 stage C, M5, M6, and the deployed ten-session pilot
-remain open.
+This is the canonical backlog. M1-M3 and M4 stage B are implemented;
+implementation history remains in Git and pull requests. The deployed
+**ten-session operational pilot is still open**, as are stage C, M5 and M6.
+Local tests and delivered tooling are not deployed or research evidence.
 
-## Objective and scope
+## Current contracts
 
-Make market-pressure observations trustworthy, then test whether faster and
-better-aligned observations add useful information beyond simple price and
-volatility baselines. Keep the four-level classifier readable and explainable.
-More requests are an experimental resource, not evidence of an edge.
+- [Runtime](../operations/runtime.md): schedules, provider budgets, storage,
+  coordination, modes and rollback. Confirm actual deployment settings before
+  changing resource limits; account entitlements have not been inspected.
+- [Current evidence](../evidence/current-evidence.md): results and limitations.
+- [Fragility methodology](../methodology/fragility-backtest-methodology.md):
+  coverage, anchors, transitions and frozen classifier semantics.
+- [Promotion gate](../methodology/backtest-evaluation-plan.md): requirements
+  for behavior changes. The rejected probability-v2 model remains excluded.
+- [Contributing](../../CONTRIBUTING.md): implementation and review workflow.
 
-The operator reports an upgrade to Cloudflare Workers Standard. Account
-entitlements and deployed settings have not been inspected. This handoff
-defines local implementation and validation tasks; deployment, notification
-policy changes, and research promotion remain separate decisions under
-[`AGENTS.md`](../../AGENTS.md) and
-[`CONTRIBUTING.md`](../../CONTRIBUTING.md).
+## M4 remaining work
 
-Keep venue access read-only. Do not change frozen reversal thresholds, revive
-the rejected probability-v2 model, add trading routes, or introduce a live
-weighted classifier. New measurements start in shadow. Use existing methodology
-documents for durable contract changes; update this checklist with completed
-work and evidence references rather than creating another process chain.
-
-## Baseline findings to preserve in the handoff
-
-- `src/market-fragility.ts` counts six threshold conditions. Four describe
-  SP500 price history; breadth and cross-index confirmation use asset contexts.
-  These are correlated observations, not six statistically independent events.
-- At least four available indicators permit a level. Losing stressed context
-  indicators can lower the level even when the price path is unchanged.
-  `recoveredIndicatorIds` in `src/market-fragility-shadow.ts` currently treats
-  disappearance from the stressed set as recovery, including unavailability.
-- Session loss uses the session open; context returns use `markPx / prevDayPx`.
-  The code does not establish a common RTH anchor. Do not assume `prevDayPx`
-  means the previous official cash close or the current RTH open.
-- Three recent closes are compared with the latest session VWAP. That is not
-  necessarily three closes below each candle's contemporaneous VWAP. Clarify
-  the current contract before testing an alternative.
-- Cron ticks every five minutes. Actual scans run every 15 minutes, except
-  every five minutes during 15:00-16:00 New York on standard session dates.
-  Scanning continues outside RTH. Briefs run every 30 minutes throughout a
-  standard session date, including overnight, and hourly on nonstandard dates.
-  Eligibility and mentions have separate RTH/data-health gates.
-- The coordinator serializes this Worker's scans and coalesces overlapping
-  manual queries. It does not reserve an upstream IP quota, provide dedicated
-  egress, or guarantee exactly-once external notification delivery.
-
-The price-only historical study found higher subsequent downside frequency in
-`BREAKING/PANIC`, but only four indicators were available and VWAP used a
-zero-volume fallback. `FRAGILE` was weakly separated. The v2 probability
-candidate failed its base-rate comparison; two-brief confirmation did not
-identify a riskier post-confirmation cohort. These are constraints on claims,
-not reasons to tune the inspected sample again. See
-[current evidence](../evidence/current-evidence.md),
-[fragility methodology](../methodology/fragility-backtest-methodology.md), and
-[v2 evaluation](../evidence/fragility-v2-evaluation-report.md).
-
-## Request and platform budget
-
-### Official limits checked on 2026-09-13
-
-[Hyperliquid's limit documentation][hl-limits] specifies 1,200 aggregated REST
-weight per minute per IP. Most documented `info` requests cost 20; candle
-responses add weight per 60 returned items. Request counts alone therefore
-understate cost. Address-based action limits do not apply to these info reads.
-The published rules do not establish a guaranteed allocation for this Worker.
-
-Use `20 + ceil(returnedCandles / 60)` as a conservative candle-weight estimate,
-not a verified provider billing counter. An 18-hour five-minute window is about
-216 candles, or 24 estimated units. `metaAndAssetCtxs` is budgeted at 20.
-`perpCategories` is used by this repo but its endpoint-specific weight was not
-established by the documentation checked here: reserve 20 provisionally,
-record this uncertainty, and do not raise its frequency without verification.
-
-[Workers Standard pricing][cf-pricing] includes 10 million Worker requests and
-30 million CPU milliseconds monthly. These are platform usage allowances,
-not Hyperliquid quotas; external fetches are not billed as inbound Worker
-requests. KV and Durable Object usage need their own estimates. The
-[Workers limits page][cf-limits] lists 30 seconds of Cron CPU for intervals
-below one hour. This deployment also runs scan work inside a Durable Object;
-check its applicable limits rather than assigning it the Cron CPU allowance.
-Confirm actual configuration before changing any resource limit.
-
-### Proposed experiment ladder
-
-All counts below are successful endpoint calls on a normal 24-hour standard
-session date. They exclude manual requests, retries, RVOL bootstrap, deployment
-work, and failures. Preserve overnight policy. Cache category metadata first.
-
-| Stage | Candle calls/day | Context calls/day | Category calls/day | Total |
-| --- | ---: | ---: | ---: | ---: |
-| Current baseline | 104 | 48 | 48 | 200 |
-| A: category cache only | 104 | 48 | 1 | 153 |
-| B: five-minute RTH acquisition | 148 | 48 | 1 | 197 |
-| C: B plus 15-minute RTH contexts | 148 | 61 | 1 | 210 |
-
-Derivation: baseline has 96 quarter-hour scans plus eight extra final-hour
-scans. Five-minute RTH acquisition adds 44 scans. Stage C adds 13 context
-refreshes between existing half-hour boundaries. Categories have one planned
-refresh per 24 hours; cold starts and recovery must still obey admission limits.
-Assert exact boundary counts with the scheduler simulator before rollout.
-
-At the provisional weights above, planned daily weight is approximately
-4,416 / 3,476 / 4,532 / 4,792 respectively. A candle-plus-context tick is about
-44 units; a category refresh adds 20. Daily totals do not prove minute-level
-safety. A 30-day, 15-minute RVOL bootstrap can return about 2,881 candles and
-cost about 69 estimated units in one request; reserve it separately.
-
-Stage B can provide faster four-indicator shadow observations without more
-daily calls than today's uncached baseline. It does not provide fresh six-item
-observations every five minutes. Stage C is optional after B's operational
-review. Full five-minute context polling, per-constituent candle fan-out, and
-WebSocket ingestion are deferred until a specific evidence gap justifies them.
-
-## Implementation checklist
-
-### Branch sizing discipline
-
-- Deliver one independently testable acceptance unit per branch. Target 100-300
-  changed lines across source, tests, and documentation; split the work before
-  400 changed lines unless an unavoidable generated artifact is isolated.
-- Keep behavior-preserving extraction separate from new behavior. When work
-  touches a large module, extract only the seam required by the next milestone;
-  do not bundle broad cleanup with feature development.
-- Do not use a large test diff to justify a large production diff. If either
-  side obscures review, divide the contract, implementation, and integration
-  work into separate branches.
-
-### M1 - Correct missing-data and transition semantics
-
-Primary files: `src/market-fragility-shadow.ts`, `src/types.ts`, relevant
-formatters, Python shadow-report parser, and their tests.
-
-- [x] Store per-indicator availability and reason, alongside stressed/healthy
-  state. Version the persisted schema; migrate older rows as unknown where
-  identity-level availability cannot be reconstructed.
-- [x] Mark recovery only for an observed `stressed -> healthy` transition.
-  Treat `stressed -> unavailable` as lost coverage. Compare transitions only
-  over jointly observable indicators and compatible measurement definitions.
-- [x] Break confirmation chains across missing expected briefs or incompatible
-  coverage; distinguish elapsed wall time from continuously observed duration.
-  A timestamp gap must not silently become continuous confirmation.
-- [x] Keep the frozen count/level mapping, but label cross-coverage level changes
-  as non-comparable. Never display a data-loss transition as improving/recovered.
-  Do not normalize four-item counts onto a six-item scale or invent values.
-- [x] Cover unchanged prices with `3/6 -> 1/4 -> 3/6`, partial-to-full recovery,
-  genuine stressed-to-healthy recovery, insufficient data, skipped briefs,
-  duplicate ticks, restart, and legacy schemas. Verify TypeScript/Python parity
-  where both consume the new contract.
-
-Done when all synthetic coverage-loss cases produce zero false recovery or
-escalation claims, and unrelated healthy-data classifications remain unchanged.
-
-### M2 - Make observation windows and presentation explicit
-
-Primary files: `src/market-fragility.ts`, `src/hyperliquid.ts`, formatters,
-`src/types.ts`, and `docs/methodology/fragility-backtest-methodology.md`.
-
-- [x] Record candle end, context fetch completion, evaluation time, session
-  scope, reference-price type, and any provider timestamp actually available.
-  A local fetch timestamp does not establish the age of an underlying oracle.
-- [x] Label current context returns with their actual provider reference.
-  Verify `prevDayPx` semantics from authoritative documentation or provider
-  confirmation before calling them cash-day or rolling-24-hour returns.
-- [x] Keep same-RTH-anchor returns as a separately versioned shadow candidate.
-  An observed post-open mark may be labelled a sampled anchor, never an exact
-  09:30 open. Missed anchors remain missing; do not reconstruct them from a
-  later quote. Avoid adding nine per-market candle requests to solve anchoring.
-- [x] Make partial coverage and cached-context age prominent. Describe
-  `RESILIENT` as few observed pressure conditions, not proven recovery or safety.
-  Treat the six-item score as ordinal and expanded stock-perp breadth as a
-  venue-specific proxy. Keep activity/RVOL separate from downside pressure.
-- [x] Show existing mechanism families as explanatory context only. Do not
-  change level weights, thresholds, colors, mentions, or reversal eligibility.
-- [x] Test gap-down/rebound, gap-up/selloff, tiny-range quiet trading, missing
-  anchors, changing VWAP, stale context, DST, holidays, and early closes.
-
-Done when every displayed return has an unambiguous window and unavailable
-inputs cannot look like favorable readings. Any formula alternative remains
-shadow until M6; wording improvements alone do not establish predictive skill.
-
-### M3 - Bound provider traffic before increasing cadence
-
-Primary files: `src/scan-coordinator.ts`, `src/hyperliquid.ts`,
-`src/scan-service.ts`, configuration/types, and `docs/operations/runtime.md`.
-
-- [x] Add a versioned 24-hour category cache in existing coordinated storage.
-  A failed refresh must not fan out into repeated category calls. Bound stale
-  fallback at 72 hours and label its age; after expiry omit expanded breadth.
-  Continue filtering delisted markets using current asset metadata.
-- [x] Admit scheduled, manual, retry, category, and bootstrap requests through
-  one coordinator budget. Start with at most 240 estimated weight units per
-  rolling 60 seconds and one in-flight Hyperliquid call. This is a local
-  engineering ceiling, not a claim of upstream capacity or a market threshold.
-- [x] Reserve a conservative response-size bound before each candle request;
-  count each attempted HTTP request, including failed attempts. Reconcile
-  response-size estimates conservatively and log estimate uncertainty.
-- [x] Retain one attempt on 429. Persist `blockedUntil` across ticks/restarts;
-  respect valid Retry-After within the existing bounded parsing contract. Use a
-  60-second fallback when absent/invalid and allow one probe after expiry.
-  Extend cooldown on a failed probe; do not sleep inside a Worker to retry.
-- [x] Keep at most three total attempts for 5xx, all subject to admission and
-  the invocation deadline. Defer optional context/bootstrap when budget is
-  insufficient; a context 429 suppresses further Hyperliquid calls that tick.
-- [x] Keep concurrent manual-query coalescing and add a bounded manual refresh
-  policy: at most one new upstream refresh per 60 seconds. During cooldown or
-  admission denial return clearly timestamped cached/partial output or an
-  unavailable result, never bypass the budget. Preserve authentication.
-- [x] Persist cooldown and budget reservations safely across eviction; bound
-  queued work, discard obsolete ticks, and prioritize the next valid scheduled
-  scan over repeated manual queries. Do not replay a backlog as a request burst.
-- [x] Test rolling-minute boundaries, 429 with every Retry-After variant, 5xx,
-  category expiry, large bootstrap responses, cold starts, storage failure,
-  concurrent manual/cron work, and lost responses. No direct fallback may
-  bypass coordinated admission. Budget-state failure suppresses fresh fetches
-  while keeping labelled degraded status available.
-
-Done when deterministic request traces stay inside the configured ceiling,
-cooldown makes zero upstream calls, and baseline healthy scans are not starved.
-Do not change regions, rotate IPs, or add identities to evade upstream limits.
-
-### M4 - Separate acquisition, shadow evaluation, and notifications
-
-Depends on M1-M3. Primary files: scheduling/configuration, scan service,
-coordinator, shadow collectors, and their integration tests.
-
-- [x] Add an explicit opt-in five-minute RTH acquisition mode for stage B.
-  Retain the current five-minute cron and current non-RTH acquisition policy.
-  Reuse one SP500 candle response for all diagnostics at each acquired tick.
-- [x] Keep original reversal evaluation/delivery opportunities on the existing
-  15-minute/final-hour-five-minute grid. Faster acquisition must not silently
-  create earlier alerts, alter entry eligibility, or advance its catch-up
-  watermark. Maintain separate scheduling/watermarks for shadow work.
-- [x] Preserve half-hour live fragility/resilience and existing Discord cadence.
-  New five-minute price-only observations have a separate identity; contexts
-  reused between refreshes carry their true age and coverage. Never backfill
-  past shadow rows using newly fetched cross-market values.
-- [x] Give the faster collector its own versioned storage key and bounds: at
-  most 78 observation opportunities per full RTH session and 60 retained
-  sessions, with an explicit byte-size ceiling. Do not write five-minute rows
-  into the existing 16-row half-hour schema. Test retention and export before
-  enabling collection; keep legacy live state intact for rollback.
-- [ ] Implement stage C only as a separate opt-in context-sampling mode after
-  stage B passes operational review. Reuse each batch context response across
-  all requested symbols. Avoid changing two experimental factors together.
-- [x] Differentially replay identical timestamped provider responses through
-  baseline and candidate. With shadow enabled, existing live signal payloads,
-  mentions, eligibility, and half-hour outputs must match, except explicitly
-  approved M1/M2 data-quality wording. More live alerts is a regression here.
-- [x] Assert the daily request table, peak weights, first eligible observation,
-  09:30/15:00/16:00 boundaries, DST, closure dates, delays, and catch-up behavior.
-
-Done when shadow captures the intended grid without changing the frozen live
-delivery policy. Disabling acquisition/context experiments restores baseline
-scheduling while retaining M1's correctness fixes and M3's protections.
+- [ ] Run and review the deployed ten-session stage B pilot using the existing
+  acquisition audit tooling. Check intended observation coverage, bounded
+  storage, request budget/cooldown and unchanged live delivery policy.
+- [ ] Implement stage C as a separate opt-in context-sampling experiment only
+  after stage B operational review. Reuse each context response across symbols;
+  keep source ages and coverage explicit and do not backfill historical context.
+- [ ] Preserve the existing overnight policy, half-hour live outputs, reversal
+  delivery grid and catch-up watermark. Disable the experimental mode to
+  restore baseline acquisition while keeping correctness and traffic guards.
 
 ### M5 - Build prospective evidence that can actually be replayed
 
@@ -354,13 +125,12 @@ slippage, and costs. Predictive separation alone does not authorize a trading
 gate. Profitability claims still require the existing
 [promotion gate](../methodology/backtest-evaluation-plan.md).
 
-## Validation, rollout, and agent completion record
+## Validation and rollout
 
 - [ ] Run focused regression/integration tests for each milestone. Before an
-  implementation PR run `npm ci`, `npm test`, `npm run typecheck`,
-  `uv sync --dev --locked`, `uv run pytest`, and the full hygiene check.
-  The locked Python sync follows the current CI workflow. Run Ruff formatting
-  and checks when modifying Python, as required by the coding instructions.
+  implementation PR follow the full validation commands in
+  [CONTRIBUTING.md](../../CONTRIBUTING.md). Run Ruff formatting and checks
+  when modifying Python.
 - [ ] Validate the Worker bundle and coordinator behavior locally with mocked
   provider responses. Never use an upstream stress test to validate the limiter.
 - [ ] After deployment is authorized, start with stage A, then a ten-full-session
@@ -382,96 +152,5 @@ gate. Profitability claims still require the existing
   request-budget delta, remaining uncertainty, and rollback behavior in its PR.
   Distinguish local tests, deployed runtime evidence, and completed research.
 
-Suggested implementation order: M1, M2, M3, M5, M6 protocol registration,
-M4 stage B, then M6 evaluation after the frozen collection window.
-An agent should take one bounded milestone at a time and commit its tested unit
-before proceeding. Do not mark a research task complete merely because the
-collector, report generator, or test suite has been delivered.
-
-### M1 completion record
-
-- Scope: availability-aware fragility shadow schema v4, continuity-safe
-  confirmation and transition semantics, Discord/log labelling, legacy v2/v3
-  migration, and matching offline Python parsing/reporting.
-- Validation: `npm test`, `npm run typecheck`, `uv run pytest`, focused schema
-  migration tests, and Ruff formatting/checks passed locally.
-- Runtime contract: no classifier threshold, level mapping, mention, color,
-  reversal-eligibility, schedule, or provider-request change.
-- Request-budget delta: zero; the existing brief uses the same fetched candles,
-  contexts, and one bounded KV read/write pair.
-- Remaining uncertainty: local tests do not prove deployed KV migration or
-  Discord presentation. Deployment and runtime observation remain separate.
-- Rollback: reverting the code restores v3 behavior; a v3 Worker cannot consume
-  already-written v4 shadow rows and would rebuild this bounded diagnostic
-  history. The read-only monitor and frozen classifier remain available.
-
-### M2 completion record
-
-- Scope: explicit indicator reference types; candle, context-receipt,
-  evaluation, session-scope, and provider-time metadata; source-labelled
-  `prevDayPx` returns; prominent context age and unavailable coverage; and
-  neutral observed-pressure wording for `RESILIENT`.
-- Provider contract: official documentation exposes `prevDayPx` but does not
-  define its window or a context timestamp. The runtime records the literal
-  field basis and `null` provider time rather than inferring either property.
-- Shadow boundary: `fragility-rth-anchor-shadow-v1` is reserved as a separate
-  future protocol. M2 does not compute, persist, display, or promote it.
-- Runtime contract: classifier constants, level mapping, colors, mentions,
-  reversal eligibility, scheduling, and request count are unchanged.
-- Validation: focused fragility, Hyperliquid, Discord, interaction, and shadow
-  tests plus TypeScript typecheck passed locally. Existing market-hours tests
-  retain DST, holiday, and early-close coverage.
-- Request-budget delta: zero; the existing context response is timestamped
-  after parsing and no new provider or storage operation is added.
-- Rollback: reverting M2 restores the earlier unlabeled presentation without
-  changing stored shadow schema v4 or the frozen classifier.
-
-### M3 completion record
-
-- Scope: one coordinated provider budget, bounded category caching, persisted
-  cooldown, conservative request reservations, retry limits, and manual/cron
-  coalescing. The work landed through PR #15.
-- Validation: required GitHub hygiene, TypeScript, and Python checks passed,
-  including deterministic budget, cooldown, retry, eviction, and scheduling
-  coverage.
-- Runtime contract: no signal threshold, classifier level, mention, or trading
-  behavior changed. Category caching reduces the planned healthy daily request
-  count before any faster acquisition is considered.
-- Remaining uncertainty: local and CI tests do not prove provider egress,
-  deployed rolling-weight behavior, or production 429 recovery.
-- Rollback: revert the M3 commits only with an explicit decision to give up the
-  shared admission and cooldown safeguards; do not bypass them ad hoc.
-
-### M4 stage B completion record
-
-- Scope: opt-in five-minute RTH price-only shadow acquisition on a separate
-  schedule and storage key, bounded to 78 rows per session, 60 sessions, and
-  8 MiB. The work landed through PR #16.
-- Validation: required GitHub checks passed with differential live-output,
-  retention/export, request-count, boundary, DST, holiday, and catch-up tests.
-- Runtime contract: the existing live evaluation, Discord cadence, mentions,
-  eligibility, and half-hour diagnostics remain unchanged. Stage C is not
-  implemented.
-- Request-budget delta: planned healthy daily calls rise from stage A's 153 to
-  stage B's 197, still below the uncached baseline estimate of 200.
-- Remaining uncertainty: deployed configuration and the required ten-full-
-  session operational pilot have not been verified in this record.
-- Rollback: set `FIVE_MINUTE_RTH_ACQUISITION_MODE=off`; retained shadow rows do
-  not affect live state.
-
-### M4 stage B audit-tooling progress
-
-- PR #19 added the data-minimizing local acquisition audit; PR #20 added an
-  explicit expected-session denominator; PR #21 added the acquisition gate.
-- Commits `86d6e49`, `e11a3a3`, and `89ff8a0` define sanitized operational
-  evidence, integrate it with the acquisition audit, and evaluate the separate
-  operational gate.
-- Scope remains offline: no Worker runtime, provider request, storage, schedule,
-  signal, mention, or deployment configuration changed.
-- The tooling does not complete the pilot. Keep the rollout and evidence tasks
-  above unchecked until ten full deployed sessions and their sanitized traces
-  have been reviewed.
-
-[hl-limits]: https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/rate-limits-and-user-limits
-[cf-pricing]: https://developers.cloudflare.com/workers/platform/pricing/
-[cf-limits]: https://developers.cloudflare.com/workers/platform/limits/
+Next: review the stage B pilot, register M5/M6 protocols, then evaluate after
+the frozen collection window. Delivered tooling does not complete research.

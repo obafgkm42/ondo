@@ -6,12 +6,26 @@ import argparse
 import json
 from collections.abc import Sequence
 from dataclasses import asdict
-from datetime import UTC, date, datetime
+from datetime import date
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
+from reversal_scanner_backtest.candle_io import (
+    filter_candles_for_session,
+    load_candles,
+)
+from reversal_scanner_backtest.candle_io import (
+    is_rth_candle as is_rth_candle,  # noqa: PLC0414 - compatibility re-export
+)
+from reversal_scanner_backtest.candle_io import (
+    reinterpret_naive_local_candle as reinterpret_naive_local_candle,  # noqa: PLC0414 - compatibility re-export
+)
 from reversal_scanner_backtest.models import Candle
-from reversal_scanner_backtest.market_data import canonical_candle_stream
+from reversal_scanner_backtest.replay import (
+    ReplaySettings,
+    available_history,
+    build_delivery_decision,
+    should_evaluate_candle,
+)
 from reversal_scanner_backtest.reversal_study import (
     ExecutionAssumptions,
     ReversalEvent,
@@ -22,22 +36,16 @@ from reversal_scanner_backtest.reversal_study import (
     build_single_position_summary,
     date_key,
     event_to_dict,
+    render_direction_summary_markdown,
     render_reversal_summary_markdown,
     render_single_position_markdown,
-    render_direction_summary_markdown,
     reversal_events_to_csv,
     set_backtest_session_time_zone,
-    summary_to_dict,
-    summarize_reversal_events,
     summarize_events_by_direction,
+    summarize_reversal_events,
+    summary_to_dict,
 )
 from reversal_scanner_backtest.signal_engine import analyze_frozen_signal_v1
-from reversal_scanner_backtest.replay import (
-    ReplaySettings,
-    available_history,
-    build_delivery_decision,
-    should_evaluate_candle,
-)
 from reversal_scanner_backtest.validation import (
     dataset_sha256,
     validate_candles,
@@ -113,16 +121,8 @@ def main(argv: Sequence[str] | None = None) -> None:
         events,
         args.walk_forward_train_months,
         args.walk_forward_test_months,
-        (
-            None
-            if not candles
-            else date.fromisoformat(date_key(candles[0].end_time))
-        ),
-        (
-            None
-            if not candles
-            else date.fromisoformat(date_key(candles[-1].end_time))
-        ),
+        (None if not candles else date.fromisoformat(date_key(candles[0].end_time))),
+        (None if not candles else date.fromisoformat(date_key(candles[-1].end_time))),
     )
 
     output_dir = args.output_dir or args.output.parent
@@ -171,14 +171,16 @@ def main(argv: Sequence[str] | None = None) -> None:
         "singlePosition": asdict(single_position),
         "clusterBootstrap": None if bootstrap is None else asdict(bootstrap),
         "placebo": placebo,
-        "walkForward": (
-            None if walk_forward is None else walk_forward.to_dict()
-        ),
+        "walkForward": (None if walk_forward is None else walk_forward.to_dict()),
         "events": event_dicts,
     }
 
-    (events_dir / "reversal_event_study.csv").write_text(f"{reversal_events_to_csv(events)}\n", encoding="utf-8")
-    (events_dir / "reversal_event_study.json").write_text(f"{json.dumps(event_dicts, indent=2)}\n", encoding="utf-8")
+    (events_dir / "reversal_event_study.csv").write_text(
+        f"{reversal_events_to_csv(events)}\n", encoding="utf-8"
+    )
+    (events_dir / "reversal_event_study.json").write_text(
+        f"{json.dumps(event_dicts, indent=2)}\n", encoding="utf-8"
+    )
     (reports_dir / "reversal_summary.md").write_text(
         render_reversal_summary_markdown(summary, placebo, bootstrap),
         encoding="utf-8",
@@ -198,7 +200,9 @@ def main(argv: Sequence[str] | None = None) -> None:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(f"{json.dumps(payload, indent=2)}\n", encoding="utf-8")
 
-    print(f"Backtest {args.market} candles={len(candles)} signals={summary.signal_count}")
+    print(
+        f"Backtest {args.market} candles={len(candles)} signals={summary.signal_count}"
+    )
     for warning in validation.warnings:
         print(f"Data warning: {warning}")
     if args.source_timezone == "unspecified":
@@ -215,10 +219,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     print(f"Events CSV: {events_dir / 'reversal_event_study.csv'}")
     print(f"Summary: {reports_dir / 'reversal_summary.md'}")
     print(f"Walk-forward: {reports_dir / 'walk_forward_summary.md'}")
-    print(
-        "Single-position: "
-        f"{reports_dir / 'single_position_summary.md'}"
-    )
+    print(f"Single-position: {reports_dir / 'single_position_summary.md'}")
     print(f"Full JSON: {args.output}")
 
 
@@ -254,14 +255,16 @@ def scan_reversal_events(
         trigger_history = available_history(session, candle, settings)
         result = analyze_frozen_signal_v1(trigger_history, market)
         signal = (
-            result.signal
-            if signal_scope == "alert"
-            else result.signal or result.watch
+            result.signal if signal_scope == "alert" else result.signal or result.watch
         )
         if signal is None or signal.timestamp != candle.end_time:
             continue
         indexed_session = session_index.get(candle.end_time)
-        future_candles = candles[index + 1 :] if indexed_session is None else indexed_session[0][indexed_session[1] + 1 :]
+        future_candles = (
+            candles[index + 1 :]
+            if indexed_session is None
+            else indexed_session[0][indexed_session[1] + 1 :]
+        )
         delivery_decision = (
             None
             if indexed_session is None
@@ -285,100 +288,34 @@ def scan_reversal_events(
     return events
 
 
-def load_candles(
-    path: Path,
-    source_time_zone: str = "UTC",
-    source_timestamp_mode: str = "utc-epoch",
-) -> list[Candle]:
-    """Load candles and optionally repair naive local epochs."""
-
-    canonical = canonical_candle_stream(path)
-    if canonical is not None:
-        if source_timestamp_mode != "utc-epoch":
-            raise ValueError("canonical market-bars/v2 timestamps are already UTC")
-        return list(canonical)
-    raw = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(raw, list):
-        raise ValueError("input must be a JSON array of candle objects")
-    candles = [Candle.from_dict(row) for row in raw]
-    if source_timestamp_mode == "utc-epoch":
-        return candles
-    if source_timestamp_mode != "naive-local":
-        raise ValueError(
-            "source_timestamp_mode must be utc-epoch or naive-local"
-        )
-    time_zone = ZoneInfo(source_time_zone)
-    return [
-        reinterpret_naive_local_candle(candle, time_zone)
-        for candle in candles
-    ]
-
-
-def reinterpret_naive_local_candle(
-    candle: Candle,
-    time_zone: ZoneInfo,
-) -> Candle:
-    """Apply an IANA zone to wall-clock values incorrectly stored as UTC."""
-
-    duration = candle.end_time - candle.start_time
-    naive_start = datetime.fromtimestamp(
-        candle.start_time / 1000,
-        tz=UTC,
-    ).replace(tzinfo=None)
-    start_time = int(
-        naive_start.replace(tzinfo=time_zone).timestamp() * 1000
-    )
-    return Candle(
-        start_time=start_time,
-        end_time=start_time + duration,
-        open=candle.open,
-        high=candle.high,
-        low=candle.low,
-        close=candle.close,
-        volume=candle.volume,
-        trade_count=candle.trade_count,
-    )
-
-
-def filter_candles_for_session(
-    candles: list[Candle],
-    session_time_zone: str,
-    session_profile: str,
-) -> list[Candle]:
-    """Keep only the declared session when replaying a cash-market proxy."""
-
-    if session_profile == "unrestricted":
-        return candles
-    if session_profile != "rth":
-        raise ValueError("session_profile must be unrestricted or rth")
-    time_zone = ZoneInfo(session_time_zone)
-    return [
-        candle
-        for candle in candles
-        if is_rth_candle(candle, time_zone)
-    ]
-
-
-def is_rth_candle(candle: Candle, time_zone: ZoneInfo) -> bool:
-    """Return whether a candle starts inside 09:30–16:00 local time."""
-
-    local_start = datetime.fromtimestamp(
-        candle.start_time / 1000,
-        tz=time_zone,
-    )
-    minute_of_day = local_start.hour * 60 + local_start.minute
-    return 9 * 60 + 30 <= minute_of_day < 16 * 60
-
-
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     """Parse command-line options."""
 
-    parser = argparse.ArgumentParser(description="Run Python frozen-v1 reversal event study.")
-    parser.add_argument("--input", required=True, type=Path, help="Path to candle JSON in the repo candle shape.")
-    parser.add_argument("--output", type=Path, default=Path("backtest/reversal_backtest.json"), help="Full JSON output path.")
-    parser.add_argument("--output-dir", type=Path, default=None, help="Directory for reports and event tables.")
+    parser = argparse.ArgumentParser(
+        description="Run Python frozen-v1 reversal event study."
+    )
+    parser.add_argument(
+        "--input",
+        required=True,
+        type=Path,
+        help="Path to candle JSON in the repo candle shape.",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("backtest/reversal_backtest.json"),
+        help="Full JSON output path.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=None,
+        help="Directory for reports and event tables.",
+    )
     parser.add_argument("--market", default="SPX", help="Market label for the study.")
-    parser.add_argument("--placebo-runs", type=int, default=1000, help="Matched random placebo runs.")
+    parser.add_argument(
+        "--placebo-runs", type=int, default=1000, help="Matched random placebo runs."
+    )
     parser.add_argument(
         "--bootstrap-runs",
         type=int,
@@ -469,7 +406,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default=0,
         help="Additional round-trip cost deducted from each completed trade.",
     )
-    parser.add_argument("--session-timezone", default="America/New_York", help="Session timezone for grouping.")
+    parser.add_argument(
+        "--session-timezone",
+        default="America/New_York",
+        help="Session timezone for grouping.",
+    )
     parser.add_argument(
         "--source-timezone",
         default="unspecified",

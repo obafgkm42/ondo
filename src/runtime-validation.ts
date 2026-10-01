@@ -10,3 +10,7 @@ export function isNonNegativeFiniteNumber(value: unknown): value is number {
 export function isNonNegativeInteger(value: unknown): value is number {
   return isFiniteNumber(value) && Number.isInteger(value) && value >= 0;
 }
+
+export function safeErrorName(error: unknown): string {
+  return error instanceof Error ? error.name : "UnknownError";
+}

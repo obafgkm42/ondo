@@ -11,12 +11,11 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 
-from reversal_scanner_backtest.cli import filter_candles_for_session
-from reversal_scanner_backtest.fragility_cli import (
-    fingerprint,
+from reversal_scanner_backtest.candle_io import (
+    filter_candles_for_session,
     load_candles_streaming,
-    repository_state,
 )
+from reversal_scanner_backtest.provenance import fingerprint, repository_state
 from reversal_scanner_backtest.resilience_decay_study import (
     FIVE_SESSION_DRAWDOWN_THRESHOLD,
     MINIMUM_PREDICTIVE_COHORT_SESSIONS,
@@ -415,18 +414,14 @@ def sensitivity_to_csv(rows: list[dict[str, object]]) -> str:
                 ],
                 "shock_drop_threshold": parameters["shockDropThreshold"],
                 "fading_recent_minimum": parameters["fadingRecentMinimum"],
-                "fading_decay_delta_threshold": parameters[
-                    "fadingDecayDeltaThreshold"
-                ],
+                "fading_decay_delta_threshold": parameters["fadingDecayDeltaThreshold"],
                 "require_two_hour_eligible_start": parameters[
                     "requireTwoHourEligibleStart"
                 ],
                 "event_count": row["eventCount"],
                 "scored_event_rate": row["scoredEventRate"],
                 "event_weighted_mean_score": row["eventWeightedMeanScore"],
-                "session_weighted_mean_score": row[
-                    "sessionWeightedMeanScore"
-                ],
+                "session_weighted_mean_score": row["sessionWeightedMeanScore"],
                 "fading_observations": row["fadingObservations"],
                 "fading_share": row["fadingShare"],
                 "holdout_fading_share": holdout.get("fadingShare"),

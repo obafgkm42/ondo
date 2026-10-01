@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -14,7 +13,7 @@ from reversal_scanner_backtest.fragility_shadow_report import (
     render_fragility_shadow_markdown,
     summarize_fragility_shadow,
 )
-
+from reversal_scanner_backtest.provenance import dataset_sha256 as file_sha256
 
 SCHEMA_VERSION = 1
 DEFAULT_OUTPUT_DIR = Path("reports/generated/fragility-shadow")
@@ -89,24 +88,12 @@ def print_headline(payload: dict[str, object], output_dir: Path) -> None:
     assert isinstance(window, dict)
     assert isinstance(breaking, dict)
     assert isinstance(quality, dict)
-    sample_state = (
-        "ready" if quality["readyForDescriptiveReview"] else "collecting"
-    )
+    sample_state = "ready" if quality["readyForDescriptiveReview"] else "collecting"
     print(
         f"Fragility shadow sessions={window['retainedSessions']} "
         f"breaking={breaking['sessions']} sample={sample_state} "
         f"output={output_dir}"
     )
-
-
-def file_sha256(path: Path) -> str:
-    """Return the SHA-256 digest of one exported KV value."""
-
-    digest = hashlib.sha256()
-    with path.open("rb") as source:
-        while chunk := source.read(1024 * 1024):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 if __name__ == "__main__":
